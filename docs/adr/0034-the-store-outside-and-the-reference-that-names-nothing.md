@@ -26,10 +26,12 @@
   suite does not**: a fork or partial copy, a backup taken apart from the
   source, a handover to a third party, or a later design that ships a
   reference on its own. That removes the reason the digest ruling stands on,
-  and §12's options reopen with it. **What it amends is owed from acceptance
-  and is not made by it**: the sections named in *Amends* are edited in their
-  own changes, and until each one lands the record it amends still reads as it
-  did
+  and §12's options reopen with it. **A third, narrower, reopens §12 for one
+  suite rather than this record:** a `suite.py` that builds a digest's inputs —
+  a rubric, a declared rate — from outside the repository. **What it amends was made one change after
+  the acceptance, on the same day.** The amendments belonged in the change that
+  accepted, as *Amends* said, and landed in the pull request after it: ADR 0002
+  §6 and its *Consequences*, ADR 0005 §9, and `CLAUDE.md`'s decisions 2 and 9
 - Shipped: unreleased
 - Date: 2026-09-27
 - Opens: **nothing on landing.** No `SCHEMA_VERSION`, no `OUTPUT_VERSION`, no
@@ -89,7 +91,8 @@
   `key_of` lives in the core) and §2 (where the key is carried);
   [ADR 0033](0033-the-server-that-promotes-for-one-browser.md) §6 (world 2
   stays out, and what it needs first)
-- Amends, **owed from acceptance on 2026-09-27, and not yet made**:
+- Amends, **at acceptance** — made on 2026-09-27, in the change after the one
+  that accepted this record:
   [ADR 0002](0002-three-worlds-and-where-the-data-lives.md) §6 — its carve-out
   widens from *the production stream* to *offline runs against the end
   company's own cases*, which is §1 below and the whole of what fixed decision
@@ -415,6 +418,13 @@ first file this one commits.** The reason is this record's own status line: an
 amendment with a deadline must not sit inside a record whose acceptance waits
 on counsel. §5 implements the rule; it does not make it.
 
+*2026-09-27, at acceptance: acceptance no longer waits on counsel, so the
+reason above has gone. The placement stays, for a reason of its own.* The rule
+corrects ADR 0010 §1's premise, so it belongs in ADR 0010, and it is made there:
+[ADR 0010](0010-per-group-aggregates.md) §1, amended the same day, before this
+acceptance. Its deadline was the first committed file, and nothing has been
+committed.
+
 ### 6. The name table
 
 **One table per (tenant, suite), on the data owner's side, behind its own
@@ -698,6 +708,27 @@ redacted reference cannot reach a place the suite does not; when one can, the
 question and all three options are open again. **The sentence above stands
 unchanged**: the digests still carry content, and what the ruling settles is
 who reads it.
+
+**A second condition, narrower than the first.** *Added 2026-09-27.* The ruling
+holds **for as long as a digest's inputs are in the repository that carries the
+reference.** A suite that builds them from outside is the exception, and for
+that suite the ruling does not hold. The first condition depends on **where the
+reference travels**. This one depends on **what the suite does**, and it can
+fire with the reference never leaving the repository.
+
+- **The rubric.** A data suite's rubric is in the file by construction. A
+  `suite.py` can read one from an environment variable, from a file the
+  repository does not carry, or from anywhere else at import time. The
+  `assertion_id` then digests a text its reader does not hold.
+- **The declared rate.** The same holds for the pricing digest.
+  `[target.pricing]` in a data suite is in the file. `override()` in a Python
+  suite takes numbers, and nothing requires those numbers to be written in
+  `suite.py`.
+
+For such a suite the loop in ADR 0003 §4 is an attack again, and the three
+options above reopen **for that suite**, not for every suite. The ruling is
+qualified, not withdrawn: nothing changes for a suite whose inputs are in its
+own file.
 
 ### 13. What decides the tenant when the suite is not loaded
 
