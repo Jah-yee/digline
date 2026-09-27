@@ -6,7 +6,7 @@ upgrading, and what deliberately did not move. The reasoning lives in
 read the [release titles](https://github.com/digline/digline/releases) — the
 notes under them are this file, verbatim.
 
-## 0.21.1 — unreleased
+## 0.21.1 — 2026-09-27
 
 digline **0.21.1**, a security release. **Upgrade before relying on `digline
 view --allow-promote`.** On 0.21.0, the address that command prints could be
