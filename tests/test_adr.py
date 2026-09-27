@@ -73,7 +73,11 @@ def test_every_adr_has_a_page_in_the_site_nav() -> None:
         f"product/adr/{missing[0]}.md\n"
         f"Missing: {', '.join(missing)}. "
         "If that path is a checkout of your own, it may simply be behind "
-        "origin — the entry is added in digline/digline.dev, not here."
+        "origin — the entry is added in digline/digline.dev, not here. "
+        "On the pull request that adds a record this red is the expected "
+        "state and does not mean the build was skipped: the preview build "
+        "ran first and let the missing nav line through, by the site's own "
+        "runbook, which is the reason this gate exists."
     )
 
 
