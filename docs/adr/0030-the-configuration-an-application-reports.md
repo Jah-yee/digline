@@ -18,6 +18,9 @@
   §7 is new and records what the implementation settled that §5 did not
   anticipate. **§6 is narrowed and is still true for a suite that declares
   nothing** — read it before concluding this record is closed
+- Amended: 2026-09-27, after 0.21.0 shipped. **§5.1 said the `unreviewed`
+  field was owed at `SCHEMA_VERSION` 17, and 17 shipped without it.** The debt
+  is owed at the next schema bump, with no number. No decision moves
 - Assumes: [ADR 0002](0002-three-worlds-and-where-the-data-lives.md) §2 (the
   payload stays where it is born, the verdict travels);
   [ADR 0005](0005-the-configuration-of-the-system-under-test.md) §2 (the
@@ -227,6 +230,15 @@ the reason this record is text before code.
    of them gets done badly**, and the one that would be done badly is the one
    nobody is watching. So the field waits for a window of its own, and §6 stays
    true until it gets one.
+
+   *Amended 2026-09-27: owed at the next schema bump, with no number.* Schema
+   17 shipped in 0.21.0 carrying the calibration band alone (ADR 0024 §4.7), so
+   the ruling above named a version that came and went without the field. "Owed
+   at 17" was a prediction about which bump would have the window, and naming
+   18 now would repeat it exactly: the bump that has room is known only when it
+   is cut. What does not move is the shape — a fourth `SystemConfig` field, a
+   migration step keyed on whichever version precedes it, and both halves of the
+   ritual — and §6, which stays true until that bump carries it.
 2. **`region`.** `eu-west-1` is a public cloud name; a region in a customer's
    own deployment is whatever they called it. §2 puts it in the free-form row
    by type and §4's declaration covers it at no extra cost if it is included —
