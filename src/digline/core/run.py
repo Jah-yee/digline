@@ -2450,6 +2450,22 @@ def run_from_dict(raw: object) -> Run:
             f"the run document does not have the shape of a run "
             f"({type(exc).__name__}: {exc})"
         ) from exc
+    except ValueError as exc:
+        # **A bare `ValueError` is a refusal nobody classified** (0.21.0
+        # delta-pass, S-1). The validators behind this call raise the builtin
+        # type with a sentence written for a reader, and the CLI maps
+        # any `ValueError` to exit 64 — so on the command line they always
+        # looked handled. `digline-mcp` translates only the types listed in
+        # `host.REFUSALS`, and a builtin is not one: an edited document reached
+        # an agent as "Error executing tool list_runs". The classification test
+        # walks the exception *classes* digline defines, so a refusal raised
+        # as a class digline did not define was invisible to it by
+        # construction. Named here, at the one boundary every stored document
+        # crosses, rather than at each raise site. A typed refusal already
+        # carries its name and passes through unchanged.
+        if type(exc) is not ValueError:
+            raise
+        raise DocumentRefusedError(str(exc)) from exc
 
 
 def _run_from_mapping(raw: Mapping[str, Any]) -> Run:
