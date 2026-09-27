@@ -12,6 +12,14 @@
   hand-over's `Location` becomes the constant `/`, so `?locale=it` no longer
   survives it: §2 says why, keeps the reasoning that made the old value safe,
   and §10 names the class. No other decision moves
+- Amended: 2026-09-27, for 0.21.1, after the 0.21.0 delta-pass (K-1). **The key
+  is spent on its first hand-over, and the cookie carries a second secret
+  minted there** — §11. §5's first bullet is narrowed: reading a plaintext
+  browser-history file is not attacking the user boundary, and the key went
+  there on its own. The cookie is now read without `SimpleCookie`, and the 403
+  says what the request carried rather than what the browser did (K-3). The
+  consequence *"another browser … needs the printed address copied into it"*
+  is withdrawn: it now needs a restart. No other decision moves
 - Amends: [ADR 0032](0032-the-second-path-to-an-absent-tool.md), in its
   Consequences only — the bullet saying the record *"does not authenticate the
   view"*. That bullet was true of 0032 and is amended in place with a pointer
@@ -116,6 +124,10 @@ right key is answered with a **303** to `/`, and sets the key as a cookie:
 with the key, using `hmac.compare_digest` so a comparison that stops early does
 not reveal how much was right, and refuses without it.
 
+*Amended 2026-09-27, for 0.21.1:* **the cookie no longer carries the key.** The
+hand-over mints a second secret and sets that, and it spends the key. §11 says
+why the first half is what makes the second half mean anything.
+
 *Amended 2026-09-25, before merge.* Until then this paragraph ended *"Other
 query parameters survive the redirect, so `?locale=it` stays."* They no longer
 survive: **`Location` is the
@@ -219,7 +231,20 @@ Said so the record is not over-read.
   key sits in the server's memory and in the browser's cookie store. A process
   determined to reach either, by reading a browser profile or attaching to a
   process where the platform allows it, is attacking the operating system's
-  user boundary, and no key held under that user survives that. What the key
+  user boundary, and no key held under that user survives that.
+
+  *Narrowed 2026-09-27, for 0.21.1 (§11).* "Reading a browser profile" covered
+  two different acts, and this bullet priced them as one. Reaching the
+  **cookie** means Chrome's cookie store, encrypted under a Keychain key, or
+  the server's memory. That stays out of scope. Reaching the **printed
+  address** meant one SQLite query against `History`, a plaintext file, where
+  the browser had written the address when it exited. Measured: the process
+  that read it promoted. Nobody attacked a boundary there: the key went to a
+  file every process of the user reads, and it stayed valid for the server's
+  life. The mechanism exists for the agent on the same machine, and that is
+  exactly the caller it failed against. So *"same user, therefore nothing to
+  gain"* is not the reasoning that decides this, and this bullet no longer
+  covers it. What the key
   closes is the caller acting on *inference*, the one ADR 0032 §1 argues
   from: an agent that reads a result, concludes a baseline should move, and
   finds one POST enough. It is now not enough.
@@ -355,6 +380,108 @@ and requires that no response header contain it.
   and then types the other name has the pages and not the button's permission.
   The 403 sentence tells them what to do. The printed address uses the host the
   server bound to.
-- **Another browser or profile needs the printed address copied into it.** That
-  is the key doing its job.
+- ~~**Another browser or profile needs the printed address copied into it.**~~
+  *Withdrawn 2026-09-27 (§11):* the address works once. Another browser, or the
+  same one after a mistake, needs a restart and the new address.
 - **The tag waits for a person to use it** — §8.
+
+## 11. The key is spent on its first hand-over (amended 2026-09-27, for 0.21.1)
+
+**What went wrong.** The 0.21.0 delta-pass (`private/delta-pass-0.21.0.md`,
+K-1) measured it with a throwaway Chromium profile:
+
+- The printed address was written, key included, into `History` (a plaintext
+  SQLite `urls` row) and into the `Sessions` files **when the browser exited**.
+- The key was **reusable** for the server's whole life: a second `?launch=`
+  was answered with a second cookie.
+- A separate process, given only the profile directory, read the row, handed
+  itself over, read `run` and `replacing` from `/`, and POSTed without an
+  `Origin`: **200, and the baseline moved.**
+
+The published sentence *"promotes only from the browser that opens the address
+it prints"* was false as of 0.21.0, and the 0.21.1 changelog corrects it.
+
+**The ruling: the key is spent on its first successful hand-over.**
+
+- **It works because of when the address reaches disk.** The same measurement
+  found the key **not on disk at 8, 15, 30, 45 or 60 seconds** while the
+  browser ran; `History` was locked, and the row appeared at exit. The
+  hand-over happens the moment the address is opened, milliseconds after the
+  page is requested. So by the time any file holds the key, the key opens
+  nothing. The repair rests on that ordering, and the ordering is measured
+  rather than assumed.
+- **Spending the key is not enough on its own, and this is the half that is
+  easy to miss.** Until 0.21.0 the cookie's value *was* the key. A spent key in
+  `History` would still have been a valid cookie: skip the hand-over, send
+  `Cookie: digline-view-PORT=KEY` directly, and promote. So the hand-over now
+  mints a **second secret**, the session, with the same generator
+  (`secrets.token_urlsafe(32)`). That is what the cookie carries and what
+  `/promote` compares against. The key is never a credential after its first
+  use, in any header.
+- **Once, under a lock.** `ThreadingHTTPServer` answers requests on separate
+  threads, so two hand-overs racing for one key must not both win. The check
+  and the spend happen under one lock.
+- **A spent key is refused by name.** *"this address has already been opened
+  … start digline view again for a new one"*. That is distinct from a key from
+  another start, which keeps its sentence. Neither sets a cookie.
+
+**What it costs, said so it is not discovered.**
+
+- **A second browser cannot be added by pasting the address.** It needs a
+  restart and the new address. The Consequences bullet that said otherwise is
+  withdrawn.
+- **Opening the address in the wrong browser first uses it up.** Same remedy.
+- **Anything that fetches the address before the person does takes it.** A
+  link-preview or prefetch in the terminal, or an omnibox prediction, would
+  spend the key and leave the person refused. That fails closed: the person
+  gets a refusal, not a stolen promotion, unless the prefetcher is itself the
+  hostile process, and a process that can read the terminal already holds the
+  address (§5, *a redirected startup line*). Not measured in any terminal.
+
+**K-3, carried in the same change: the refusal said the wrong cause.** The
+cookie header was read with `http.cookies.SimpleCookie`. That parser stops at
+the first value it cannot parse, for example a JSON value or a space in a
+cookie some other app on `127.0.0.1` had set. After such a cookie, digline's
+own cookie was silently not read. The person who *had* opened the address was
+then told `promotes only from the browser that opened the address`, a sentence
+asserting the one cause that was false.
+
+The cookie is now read by splitting the header on `;` and matching the name
+exactly, pair by pair, ignoring pairs it cannot read. The refusal now says what
+the request **carried**:
+
+- no cookie of this server's, or
+- one that this start did not issue.
+
+It never says what the browser did, because the server cannot know that. This
+is the week's family again (§10): a message that answered a question other than
+the one the request asked.
+
+**Still out of scope, and still in §5:** the cookie store, the server's memory,
+and K-2. The session secret travels to every port on the host exactly as the
+key did. It is a same-user process that must also get the person's browser to
+visit it, and §5's fourth bullet keeps it there.
+
+**How it is held.** New tests, each read against a mutation:
+
+- `test_the_launch_key_opens_one_browser_and_then_nothing`: a second hand-over
+  with the same key is refused and sets no cookie.
+- `test_the_key_itself_is_not_a_cookie`: the key sent as the cookie is refused
+  after the hand-over. This is the half above that is easy to miss.
+- `test_two_hand_overs_racing_for_one_key_give_one_cookie`, over HTTP. It
+  **does not catch the lock's removal**: measured, all passed with the lock
+  deleted, because four requests rarely land inside a window of microseconds.
+  So there is also `test_the_spend_is_one_step_under_the_lock`. It slows the
+  minting of the session on purpose, which widens the window, and it fails
+  without the lock.
+- `test_a_foreign_cookie_before_ours_does_not_hide_it`: K-3.
+- `test_the_refusal_says_what_the_request_carried`.
+
+Mutations run against the finished code, each caught:
+
+| Mutation | Tests that failed |
+|---|---|
+| The key not spent | 2 |
+| The cookie carrying the key again | 2 |
+| A foreign cookie hiding ours | 1 |
+| The lock removed | 1, the deterministic test only |
