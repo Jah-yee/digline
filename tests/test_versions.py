@@ -285,6 +285,11 @@ RECORDED: dict[str, dict[str, str]] = {
         "the lesson; moving the number would claim a later pass audited it",
     },
     "RELEASING.md": {
+        "0.4.1": (
+            "digline-mcp's version, not a digline one: the release cut on the way "
+            "to v0.21.0 because its playbook text had moved under 0.4.0, quoted "
+            "as the worked instance of the check that would have caught it"
+        ),
         "0.20.1": (
             "the release v0.20.1 itself, quoted as evidence: the in-build index "
             "divergence it met, the `served digline==0.20.1` line and the "
