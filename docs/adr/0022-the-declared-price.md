@@ -295,6 +295,42 @@ for an identity should read the refusal above as two halves:**
 
 A refusal of a salt for the identities has to argue its own case.
 
+*Amended 2026-09-27, by
+[ADR 0034](0034-the-store-outside-and-the-reference-that-names-nothing.md) §12,
+at its acceptance. **The conclusion stands, on a different reason.*** The
+correction above removed this section's premise and left its conclusion, a
+latch and no salt, standing on nothing. ADR 0034 §12 has since ruled who a
+digest in `config_hash` protects against: **nobody in particular**, because the
+documents that carry `config_hash` and the suite live in one repository. The
+declared rate inherits that ruling. A digest enters the hash only for a price
+the suite **declares** (§2, §4): `[target.pricing]` in a data suite, or, in a
+Python one, a `Pricing` marked as declared, which is what `override()` and
+`free()` return. A price inherited from a plugin's list contributes none. So a
+reader who could narrow the rate from the hash can read it from the suite.
+
+**Right for a different reason.** The latch stays a latch and the salt stays
+refused. That is **not** because a rate is not a secret. That reason is kept
+above because it was the one given, and it is not the one in force now. It is
+because the hash's reader already holds its inputs. The refusal's costs still
+apply, and they are not the reason either.
+
+**What reopens it, written as a condition:** a document whose name or body
+carries `config_hash` reaching a place the suite does not. That covers a run
+file, a baseline, the register, `compare --json` or an MCP response. When that
+happens the reason goes, and the conclusion is open again. The measurement then
+owed is ADR 0003 §4's loop pointed at `config_hash`, a plausible rate space
+crossed with the plausible model ids, reporting the candidate count and the
+time taken. It has never been run: *"small enough to search"* above is this
+section's reasoning, not a count.
+
+**And the narrower condition ADR 0034 §12 states for every digest applies to
+this one.** A data suite's rate is in the file by construction. A Python suite's
+rate is only as present as its author made it: nothing requires the numbers
+given to `override()` to be written in `suite.py` rather than read from an
+environment variable or from a file the repository does not carry. For such a
+suite the reader of the hash does not hold its input, and for that suite, and
+only that one, the reason does not hold.
+
 ### 7. What a reader sees
 
 At a first-party endpoint, a changed declared price is a named delta —
