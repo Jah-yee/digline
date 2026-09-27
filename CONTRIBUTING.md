@@ -76,7 +76,11 @@ Thanks for looking. A few things worth knowing before you open a pull request.
   §1 itself, and ADR 0028's `Assumes` line citing the same property. The second
   one had to be read and deliberately left — what it depends on survived the
   amendment — and that is a decision nobody can make about a site they did not
-  find.
+  find. **The mirror is the method's own limit: a clean search hides a real
+  site, and a full one can merge two questions** — the same fold matched *who
+  are we protecting against* in two records, meaning who reads a digest in one
+  and whether the reader already holds the text in the other, and only the
+  first was ruled, so read every site it returns instead of counting them.
 
   **Then say in the amendment which method built the list.** *"One other site"*
   is a claim about a search before it is a claim about the repository, and a
