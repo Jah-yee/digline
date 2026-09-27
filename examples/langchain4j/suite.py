@@ -49,10 +49,9 @@ target = HttpTarget(
     # Owed here, and deliberately not written yet: `expect_config` declares the
     # system you expect the service to report, and digline refuses an answer that
     # contradicts it (ADR 0030 §4) — which is what makes the `model` in the
-    # record a reviewed value rather than one the application chose. It arrives
-    # in the release after 0.20.1, and this file installs digline **from PyPI**
-    # under a `<0.21` cap, so the line lands when the cap moves. The README says
-    # what it will look like.
+    # record a reviewed value rather than one the application chose. It shipped
+    # in 0.21.0, which PyPI serves and this file's cap admits, so nothing is
+    # waiting but the line itself. The README says what it will look like.
 )
 
 suite = Suite(
