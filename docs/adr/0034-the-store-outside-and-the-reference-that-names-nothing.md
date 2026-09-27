@@ -34,6 +34,20 @@
   §6 and its *Consequences*, ADR 0005 §9, and `CLAUDE.md`'s decisions 2 and 9
 - Shipped: unreleased
 - Date: 2026-09-27
+- Amended: 2026-09-27 — **two of this record's own readiness claims, corrected
+  where they are made and kept above their corrections.** §16's fifth bullet
+  asked for a test of a defect that was **already repaired** the afternoon
+  before this record was written (schema 17: a calibration band binds by
+  `assertion_id`, and an unbound one is refused at construction), so the test it
+  asks for is a statement that the projection does not move the binding and not
+  a check on a live defect. And §*What reading the code found* items 7 and 8
+  price the two refactors this record rests on: *"no design in it"* is wrong —
+  three concrete-only store methods are called from inside those eleven
+  signatures, so five of them need a ruling first — and *"about twenty lines"* is
+  low, at 77 lines with four decisions in them. **The counts in both items are
+  right; the sizings are not.** Nothing about the decision moves: §16's other
+  five tests, §8's *prerequisite* clause and every section of the *Decision*
+  stand
 - Opens: **nothing on landing.** No `SCHEMA_VERSION`, no `OUTPUT_VERSION`, no
   `REGISTER_VERSION`, no `JOURNAL_VERSION`, no migration — nothing is
   implemented. At implementation §8 is a field in the run document and
@@ -206,6 +220,34 @@ of them are the work.
 8. **Eleven signatures take `FileResultStore` and none takes the protocol**,
    with direct construction in three places. Typing them is a refactor with no
    design in it, and it is a prerequisite for anything else here.
+
+*Corrected 2026-09-27, at items 7 and 8, which are the two this record prices
+as ready and a builder reads before starting either. The counts are right and
+both sizings are wrong, in the same direction.* **Item 8's *"no design in
+it"* does not hold.** Three of `FileResultStore`'s methods are **not on the
+protocol** and are called from inside those eleven signatures: `key_for`,
+`stored_paths` and `register_path`. Six signatures are one-line swaps; **five,
+plus `_load`'s return type, are not**, and each asks the same question — does
+the protocol grow the method, or does the caller stop using it? `key_for` is
+the one with content: it is a `@staticmethod` over `digline.core.key_of`, which
+the wire and the report already call directly, so the question is whether the
+key rule belongs to the store or to the document — and that answer binds the
+Postgres store ADR 0002 §6 plans. ADR 0014 §1 already prices a `ResultStore`
+protocol change as a cost, so growing it is not free by this project's own
+standard. **And nothing protects the result:** the bare name `ResultStore`
+appears in no test, no in-memory implementation exists, and pyright strict
+accepts a concrete annotation — so the retyping would have nothing holding it
+in place. **Item 7's *"about twenty lines"* is low.** The composition is
+`cmd_report` **and** `_report_single`, 77 lines and 42 of code, and it is not a
+move: `emit` and `say` are `digline.cli.output`, which nothing below a front end
+may import, so the function has to hand back a document, an exit code and both
+runs instead of printing; `host/` writes no file today, so `--out` is a
+placement decision; both existing `host/` composers hard-code `locale="en"`
+with a written reason, so a document locale there is new; and the exit code is
+computed over the run **after** `redact` rebinds it, which a naive move reorders
+silently with no test to catch it. **Neither correction changes item 8's last
+clause:** typing the store is still the prerequisite, which is why the questions
+above are the first ones to answer and not the last.
 
 **One measurement that reorders the rest.** A run document with recording on is
 **88.3% recorded responses** — measured on twelve archived documents of one
@@ -869,6 +911,23 @@ file.
   one of the three causes of exit 2 in silence, and it is reachable **today**,
   without any of this record. Fixed decision 3's rule against a vacuously green
   assertion is the reason it is listed here.
+
+  *Corrected 2026-09-27; the bullet above is kept as written, and it was wrong
+  on the day it was written.* **The band does not bind by name, and the defect
+  it describes is not reachable.** `CalibrationBand.assertion_id` is what binds
+  and `check` is only what is said; `scale_lost` skips a verdict whose
+  `assertion_id` is not the band's; and a band that no verdict of its case
+  carries is **refused at construction**, with the refusal saying *"A band that
+  binds no verdict checks nothing, and would read as a band that held"*. So
+  empty already means *every band was checked and held*. That landed on
+  2026-09-26 at 16:27 as schema 17 — **the afternoon before this record was
+  written** — and the working plan this record grew from already recorded it.
+  **What is left of the bullet, and it is why it is corrected rather than
+  struck:** `check` is one of §5's six tokens, `assertion_id` is class (a), so
+  the binding survives the substitution **by construction**. A test of it is
+  worth having as a statement that the projection does not move the binding,
+  and it is not a test of a live defect. Fixed decision 3 stands; it is simply
+  not at risk here.
 - **The refusal is classified.** A new exception must be in `host.REFUSALS` or
   `tests/test_refusals.py` cannot see it — and the freshest instance in the
   tree is a bare `ValueError` at the one boundary every stored document
