@@ -703,7 +703,7 @@ the rubric instead. `assertion_id` and `config_hash` keep their recipes, and the
 three options above are refused **on that reason, not on their costs**, so a
 proposal to revive one meets the reason rather than a silence. The same reason
 keeps the declared rate a latch in `config_hash`: it is written in the suite.
-ADR 0022 §6's sentence about it is still owed. The ruling holds for as long as a
+ADR 0022 §6 says so in its own amendment. The ruling holds for as long as a
 redacted reference cannot reach a place the suite does not; when one can, the
 question and all three options are open again. **The sentence above stands
 unchanged**: the digests still carry content, and what the ruling settles is
