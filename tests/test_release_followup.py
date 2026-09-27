@@ -20,6 +20,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 
 # Loaded by path because `.github/` is not a package and must not become one:
@@ -189,6 +191,177 @@ def test_a_payload_that_is_not_a_list_is_not_an_approval() -> None:
     """An endpoint that moved returns something else, and something else is not
     consent."""
     assert not followup.approvals_finding({"message": "Not Found"}, []).ok
+
+
+# A re-run erases the record: the endpoint answers for the latest attempt only
+# (friction 71, v0.21.0). What an earlier run read is kept and read back.
+
+KEPT: dict[str, Any] = {
+    "publish_run": "36311430504",
+    "attempt": 1,
+    "read_by": "36311781707",
+    "approvals": APPROVED,
+}
+
+
+def rerun(kept: object, *, approvals: object = None, attempt: int = 2) -> Any:
+    return followup.approvals_finding(
+        [] if approvals is None else approvals,
+        [],
+        attempt=attempt,
+        kept=kept,
+        publish_run="36311430504",
+    )
+
+
+def test_a_re_run_reads_back_what_attempt_1_recorded() -> None:
+    finding = rerun(KEPT)
+    assert finding.sound
+    assert "on attempt 1" in finding.said
+    assert "release-followup run 36311781707" in finding.said
+
+
+def test_a_re_run_with_nothing_kept_is_unreadable_not_a_gate_that_failed() -> None:
+    """v0.21.0 exactly: the gate held, and the only reading is in a log."""
+    finding = rerun(None)
+    assert not finding.ok
+    assert finding.held
+    assert "not evidence the gate failed" in finding.said
+    assert "did not hold" not in finding.said
+    assert finding.title == (
+        "the reviewer gate's approval is not readable after a re-run"
+    )
+
+
+def test_a_kept_record_is_not_read_on_attempt_1() -> None:
+    """On attempt 1 the endpoint is the reading, and an empty one is the v0.5.0
+    failure. A kept record must not paper over it."""
+    finding = rerun(KEPT, attempt=1)
+    assert not finding.ok
+    assert finding.title == "the reviewer gate recorded no approval"
+
+
+@pytest.mark.parametrize(
+    ("label", "kept"),
+    [
+        ("another publish run", {**KEPT, "publish_run": "1"}),
+        ("the same attempt", {**KEPT, "attempt": 2}),
+        ("a later attempt", {**KEPT, "attempt": 3}),
+        ("an attempt that is a bool", {**KEPT, "attempt": True}),
+        ("no reader", {**KEPT, "read_by": ""}),
+        ("a rejection", {**KEPT, "approvals": REJECTED}),
+        ("approvals that are not a list", {**KEPT, "approvals": {"state": "approved"}}),
+        ("not a record", ["approved"]),
+    ],
+)
+def test_a_kept_record_one_field_from_valid_is_not_read(
+    label: str, kept: object
+) -> None:
+    assert not rerun(kept).ok, label
+
+
+def test_the_endpoint_wins_over_whatever_was_kept() -> None:
+    finding = rerun({"garbage": True}, approvals=APPROVED)
+    assert finding.sound
+    assert finding.said == "the publish run records an approved"
+
+
+def test_the_control_still_bites_on_a_read_back() -> None:
+    finding = followup.approvals_finding(
+        [], APPROVED, attempt=2, kept=KEPT, publish_run="36311430504"
+    )
+    assert finding.ok
+    assert not finding.held
+
+
+def test_a_run_keeps_only_an_approval() -> None:
+    assert followup.keep_record([], publish_run="9", attempt=1, read_by="10") is None
+    assert (
+        followup.keep_record(REJECTED, publish_run="9", attempt=1, read_by="10") is None
+    )
+
+
+def test_what_one_run_keeps_the_next_one_reads() -> None:
+    record = followup.keep_record(
+        APPROVED, publish_run="36311430504", attempt=1, read_by="36311781707"
+    )
+    assert rerun(json.loads(json.dumps(record))).sound
+
+
+def _main_args(tmp_path: Path, *extra: str) -> list[str]:
+    all_locks(tmp_path, "0.15.3")
+    (tmp_path / "RELEASING.md").write_text(
+        BLOCK.format(version="0.15.3"), encoding="utf-8"
+    )
+    (tmp_path / "control.json").write_text("[]", encoding="utf-8")
+    (tmp_path / "digests.json").write_text(json.dumps(digests()), encoding="utf-8")
+    return [
+        "--version",
+        "0.15.3",
+        "--root",
+        str(tmp_path),
+        "--releasing",
+        str(tmp_path / "RELEASING.md"),
+        "--approvals",
+        str(tmp_path / "approvals.json"),
+        "--approvals-control",
+        str(tmp_path / "control.json"),
+        "--digests",
+        str(tmp_path / "digests.json"),
+        "--out",
+        str(tmp_path / "report.json"),
+        *extra,
+    ]
+
+
+def test_main_keeps_the_approval_it_read_and_a_re_run_reads_it(
+    tmp_path: Path,
+) -> None:
+    """The whole path, through the files the workflow passes: attempt 1 keeps,
+    attempt 2 finds the endpoint empty and passes on what was kept."""
+    kept = tmp_path / "kept.json"
+    (tmp_path / "approvals.json").write_text(json.dumps(APPROVED), encoding="utf-8")
+    first = _main_args(
+        tmp_path,
+        *("--publish-run", "36311430504", "--attempt", "1"),
+        *("--read-by", "36311781707", "--keep-out", str(kept)),
+    )
+    assert followup.main(first) == 0
+    assert json.loads(kept.read_text(encoding="utf-8"))["read_by"] == "36311781707"
+
+    (tmp_path / "approvals.json").write_text("[]", encoding="utf-8")
+    second = _main_args(
+        tmp_path,
+        *("--publish-run", "36311430504", "--attempt", "2"),
+        *("--kept", str(kept)),
+    )
+    assert followup.main(second) == 0
+
+
+def test_main_keeps_nothing_when_it_read_no_approval(tmp_path: Path) -> None:
+    kept = tmp_path / "kept.json"
+    (tmp_path / "approvals.json").write_text("[]", encoding="utf-8")
+    args = _main_args(
+        tmp_path,
+        *("--publish-run", "9", "--attempt", "1"),
+        *("--read-by", "10", "--keep-out", str(kept)),
+    )
+    assert followup.main(args) == 1
+    assert not kept.exists()
+
+
+def test_main_on_a_re_run_with_a_missing_kept_file_is_unreadable(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "approvals.json").write_text("[]", encoding="utf-8")
+    args = _main_args(
+        tmp_path,
+        *("--publish-run", "9", "--attempt", "2"),
+        *("--kept", str(tmp_path / "absent.json")),
+    )
+    assert followup.main(args) == 1
+    report = json.loads((tmp_path / "report.json").read_text(encoding="utf-8"))
+    assert "not readable after a re-run" in json.dumps(report)
 
 
 # --------------------------------------------------------------------------- #
