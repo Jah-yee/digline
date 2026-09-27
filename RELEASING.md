@@ -401,6 +401,12 @@ for itself.
 5. Stop the server, start it again, and press *Make baseline* in the tab from
    step 2 without reopening the new address. Refused, and the baseline does
    not move.
+6. **The address works once** (since 0.21.1, ADR 0033 §11). After step 2 of a
+   fresh start, paste the *same* printed address into a private window. It is
+   refused with a 403 saying the address *has already been opened*, and no
+   `Make baseline` works there. This is the control for 0.21.0's K-1: the
+   address is what a browser's history keeps, so it must open nothing the
+   second time.
 
 Do it in the browser you use, and in a second engine if you have one. `SameSite`
 is where engines have differed. If step 3 is refused, the release is wrong, not

@@ -10,6 +10,7 @@ test module imports another.
 
 from __future__ import annotations
 
+import http.client
 import json
 import subprocess
 import sys
@@ -23,6 +24,7 @@ __all__ = [
     "SUITE_SOURCE",
     "cli",
     "git",
+    "hand_over",
     "run_key",
     "stamp_journal_format",
     "suite_source",
@@ -155,3 +157,22 @@ def stamp_journal_format(
         leg.write_text(
             "\n".join([json.dumps(header), *lines[1:]]) + "\n", encoding="utf-8"
         )
+
+
+def hand_over(port: int, launch: str) -> str:
+    """Open the printed address the way a browser does, and return the `Cookie`
+    header the browser will send from then on.
+
+    A real hand-over rather than a cookie built from the key: since 0.21.1 the
+    cookie carries a session minted here and the key is spent, so a test that
+    built `digline-view-PORT=KEY` by hand would be sending the one value the
+    server now refuses (ADR 0033 §11).
+    """
+    connection = http.client.HTTPConnection("127.0.0.1", port, timeout=10)
+    connection.request("GET", f"/?launch={launch}")
+    answer = connection.getresponse()
+    answer.read()
+    connection.close()
+    assert answer.status == 303, f"the hand-over answered {answer.status}"
+    set_cookie = answer.getheader("Set-Cookie") or ""
+    return set_cookie.split(";", 1)[0]

@@ -23,7 +23,7 @@ import pytest
 
 import digline
 from digline.cli import EXIT_USAGE
-from digline.cli.view import ViewHandler, self_netlocs
+from digline.cli.view import Launch, ViewHandler, self_netlocs
 from digline.core import Run
 from digline.host import load_suite
 from digline.host.refusals import NOT_REFUSALS, REFUSALS
@@ -131,8 +131,10 @@ class _Refusing(FileResultStore):
 
 
 #: A handler built by hand promotes only with a key, like the one `serve()`
-#: mints: there is no `allow_promote` to set without one. (ADR 0033)
-LAUNCH_KEY = "k" * 43
+#: mints: there is no `allow_promote` to set without one. (ADR 0033) Built
+#: already traded, because what these tests send is the browser's cookie, and
+#: since 0.21.1 that is the session and never the key (ADR 0033 §11).
+SESSION = "s" * 43
 
 
 @pytest.mark.parametrize("kind", REFUSALS, ids=lambda kind: kind.__name__)
@@ -166,7 +168,7 @@ def test_the_view_says_every_refusal(kind: type[Exception], repo: Path) -> None:
         suite=suite,
         store=_Refusing(repo, kind),
         known=known,
-        launch_key=LAUNCH_KEY,
+        launch=Launch(key="k" * 43, session=SESSION),
     )
     with ThreadingHTTPServer(("127.0.0.1", 0), handler) as httpd:  # pyright: ignore[reportArgumentType]
         port = int(httpd.server_address[1])
@@ -181,7 +183,7 @@ def test_the_view_says_every_refusal(kind: type[Exception], repo: Path) -> None:
                 headers={
                     "Content-Type": "application/x-www-form-urlencoded",
                     "Origin": f"http://127.0.0.1:{port}",
-                    "Cookie": f"digline-view-{port}={LAUNCH_KEY}",
+                    "Cookie": f"digline-view-{port}={SESSION}",
                 },
             )
             with urllib.request.urlopen(request, timeout=10) as response:

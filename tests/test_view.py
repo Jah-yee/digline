@@ -25,6 +25,7 @@ import json
 import re
 import subprocess
 import sys
+import threading
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -34,7 +35,7 @@ from html import unescape
 from pathlib import Path
 
 import pytest
-from tests._helpers import baseline_in, cli, run_key, write_suite
+from tests._helpers import baseline_in, cli, hand_over, run_key, write_suite
 
 from digline.core import (
     Artifact,
@@ -388,19 +389,39 @@ def launch_of(line: str) -> str:
     return (urllib.parse.parse_qs(query).get("launch") or [""])[0]
 
 
-def cookie_for(base: str, launch: str) -> str:
-    """The `Cookie` header the browser sends after the hand-over."""
+def port_of(base: str) -> int:
     port = urllib.parse.urlparse(base).port
-    return f"digline-view-{port}={launch}"
+    assert port is not None, base
+    return port
 
 
 @pytest.fixture
 def served_promoting(repo: Path) -> Iterator[tuple[str, str, str]]:
     """`digline view --allow-promote`: the server that has the write route,
-    with the `Cookie` header of the browser it was opened in."""
+    with the `Cookie` header of the browser it was opened in — obtained by
+    opening the printed address, which spends its key (ADR 0033 §11)."""
     key = promoted(repo)
     with server(repo, "--allow-promote") as (base, line):
-        yield base, key, cookie_for(base, launch_of(line))
+        yield base, key, hand_over(port_of(base), launch_of(line))
+
+
+@pytest.fixture
+def served_unopened(repo: Path) -> Iterator[tuple[str, str, str]]:
+    """The flagged server before anybody opened its address: the baseline key
+    and the launch key, still unspent."""
+    key = promoted(repo)
+    with server(repo, "--allow-promote") as (base, line):
+        yield base, key, launch_of(line)
+
+
+def raw_get(base: str, target: str, cookie: str = "") -> http.client.HTTPResponse:
+    """One GET, redirects not followed: the hand-over *is* the redirect."""
+    connection = http.client.HTTPConnection("127.0.0.1", port_of(base), timeout=10)
+    connection.request("GET", target, headers={"Cookie": cookie} if cookie else {})
+    answer = connection.getresponse()
+    answer.read()
+    connection.close()
+    return answer
 
 
 def baseline_of(repo: Path) -> dict[str, object]:
@@ -818,7 +839,7 @@ def test_a_shell_without_the_key_cannot_promote_on_a_flagged_server(
 
     status, page = send(f"{base}promote", f"run={other}&replacing={key}", origin=None)
     assert status == 403, "a POST with no key was not refused on the flagged server"
-    assert "only from the browser" in page
+    assert "carries no cookie from this server" in page
     assert baseline_of(repo) == before
 
     forged = cookie.split("=")[0] + "=" + "x" * 43
@@ -853,30 +874,26 @@ def test_the_refusal_on_the_flagged_server_is_a_403_not_the_404(
 
 
 def test_the_printed_address_becomes_a_cookie_and_leaves_the_address(
-    served_promoting: tuple[str, str, str],
+    served_unopened: tuple[str, str, str],
 ) -> None:
     """The hand-over, as a browser meets it: a 303 to `/`, and the key in an
     `HttpOnly`, `SameSite=Strict` cookie named for the port. `?locale=it` does
     **not** survive it any more: `Location` is a constant, so no header carries
     what the request said. (ADR 0033 §2)"""
-    base, _key, cookie = served_promoting
-    launch = cookie.split("=", 1)[1]
-    parsed = urllib.parse.urlparse(base)
-    connection = http.client.HTTPConnection("127.0.0.1", parsed.port, timeout=10)
-    connection.request("GET", f"/?locale=it&launch={launch}")
-    answer = connection.getresponse()
-    answer.read()
-    connection.close()
+    base, _key, launch = served_unopened
+    answer = raw_get(base, f"/?locale=it&launch={launch}")
 
     assert answer.status == 303
     assert answer.getheader("Location") == "/"
     set_cookie = answer.getheader("Set-Cookie") or ""
-    assert set_cookie.startswith(f"{cookie};")
+    name, _, value = set_cookie.split(";", 1)[0].partition("=")
+    assert name == f"digline-view-{port_of(base)}"
+    assert value and value != launch, "the cookie carries the key itself"
     assert "HttpOnly" in set_cookie and "SameSite=Strict" in set_cookie
 
 
 def test_a_path_that_means_another_host_is_not_sent_back(
-    served_promoting: tuple[str, str, str],
+    served_unopened: tuple[str, str, str],
 ) -> None:
     """`/\\evil.example` with the right key. Before the constant, it went back
     out as `Location: /\\evil.example`, and a browser reads that backslash as a
@@ -884,14 +901,8 @@ def test_a_path_that_means_another_host_is_not_sent_back(
     constant rather than as the host's absence: an absence also passes when the
     server mangles the path for some other reason, and a constant does not.
     (ADR 0033 §2)"""
-    base, _key, cookie = served_promoting
-    launch = cookie.split("=", 1)[1]
-    port = urllib.parse.urlparse(base).port
-    connection = http.client.HTTPConnection("127.0.0.1", port, timeout=10)
-    connection.request("GET", f"/\\evil.example?launch={launch}")
-    answer = connection.getresponse()
-    answer.read()
-    connection.close()
+    base, _key, launch = served_unopened
+    answer = raw_get(base, f"/\\evil.example?launch={launch}")
     assert answer.status == 303
     assert answer.getheader("Location") == "/"
 
@@ -900,7 +911,7 @@ MARK = "zq7request7mark"
 
 
 def test_no_response_header_carries_anything_the_request_said(
-    repo: Path, served_promoting: tuple[str, str, str]
+    repo: Path, served_unopened: tuple[str, str, str]
 ) -> None:
     """The property the constant `Location` buys, asserted over the server
     rather than over one line: a marker is put in every part of a request a
@@ -908,12 +919,15 @@ def test_no_response_header_carries_anything_the_request_said(
     cookie — on every route, with and without the key, and no response header
     may contain it, raw or percent-encoded. A new header built from the request
     fails here whichever route it is on. (ADR 0033 §2)"""
-    base, key, cookie = served_promoting
-    launch = cookie.split("=", 1)[1]
-    port = urllib.parse.urlparse(base).port
+    base, key, launch = served_unopened
+    port = port_of(base)
+    # The first target spends the key and is the one that answers 303 with a
+    # `Set-Cookie`; the second meets the spent key. Both carry the marker.
+    opening = raw_get(base, f"/{MARK}?{MARK}={MARK}&launch={launch}")
+    assert opening.status == 303
+    cookie = (opening.getheader("Set-Cookie") or "").split(";", 1)[0]
     targets = [
         f"/?{MARK}={MARK}&launch={launch}",
-        f"/{MARK}?launch={launch}",
         f"/?{MARK}={MARK}",
         f"/compare?run={MARK}",
         f"/compare?run={key}&against={MARK}",
@@ -942,6 +956,7 @@ def test_no_response_header_carries_anything_the_request_said(
         answers.append((f"{method} {target}", answer.getheaders()))
 
     assert len(answers) == 2 * len(targets) + 3
+    answers.append(("GET (the hand-over)", opening.getheaders()))
     for request, sent in answers:
         for name, value in sent:
             assert MARK not in value.lower(), (
@@ -962,14 +977,15 @@ def test_an_address_from_another_start_is_refused_by_name(
 
 
 def test_no_page_the_flagged_server_renders_contains_the_key(
-    repo: Path, served_promoting: tuple[str, str, str]
+    repo: Path, served_unopened: tuple[str, str, str]
 ) -> None:
     """The half of the design that is easy to lose. Every reading route answers
     anybody with a shell, so a key written into a page — a hidden field, a link,
     a script — is handed to exactly the caller it exists to refuse. Walked over
     every route, after a promotion so the outcome page is included."""
-    base, key, cookie = served_promoting
-    launch = cookie.split("=", 1)[1]
+    base, key, launch = served_unopened
+    cookie = hand_over(port_of(base), launch)
+    session = cookie.split("=", 1)[1]
     write_suite(repo)
     other = run_key(repo)
     for url in (
@@ -983,9 +999,164 @@ def test_no_page_the_flagged_server_renders_contains_the_key(
         status, page = get(url)
         assert status == 200, url
         assert launch not in page, f"{url} rendered the launch key"
+        assert session not in page, f"{url} rendered the session"
     _status, outcome = post_page(base, f"run={other}&replacing={key}", cookie=cookie)
     assert "Baseline set to" in outcome
     assert launch not in outcome
+    assert session not in outcome
+
+
+def test_the_launch_key_opens_one_browser_and_then_nothing(
+    repo: Path, served_unopened: tuple[str, str, str]
+) -> None:
+    """K-1 of the 0.21.0 delta-pass, as a test (ADR 0033 §11). The printed
+    address reaches the browser's history; read back and opened a second time,
+    it used to hand over a second cookie that promoted. Now it is refused by
+    name, sets nothing, and the baseline stays where it was.
+
+    The control is the first opening, in the same test: without it, a server
+    that refused every hand-over would pass."""
+    base, key, launch = served_unopened
+    first = raw_get(base, f"/?launch={launch}")
+    assert first.status == 303 and first.getheader("Set-Cookie")
+
+    second = raw_get(base, f"/?launch={launch}")
+    assert second.status == 403
+    assert second.getheader("Set-Cookie") is None
+    status, page = get(f"{base}case/x?launch={launch}")
+    assert status == 403
+    assert "already been opened" in page
+
+    before = baseline_of(repo)
+    write_suite(repo)
+    other = run_key(repo)
+    # Whatever the second opening might have carried, it has no cookie to send.
+    assert post(f"{base}promote", f"run={other}&replacing={key}", origin=None) == 403
+    assert baseline_of(repo) == before
+
+
+def test_the_key_itself_is_not_a_cookie(
+    repo: Path, served_unopened: tuple[str, str, str]
+) -> None:
+    """The half of §11 that is easy to miss. Spending the key closes nothing if
+    the key is still a valid cookie: read it out of the history, skip the
+    hand-over, send `digline-view-PORT=KEY`, and promote. Refused before and
+    after the browser opened the address; the session it got still works."""
+    base, key, launch = served_unopened
+    write_suite(repo)
+    other = run_key(repo)
+    before = baseline_of(repo)
+    as_cookie = f"digline-view-{port_of(base)}={launch}"
+    data = f"run={other}&replacing={key}"
+
+    assert post(f"{base}promote", data, origin=None, cookie=as_cookie) == 403
+    cookie = hand_over(port_of(base), launch)
+    status, page = send(f"{base}promote", data, origin=None, cookie=as_cookie)
+    assert status == 403
+    assert "not issued by this start" in page
+    assert baseline_of(repo) == before
+
+    assert post(f"{base}promote", data, origin=None, cookie=cookie) == 200
+    assert baseline_of(repo) != before
+
+
+def test_two_hand_overs_racing_for_one_key_give_one_cookie(
+    served_unopened: tuple[str, str, str],
+) -> None:
+    """`ThreadingHTTPServer` answers each request on a thread of its own, so a
+    check-then-spend without a lock lets two openings both win. Four, not more:
+    `http.server` listens with a backlog of five, and a connection refused by
+    the backlog would fail this test for a reason that is not the lock."""
+    base, _key, launch = served_unopened
+    statuses: list[int] = []
+    failures: list[BaseException] = []
+    gate = threading.Barrier(4)
+
+    def open_it() -> None:
+        gate.wait()
+        try:
+            statuses.append(raw_get(base, f"/?launch={launch}").status)
+        except OSError as exc:
+            failures.append(exc)
+
+    threads = [threading.Thread(target=open_it) for _ in range(4)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=20)
+    assert not failures, failures
+    assert sorted(statuses) == [303, 403, 403, 403], statuses
+
+
+def test_the_spend_is_one_step_under_the_lock(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The race test above cannot see a missing lock: four requests rarely land
+    inside a window of microseconds. This one widens the window on purpose —
+    minting the session is made slow — so a check-then-spend that is not one
+    step under the lock lets every thread through, and the assertion says so."""
+    import time
+
+    import digline.cli.view as view
+
+    def slow(nbytes: int | None = None) -> str:
+        time.sleep(0.05)
+        return "s" * 43
+
+    launch = view.Launch(key="k" * 43)
+    monkeypatch.setattr(view.secrets, "token_urlsafe", slow)
+    outcomes: list[str] = []
+    gate = threading.Barrier(4)
+
+    def trade() -> None:
+        gate.wait()
+        outcomes.append(launch.trade("k" * 43))
+
+    threads = [threading.Thread(target=trade) for _ in range(4)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=20)
+    assert sorted(outcomes) == ["issued", "spent", "spent", "spent"], outcomes
+
+
+def test_a_foreign_cookie_before_ours_does_not_hide_it(
+    repo: Path, served_promoting: tuple[str, str, str]
+) -> None:
+    """K-3 of the 0.21.0 delta-pass. A browser sends every cookie the host has,
+    whoever set it, and `SimpleCookie` stopped at the first value it could not
+    parse. So the person who had opened the address was refused and told they
+    had not. Each of these was measured to hide ours under 0.21.0."""
+    base, _key, cookie = served_promoting
+    write_suite(repo)
+    for foreign in ('prefs={"theme":"dark","n":1}', "a=b c", "garbage"):
+        other = run_key(repo)
+        status, page = send(
+            f"{base}promote",
+            f"run={other}&replacing={baseline_in(repo)}",
+            origin=None,
+            cookie=f"{foreign}; {cookie}",
+        )
+        assert status == 200, (foreign, status, page[:200])
+
+
+def test_the_refusal_says_what_the_request_carried(
+    served_promoting: tuple[str, str, str],
+) -> None:
+    """Never what the browser did: the server cannot see a browser. No cookie
+    of ours, and a cookie this start did not issue, are two different facts
+    and get two different sentences."""
+    base, key, cookie = served_promoting
+    data = f"run={key}&replacing={key}"
+    _status, none = send(f"{base}promote", data, origin=None)
+    _status, stale = send(
+        f"{base}promote", data, origin=None, cookie=cookie.split("=")[0] + "=stale"
+    )
+    assert "carries no cookie from this server" in none
+    assert "not issued by this start" in stale
+    # The stale cookie proves a browser opened *some* address; the sentence
+    # must not tell that person they never did.
+    assert "opened the address" not in stale
 
 
 def test_the_default_server_ignores_a_launch_parameter(
