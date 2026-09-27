@@ -1210,7 +1210,10 @@ empty. The script **refuses**:
   another repository or workflow.
 
 A re-run writes the same bytes — `tests/test_release_bundles.py` pins it —
-which is what makes `gh release upload --clobber` safe.
+which is what makes `gh release upload --clobber` safe. **Safe for what it
+uploads, not free:** it moves `publish` to a new attempt, and the approvals
+endpoint forgets attempt 1. `release-followup` keeps its reading for exactly this
+case; see *After the tag*, the reviewer gate.
 
 **Rehearsed by hand on `v0.19.1`, 2026-09-24,** before CI depended on it: two
 bundles (the core's wheel and sdist), ten plugin files skipped by the tag that
@@ -2353,6 +2356,39 @@ Expect `state: approved`, the approver's login, and `can_admins_bypass: false`
 on the `pypi` environment. `pending_deployments` only answers while the run is
 still sitting there; `approvals` answers afterwards, which is when you are
 asking.
+
+**Unless the run was re-run.** `approvals` answers for the run's **latest
+attempt**, and `gh run rerun --failed` makes a new attempt that has nothing to
+approve. The re-run that *Signatures on the GitHub release* calls safe (safe for
+what it uploads) therefore returns `[]` from then on, and the approval of
+attempt 1 cannot be read again. v0.21.0 met it: the signatures job lost the
+index race, the re-run made it green, and `release-followup` went from *records
+an approved* at 10:12 to *records no approved* at 10:14 about a gate that had
+held. **The deployment's states do not replace the record.** `testpypi` has no
+reviewer and goes through the same `waiting → queued → in_progress → success`;
+all that tells the two apart is how long `waiting` lasted, and a duration is
+not an approval.
+
+So `release-followup` keeps what it reads. A run that reads an approval uploads
+it as the artifact `followup-approvals-<publish run id>` (90 days), and a run
+that finds `publish` on attempt 2 or later with an empty endpoint reads the
+newest one back. It accepts only a record of *that* run, from an *earlier*
+attempt. With nothing kept, the line says the approval is **unreadable after a
+re-run**, never that the gate did not hold, and stays unticked. v0.21.0 is that
+case, because it predates the artifact: its reading lives in the log of
+`release-followup` run 36311781707, and #149 was closed by hand with that line
+quoted.
+
+**Considered and refused, 2026-09-27: an attestation file.** It would be a
+reviewed file in the repository saying, for a release, *the gate held, here is
+the evidence*, and it would tick the line. It is the obvious proposal and it
+will be made again, so here is why not. Once it exists, it is a written way to
+say *trust me, it happened*, and it works for any line and any release. Today
+it would be used for an honest case; in six months somebody in a hurry will use
+it, and the file cannot tell the two apart. It also replaces the evidence with
+an assertion exactly when the evidence is missing, which is when the evidence
+matters most. A release whose reading was not kept is closed by hand, once,
+with the reason written in the issue.
 
 
 ## Two failures already paid for

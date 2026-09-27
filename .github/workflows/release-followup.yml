@@ -51,6 +51,9 @@ permissions:
   contents: read
   # To open, rewrite and close the one issue. Nothing else is written.
   issues: write
+  # To find and read back the approval an earlier run of this workflow kept,
+  # which is the only reading left once `publish` has been re-run.
+  actions: read
 
 jobs:
   ask:
@@ -106,7 +109,14 @@ jobs:
       # approvals of *this* run, which has no gated environment and must
       # therefore record none. If it reads as approved, the query is not
       # reading approvals and the positive half proves nothing.
+      #
+      # And the attempt, because the endpoint answers for the latest one only: a
+      # `publish` re-run — which RELEASING.md calls safe — leaves an attempt with
+      # nothing to approve and makes attempt 1's approval unreadable (friction
+      # 71, v0.21.0). So a run that reads an approval keeps it as an artifact of
+      # its own, and a run on a re-run attempt reads the newest one back.
       - name: The approvals, and a run that cannot have one
+        id: approvals
         if: steps.version.outputs.released == 'yes'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -120,10 +130,25 @@ jobs:
           else
             gh api "repos/${{ github.repository }}/actions/runs/$run_id/approvals" \
               > approvals.json || echo "[]" > approvals.json
+            attempt="$(gh api "repos/${{ github.repository }}/actions/runs/$run_id" \
+              --jq '.run_attempt' || echo 1)"
+            if [ "${attempt:-1}" -ge 2 ]; then
+              artifact="$(gh api "repos/${{ github.repository }}/actions/artifacts?name=followup-approvals-$run_id&per_page=100" \
+                --jq '[.artifacts[] | select(.expired | not)] | sort_by(.created_at) | last | .id // empty' || true)"
+              if [ -n "$artifact" ]; then
+                gh api "repos/${{ github.repository }}/actions/artifacts/$artifact/zip" > kept.zip || true
+                unzip -p kept.zip keep.json > kept.json || rm -f kept.json
+                echo "attempt $attempt: read back the approval kept as artifact $artifact"
+              else
+                echo "::warning::publish run $run_id is on attempt $attempt and no run kept its approval"
+              fi
+            fi
           fi
           gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/approvals" \
             > no-gate.json || echo "[]" > no-gate.json
-          echo "publish run: ${run_id:-none}"
+          echo "publish run: ${run_id:-none}, attempt ${attempt:-none}"
+          echo "run=${run_id}" >> "$GITHUB_OUTPUT"
+          echo "attempt=${attempt:-1}" >> "$GITHUB_OUTPUT"
 
       # Step 2's other half, the one a log cannot show. Four queries: the three
       # tags a release publishes, and one that cannot exist. `null` is
@@ -183,7 +208,20 @@ jobs:
             --newest "${{ steps.version.outputs.newest }}" \
             --root . --releasing RELEASING.md \
             --approvals approvals.json --approvals-control no-gate.json \
+            --publish-run "${{ steps.approvals.outputs.run }}" \
+            --attempt "${{ steps.approvals.outputs.attempt }}" \
+            --kept kept.json --read-by "${{ github.run_id }}" --keep-out keep.json \
             --digests digests.json --out report.json | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # What this run read, kept where a re-run cannot erase it. Written by the
+      # script only when it read an approval, so its absence is not a failure.
+      - name: Keep the approval this run read
+        if: steps.version.outputs.released == 'yes' && hashFiles('keep.json') != ''
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: followup-approvals-${{ steps.approvals.outputs.run }}
+          path: keep.json
+          retention-days: 90
 
       # The channel. One open issue **per release**, whose body is always the
       # current reading — rewritten rather than duplicated, and closed by the
