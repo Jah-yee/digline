@@ -1457,9 +1457,14 @@ is the one a quiet log cannot supply.
   runner-level consumer with no wait of its own, and one runner's view does not
   prove another's. `gh run rerun --failed` made it green, with four bundles
   attached. **That re-run had a cost that nobody had written down**: it erased
-  the approval record `release-followup` reads (the attempt-2 endpoint is
-  empty), while the deployment's own states still show the gate held. The fix
-  for that check is separate from this block.
+  the approval record `release-followup` reads, because the endpoint answers
+  for the run's latest attempt and attempt 2 had nothing to approve. The gate
+  had held. `release-followup` run `36311781707` read attempt 1 at
+  `10:12:39.68`: *the publish run records an approved*. **The deployment's
+  states are no substitute for that record.** `testpypi` has no reviewer and
+  runs the same `waiting → queued → in_progress → success`; its only
+  difference is 0s of waiting against `pypi`'s 2m19s. The fix for that check
+  is separate from this block.
 
   **The next tag must show** the pair again, present for every pin, and, if
   `pip` is ever handed an older serial than the wait read, the two lines that
