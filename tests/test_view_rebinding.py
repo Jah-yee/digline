@@ -27,7 +27,7 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
-from tests._helpers import baseline_in, cli, run_key
+from tests._helpers import baseline_in, cli, hand_over, run_key
 
 # Private on purpose: `view.py` is transport only and its `__all__` is two
 # names. The security predicate is still worth a direct test, so it is reached
@@ -49,7 +49,7 @@ REBOUND = "evil.example"
 #: three are 403s and a status cannot tell them apart.
 HOST_REFUSED = "addressed to a name this server does not answer to"
 ORIGIN_REFUSED = "this request came from another origin"
-KEY_REFUSED = "promotes only from the browser that opened the address"
+KEY_REFUSED = "was not issued by this start of digline view"
 
 
 @pytest.fixture
@@ -114,7 +114,7 @@ def served(repo: Path) -> Iterator[tuple[int, str, str]]:
         port = printed.port
         assert port is not None, line
         launch = urllib.parse.parse_qs(printed.query)["launch"][0]
-        yield port, key, f"digline-view-{port}={launch}"
+        yield port, key, hand_over(port, launch)
     finally:
         process.terminate()
         process.wait(timeout=10)

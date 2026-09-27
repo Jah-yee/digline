@@ -12,8 +12,8 @@ operating system choose and the printed line carries the bound port.
 
 **It promotes nothing unless you say so.** Without `--allow-promote` there is
 no button on any row and `POST /promote` is not a route — a POST to it gets the
-404 any unknown path gets. With it, it promotes only from the browser that
-opens the address it prints. See [below](#promotion-and-the-flag-that-enables-it).
+404 any unknown path gets. With it, it promotes only for the first browser
+that opens the address it prints, and that address works once. See [below](#promotion-and-the-flag-that-enables-it).
 
 ## The screens
 
@@ -116,14 +116,20 @@ run in the store for as long as the server is up.
 
 ```console
 $ digline view --suite suite.py --allow-promote
-digline view on http://127.0.0.1:7373/?launch=… — promotion enabled, from the browser that opens this address — ctrl-c to stop
+digline view on http://127.0.0.1:7373/?launch=… — promotion enabled, for the first browser that opens this address — ctrl-c to stop
 ```
 
 Open **that** address. The server trades the `launch` value for a cookie and
 sends you to `/` without it, and from then on `Make baseline` works
-in that browser until the server stops. Nothing else can promote on it: a
-POST without the cookie — a `curl`, a script, an agent's shell, another
-browser — is refused with `403`.
+in that browser until the server stops. A POST without that cookie — a
+`curl`, a script, an agent's shell, another browser — is refused with `403`.
+
+**The address works once.** Opening it spends the key: the browser gets a
+separate secret as its cookie, and the same address opened again is refused.
+This matters because the address does not stay in your terminal. A browser
+writes the pages it opened into its history file, and the key used to stay
+valid there for as long as the server ran. In 0.21.0, a process that read that
+file could promote with it. (ADR 0033 §11)
 
 The flag decides whether this server may write. It cannot decide who is asking,
 and before this, once a person had started the flagged server, any process of
@@ -140,7 +146,9 @@ saw it. The key is what closes that. ([ADR 0033](adr/0033-the-server-that-promot
 - **What changes for you:** restarting the server gives a new key, so an open
   tab or a bookmark from the last start is refused, with a sentence saying why.
   `localhost` and `127.0.0.1` are different hosts to a browser, so stay on the
-  one the line printed. A second browser needs the printed address pasted in.
+  one the line printed. **A second browser, or the right one after opening the
+  address in the wrong one, needs a restart and the new address**: the old
+  address has been spent.
 - **Why a `403` here and a `404` on the default server.** On the default server
   nobody may promote, so `/promote` does not exist. Here somebody may, so a
   caller without the key is refused rather than told there is nothing here.

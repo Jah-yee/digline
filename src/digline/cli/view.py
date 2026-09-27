@@ -40,10 +40,12 @@ Four properties are deliberate:
   the machine — an agent's included — with no `Origin` and nothing else. So
   that server mints a **launch key** when it starts: random, held in memory,
   never written, never configurable. It reaches a browser once, on the address
-  the startup line prints, and comes back as a cookie; `/promote` refuses a
-  request without it. The flag stays the only control a person operates — the
-  key is how the flag's decision stays with the person who made it, not a
-  second thing to set. (ADR 0033)
+  the startup line prints, and is **spent** there: the browser gets a second
+  secret as a cookie, and `/promote` refuses a request without that. (ADR 0033
+  §11: the address reaches the browser's history, and a key that still worked
+  there would promote for whoever read the file.) The flag stays the only
+  control a person operates — the key is how the flag's decision stays with
+  the person who made it, not a second thing to set. (ADR 0033)
 """
 
 from __future__ import annotations
@@ -52,6 +54,7 @@ import hmac
 import ipaddress
 import secrets
 import sys
+import threading
 import urllib.parse
 
 # `collections.abc.Set` is the read-only set protocol — the abstract one, not
@@ -60,8 +63,9 @@ import urllib.parse
 # bind while the handler only ever reads it.
 from collections.abc import Mapping, Sequence
 from collections.abc import Set as AbstractSet
+from dataclasses import dataclass, field
+from email.message import Message
 from functools import partial
-from http.cookies import CookieError, SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -71,7 +75,7 @@ from digline.report import Locale, case_history, escape, pages
 from digline.run import Suite
 from digline.store import FileResultStore, RunRef, utc_now_iso
 
-__all__ = ["ViewHandler", "serve"]
+__all__ = ["Launch", "ViewHandler", "cookie_values", "serve"]
 
 # `_ROUTES` used to stand here, a tuple commented *"everything this server
 # answers"*, with zero readers anywhere in the tree and two routes missing —
@@ -101,6 +105,75 @@ def launch_cookie(port: int) -> str:
     second one started.
     """
     return f"digline-view-{port}"
+
+
+@dataclass
+class Launch:
+    """One start's launch key, and the session it is traded for — once.
+
+    **Spent on its first hand-over** (ADR 0033 §11). The printed address reaches
+    the browser's history, a plaintext file every process of the user reads, and
+    it gets there when the browser exits: measured, not on disk for the first
+    sixty seconds the browser ran. The hand-over happens the moment the address
+    is opened. So a key that works once has opened its browser before any file
+    holds it, and a key that worked for the server's life opened a second one
+    for whoever read the file.
+
+    **The cookie carries the session, never the key.** Otherwise a spent key in
+    the history would still be a valid cookie: skip the hand-over, send it, and
+    promote. The two secrets come from the same generator and serve different
+    things — the key names a start, the session names a browser.
+    """
+
+    key: str
+    session: str = ""
+    _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
+
+    @classmethod
+    def minted(cls) -> Launch:
+        return cls(key=secrets.token_urlsafe(32))
+
+    def trade(self, offered: str) -> str:
+        """`issued`, `spent` or `foreign` — and on `issued`, `session` is set.
+
+        Under a lock, because `ThreadingHTTPServer` answers two hand-overs on two
+        threads and only one of them may win the key.
+        """
+        with self._lock:
+            if not hmac.compare_digest(
+                offered.encode("utf-8"), self.key.encode("utf-8")
+            ):
+                return "foreign"
+            if self.session:
+                return "spent"
+            self.session = secrets.token_urlsafe(32)
+            return "issued"
+
+    def admits(self, value: str) -> bool:
+        """Whether `value` is the session this start issued. Before the hand-over
+        there is none, and nothing is admitted."""
+        session = self.session
+        return bool(session) and hmac.compare_digest(
+            value.encode("utf-8"), session.encode("utf-8")
+        )
+
+
+def cookie_values(headers: Message, name: str) -> list[str]:
+    """Every value the request sends under the cookie `name`, read pair by pair.
+
+    Not `http.cookies.SimpleCookie`: it stops at the first value it cannot
+    parse — a JSON value, a space — so a cookie another app on the same host had
+    set before ours hid ours, and the person who *had* opened the address was
+    told they had not (ADR 0033 §11, K-3). A browser sends every cookie of the
+    host, whoever set it, so what this reads has to survive other people's.
+    """
+    found: list[str] = []
+    for header in headers.get_all("Cookie") or []:
+        for pair in header.split(";"):
+            key, sep, value = pair.strip().partition("=")
+            if sep and key.strip() == name:
+                found.append(value.strip())
+    return found
 
 
 def self_netlocs(host: str, port: int) -> frozenset[str]:
@@ -183,23 +256,24 @@ class ViewHandler(BaseHTTPRequestHandler):
         pricing: str = "",
         known: AbstractSet[str] = frozenset(),
         wildcard: bool = False,
-        launch_key: str = "",
+        launch: Launch | None = None,
         **kwargs: object,
     ) -> None:
         self.suite = suite
         self.store = store
-        #: The key this start minted, or empty on the server that does not
-        #: promote. **There is no separate switch beside it**: a server that
-        #: promotes without a key cannot be constructed, so the key cannot
-        #: become the optional half of two controls. (ADR 0033)
-        self.launch_key = launch_key
+        #: The key this start minted and the session it was traded for, or
+        #: `None` on the server that does not promote. **There is no separate
+        #: switch beside it**: a server that promotes without a key cannot be
+        #: constructed, so the key cannot become the optional half of two
+        #: controls. (ADR 0033)
+        self.launch = launch
         #: Whether this server promotes at all — **one fact, read twice**: the
         #: page asks it to decide whether to draw a button, and `do_POST` asks
         #: it to decide whether `/promote` exists. Two decisions computed
         #: separately is a page that eventually offers a button the route
         #: rejects. Empty by default is the same asymmetry as the flag's: the
         #: cheap mistake is the one a default should make. (ADR 0032 §1-2)
-        self.allow_promote = bool(launch_key)
+        self.allow_promote = launch is not None
         #: The netlocs that name this server, from where it bound — not from
         #: anything the request says. `serve()` computes them once.
         self.known = known
@@ -261,21 +335,30 @@ class ViewHandler(BaseHTTPRequestHandler):
         # address family, a Unix path included, and has no port to index.
         return launch_cookie(int(self.connection.getsockname()[1]))
 
-    def _carries_the_key(self) -> bool:
-        """Whether this request came from the browser the key was handed to.
+    def _without_the_session(self) -> str:
+        """Why this request may not promote, or empty when it may.
 
-        `compare_digest` rather than `==`: a comparison that stops at the first
-        wrong character tells a patient caller how many were right. An
-        unparseable `Cookie` header is a request without the key, not an error.
+        **What the request carried, never what the browser did** (ADR 0033 §11,
+        K-3). The server cannot see a browser; it sees a header. It used to say
+        *"only from the browser that opened the address"* whenever the cookie
+        did not match, and a foreign cookie that broke the parser made that
+        sentence false for the one person it was addressed to.
         """
-        jar: SimpleCookie = SimpleCookie()
-        try:
-            jar.load(self.headers.get("Cookie", ""))
-        except CookieError:
-            return False
-        morsel = jar.get(self._cookie())
-        return morsel is not None and hmac.compare_digest(
-            morsel.value.encode("utf-8"), self.launch_key.encode("utf-8")
+        assert self.launch is not None
+        values = cookie_values(self.headers, self._cookie())
+        if any(self.launch.admits(value) for value in values):
+            return ""
+        if not values:
+            return (
+                "refused: this request carries no cookie from this server. It "
+                "promotes only for the browser that opened the address digline "
+                "view printed when it started; a script or another browser has "
+                "none."
+            )
+        return (
+            "refused: this request's cookie was not issued by this start of "
+            "digline view: it is from an earlier start, or not from this "
+            "server. Open the address this start printed, or start it again."
         )
 
     def _hand_over(self, query: Mapping[str, Sequence[str]]) -> bool:
@@ -306,22 +389,32 @@ class ViewHandler(BaseHTTPRequestHandler):
         On the server that does not promote there is nothing to hand over and
         the parameter is ignored: the header already says what that server is.
         """
-        if LAUNCH not in query or not self.allow_promote:
+        if LAUNCH not in query or self.launch is None:
             return False
         offered = query[LAUNCH][0] if query[LAUNCH] else ""
-        if not hmac.compare_digest(
-            offered.encode("utf-8"), self.launch_key.encode("utf-8")
-        ):
+        outcome = self.launch.trade(offered)
+        if outcome == "foreign":
             self._error(
                 403,
                 "refused: this address carries a launch key from another start "
                 "of digline view. Open the address this start printed.",
             )
             return True
+        if outcome == "spent":
+            # The case §11 exists for: the address read back out of a browser's
+            # history, or opened a second time. It opens one browser, once.
+            self._error(
+                403,
+                "refused: this address has already been opened, and it opens "
+                "one browser once. Promote from the browser that opened it, or "
+                "stop digline view and start it again for a new address.",
+            )
+            return True
         self.send_response(303)
         self.send_header(
             "Set-Cookie",
-            f"{self._cookie()}={self.launch_key}; Path=/; HttpOnly; SameSite=Strict",
+            f"{self._cookie()}={self.launch.session}; "
+            "Path=/; HttpOnly; SameSite=Strict",
         )
         self.send_header("Location", "/")
         self.send_header("Content-Length", "0")
@@ -514,15 +607,12 @@ class ViewHandler(BaseHTTPRequestHandler):
             # indistinguishable from a promotion that happened.
             self._error(403, "refused: this request came from another origin")
             return
-        if not self._carries_the_key():
+        refused = self._without_the_session()
+        if refused:
             # After the origin check, so a cross-origin POST is still refused
             # in the words that say so; and before the form is read, so
             # nothing a refused caller sent is parsed at all.
-            self._error(
-                403,
-                "refused: this server promotes only from the browser that "
-                "opened the address digline view printed when it started.",
-            )
+            self._error(403, refused)
             return
 
         length = int(self.headers.get("Content-Length") or 0)
@@ -613,7 +703,7 @@ def serve(
     # system chooses, and the allowlist has to name the port actually taken.
     # Binding twice to learn it would race another process for the number.
     known: set[str] = set()
-    launch_key = secrets.token_urlsafe(32) if allow_promote else ""
+    launch = Launch.minted() if allow_promote else None
     handler = partial(
         ViewHandler,
         suite=suite,
@@ -621,16 +711,16 @@ def serve(
         pricing=pricing,
         known=known,
         wildcard=host in _WILDCARDS,
-        launch_key=launch_key,
+        launch=launch,
     )
     with ThreadingHTTPServer((host, port), handler) as httpd:  # pyright: ignore[reportArgumentType]
         known.update(self_netlocs(host, int(httpd.server_address[1])))
         shown = f"http://{host}:{httpd.server_address[1]}/"
-        if launch_key:
+        if launch is not None:
             # The one place the key is ever shown: the output of the process,
             # which goes wherever whoever started it pointed it — a person's
             # terminal, or an agent's pipe after the plugin's hook has asked.
-            shown += f"?{LAUNCH}={launch_key}"
+            shown += f"?{LAUNCH}={launch.key}"
         # Flushed, and the *bound* port rather than the requested one: with
         # `--port 0` the operating system chooses, and a caller that cannot read
         # which one would have to guess. Through `say()` like every other line
@@ -639,7 +729,7 @@ def serve(
         # The URL stays the fourth word whichever server this is: a caller
         # reading the line for the bound port should not have to parse a mood.
         mode = (
-            "promotion enabled, from the browser that opens this address"
+            "promotion enabled, for the first browser that opens this address"
             if allow_promote
             else "read-only; --allow-promote to promote"
         )
