@@ -14,7 +14,8 @@
   and §10 names the class. No other decision moves
 - Amended: 2026-09-27, for 0.21.1, after the 0.21.0 delta-pass (K-1). **The key
   is spent on its first hand-over, and the cookie carries a second secret
-  minted there** — §11. §5's first bullet is narrowed: reading a plaintext
+  minted there** — §11, which says why spending the key alone would have left
+  half of the defect open. §5's first bullet is narrowed: reading a plaintext
   browser-history file is not attacking the user boundary, and the key went
   there on its own. The cookie is now read without `SimpleCookie`, and the 403
   says what the request carried rather than what the browser did (K-3). The
@@ -401,23 +402,41 @@ K-1) measured it with a throwaway Chromium profile:
 The published sentence *"promotes only from the browser that opens the address
 it prints"* was false as of 0.21.0, and the 0.21.1 changelog corrects it.
 
-**The ruling: the key is spent on its first successful hand-over.**
+**The defect had two halves, and the ruling has to close both.** 0.21.0's key
+was a credential in two places at once:
 
-- **It works because of when the address reaches disk.** The same measurement
+1. **The key was reusable.** The address that carries it worked for the
+   server's whole life, so the address a browser writes into its history
+   stayed a way in.
+2. **The cookie was the key.** Whatever holds the key holds the cookie, so it
+   can skip the address and send `Cookie: digline-view-PORT=KEY` directly.
+
+**Spending the key closes the first half and leaves the second wide open.** A
+spent key in `History` is still a valid cookie, and the process that reads the
+file promotes exactly as before, one request shorter. The ruling as first given
+on 2026-09-27 was *"consume the key on its first hand-over"*, and that ruling
+was incomplete in exactly this way. It named the half that is visible in the
+measurement, and not the half that makes the measurement's repair mean
+anything. It is recorded here because the gap is the kind that survives
+review: a fix for the first half passes every test that re-opens the address,
+and fails only the test that never opens it.
+
+**The ruling, both halves:**
+
+- **The key is spent on its first successful hand-over.** That closes half 1,
+  and it works because of when the address reaches disk. The same measurement
   found the key **not on disk at 8, 15, 30, 45 or 60 seconds** while the
-  browser ran; `History` was locked, and the row appeared at exit. The
+  browser ran: `History` was locked, and the row appeared at exit. The
   hand-over happens the moment the address is opened, milliseconds after the
   page is requested. So by the time any file holds the key, the key opens
   nothing. The repair rests on that ordering, and the ordering is measured
   rather than assumed.
-- **Spending the key is not enough on its own, and this is the half that is
-  easy to miss.** Until 0.21.0 the cookie's value *was* the key. A spent key in
-  `History` would still have been a valid cookie: skip the hand-over, send
-  `Cookie: digline-view-PORT=KEY` directly, and promote. So the hand-over now
-  mints a **second secret**, the session, with the same generator
-  (`secrets.token_urlsafe(32)`). That is what the cookie carries and what
-  `/promote` compares against. The key is never a credential after its first
-  use, in any header.
+- **The cookie carries a second secret, minted at the hand-over, and never the
+  key.** That closes half 2. The session comes from the same generator
+  (`secrets.token_urlsafe(32)`), and it is what `/promote` compares against.
+  After its first use, the key is not a credential in any header. The two
+  secrets name different things: the key names a *start*, the session names a
+  *browser*. Only the second is ever worth sending again.
 - **Once, under a lock.** `ThreadingHTTPServer` answers requests on separate
   threads, so two hand-overs racing for one key must not both win. The check
   and the spend happen under one lock.
@@ -466,8 +485,9 @@ visit it, and §5's fourth bullet keeps it there.
 
 - `test_the_launch_key_opens_one_browser_and_then_nothing`: a second hand-over
   with the same key is refused and sets no cookie.
-- `test_the_key_itself_is_not_a_cookie`: the key sent as the cookie is refused
-  after the hand-over. This is the half above that is easy to miss.
+- `test_the_key_itself_is_not_a_cookie`: the key sent as the cookie is refused,
+  before the hand-over and after it. This is half 2, and it is the only test
+  here that never re-opens the address.
 - `test_two_hand_overs_racing_for_one_key_give_one_cookie`, over HTTP. It
   **does not catch the lock's removal**: measured, all passed with the lock
   deleted, because four requests rarely land inside a window of microseconds.
