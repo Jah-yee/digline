@@ -76,6 +76,17 @@ correct its structural mistakes and are not negotiable.
                             the constraints report/ is held to (ADR 0011 §6)
     src/digline/production/ [planned] production store, Postgres first, mandatory retention
     src/digline/bridge/     [planned] production → repo: mandatory anonymization, generated case_id
+                            Corrected 2026-09-27: pseudonymisation, not anonymization.
+                            - What is committed carries identifiers and no text, and identifies
+                              nobody on its own.
+                            - The mapping back to each case is held by the data owner, inside
+                              its own perimeter.
+                            - Anonymization cannot be met, because the input is what a judge
+                              judges.
+                            - Pseudonymised data is still personal data.
+                            ADR 0002's Consequences has the correction and its reasons. ADR
+                            0023 (proposed) still names the old requirement in its Touches
+                            line; that rewrite waits for its acceptance.
     src/digline/online/     production driver
     src/digline/host/       the layer that touches the world: the **only** one allowed to read
                             the clock and git, and the one that imports the user's suite and

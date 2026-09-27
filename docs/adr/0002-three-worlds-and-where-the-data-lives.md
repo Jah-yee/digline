@@ -475,10 +475,56 @@ a change to the configuration — visible in `config_hash` and in a pull request
   text that exists, and for this bullet it protected nothing while a fixed-section record went
   on stating a requirement its own successor had already shown could not be met. A record that
   cannot be met should say so in its own voice, which needs no other record's status.*
+
+  *__Corrected again 2026-09-27: what replaces the requirement.__ The first note stated the
+  problem and left the remedy to ADR 0023, which is still proposed. The remedy does not need
+  that record. It stands on the ground the first note already stands on: the input is what a
+  judge judges. Anybody can check that without reading ADR 0023, and so this record now says
+  the remedy in its own voice.*
+
+  *__What the bullet said:__ the production → repo bridge is the point where anonymization is
+  mandatory.*
+
+  *__What it says now:__ the bridge's regime is **pseudonymisation, with the mapping held by
+  the data owner**.*
+  - *What the bridge writes into the repository carries structural identifiers and no text,
+    so it identifies nobody on its own.*
+  - *The mapping from an identifier back to its case exists, is kept separately from what is
+    committed, and is held by the end company inside its own perimeter.*
+
+  *__Why not anonymisation:__ anonymisation means that no such mapping exists anywhere. A case
+  cut from its link and stripped of its text is not a case, which is the first note's point.*
+
+  ***Pseudonymised data is still personal data.** This does not take data-protection law off
+  the bridge, and nothing here claims it does. What it buys is narrower, and it is the whole
+  claim: the committed record alone identifies nobody.*
+
+  *__What still stands:__ the rest of the bullet. This is the one place payload and verdict
+  touch, and once committed a mistake is in git's history. Under this regime that mistake has
+  a sharper description: any string in the committed record that is not a structural
+  identifier.*
+
+  *__What this note supersedes:__ the paragraph "What this note does not do, deliberately"
+  above, which left the requirement with no replacement until ADR 0023 was accepted. It is
+  kept, because it was right on 2026-09-26, and a reader who cites it should meet this.*
+
+  *__A disagreement this leaves open, named here and not resolved.__ ADR 0023 is proposed.
+  Its* Amends *line says this bullet "becomes a declared regime", and its* Touches *line says
+  `CLAUDE.md`'s `bridge/` line follows its §8. From today this bullet says something else, so
+  the two records visibly disagree. Rewriting ADR 0023's header waits for that record's
+  acceptance, which is where its own status line says its amendments are decided. Until then,
+  where they disagree about this bullet, this record is in force: ADR 0023 is proposed, and by
+  its own rule what it amends waits for its acceptance.*
 - Three planned packages, in the order they will be built after the offline driver:
   `digline.report` (the document for world 3), `digline.production` (the Postgres store
   with mandatory retention), `digline.bridge` (production → repo, with anonymization and a
   generated `case_id`).
+
+  *Corrected 2026-09-27. "With anonymization" is now: **with pseudonymisation, the mapping held
+  by the data owner**. Anonymization cannot be met, because the input is what a judge judges.
+  Pseudonymised data is still personal data. The Consequences bullet above gives the
+  correction in full; this is the same correction, at the second place the word was
+  written.*
 - The build order is deliberate: **nothing online before the report.** The report is what
   world 3 sees, and it is the only one of the three artifacts that today exists in none of
   the audited competitors.
