@@ -178,6 +178,7 @@ RELEASED: dict[str, int] = {
     # run that exited 0 can read as exit 2 after migrating.
     "0.21.0": 17,
     "0.21.1": 17,
+    "0.21.2": 17,
 }
 
 #: `digline>=0.4,<0.5` → the `0.5`. Only the upper bound: the floor is a

@@ -296,6 +296,13 @@ RECORDED: dict[str, dict[str, str]] = {
         "the lesson; moving the number would claim a later pass audited it",
     },
     "RELEASING.md": {
+        "0.21.1": (
+            "the release whose walkthrough step 6 is dated by it (the address "
+            "works once since 0.21.1) and whose Status paragraph quotes the "
+            "capture's lines, the served and installed digline==0.21.1, and the "
+            "lock that stayed at 0.21.0 while five took 0.21.1. Every one is a "
+            "fact about a release that shipped"
+        ),
         "0.21.0": (
             "the release whose records, measurements and follow-up are told here "
             "as history: ADR 0030's partial Shipped line as the worked case, "
@@ -733,6 +740,8 @@ RECORDED: dict[str, dict[str, str]] = {
         "in full. History",
     },
     "src/digline/cli/view.py": {
+        "0.21.1": "'(0.21.1 delta-pass, D-1)' — the pass that found the "
+        "secrets in Launch's repr. Moving it would say a later pass found it",
         "0.13.0": "'(0.13.0 delta-pass)' — the start-up line the standing "
         "rule's guard caught on its first run, now through `say()`",
         "0.19.2": "'0.19.2 added two refusals this list never learned' — the "
