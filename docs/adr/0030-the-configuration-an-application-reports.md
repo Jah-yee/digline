@@ -7,7 +7,9 @@
   §4 is the ruling; §5 is what the implementation still has to settle, and
   neither of its two items changes §4. **§6 says what is true while §4 is
   unwritten, and it is unwritten as of 2026-09-23**
-- Shipped: unreleased
+- Shipped: 0.21.0 — §4's gate, `expect_config`, and nothing else of §4: the
+  recorded fact, a run saying its configuration is `unreviewed`, is unbuilt, and
+  schema 17 does not carry it
 - Date: 2026-09-23
 - Amended: 2026-09-25 — **§4's gate is written; §4's recorded fact is not.**
   `expect_config` exists, and a reported configuration that contradicts it is
