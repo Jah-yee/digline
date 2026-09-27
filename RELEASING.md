@@ -1427,6 +1427,45 @@ tag* updates it on every tag, and step 6 is what puts the capture's reading in
 it — including the sentence that says the capture ran and found nothing, which
 is the one a quiet log cannot supply.
 
+- **v0.21.0 — the capture ran, the pair was present for every pin, and it had
+  nothing to explain.** The first release with *The diagnostic, built* in the
+  image. `docker-publish` passed on attempt 1, and all three tags resolve to
+  one digest, `sha256:c134a22330c3e9b8aef33b367440a98fc94496ff084a5d1b8a29ff3f579e7b49`.
+
+  **The pairs.** In the smoke build (amd64, `#9`) and in the multi-arch build
+  (arm64, `#15`), each of the four pins — `digline`, `digline-anthropic`,
+  `digline-openai`, `digline-bedrock` — has a `side=wait` and a `side=pip`
+  line, and each pair carries one `X-PyPI-Last-Serial`. For the core that is
+  `41512032` on both sides of both builds: `#9` asked at `10:12:42.1` and `pip`
+  at `10:12:43.4`, `#15` at `10:14:50.1` and `10:15:08.2`. Each `RUN` then
+  reached `Successfully installed … digline-0.21.0 …` (`#9 8.445`,
+  `#15 133.3`). *Agreed*, and read, not assumed from a quiet log. The
+  multi-arch leg's `#10`–`#13` are `CACHED`: its amd64 half reused the smoke
+  build and proves nothing new, so `#15` is the build that counts.
+
+  **The runner-level wait was waiting for the approval, not the index.** It
+  read `serial=41442088` thirteen times from `10:05:57.8` to `10:11:58.5`, then
+  `41512032` at `10:12:28.5` (`every version is served (after 391s)`). The
+  `pypi` deployment was `waiting` from `10:08:13` to `10:10:32`, and its job
+  finished at `10:12:01`. That wait was the upload arriving, not the index
+  lagging behind it.
+
+  **The race showed up somewhere else instead.** In `publish`, *GitHub Release,
+  from the changelog* failed at `10:12:11.7`, ten seconds after the `pypi` job
+  went green: `digline 0.21.0 is in dist/ and not on https://pypi.org: this
+  runs after the upload`. It has the same shape as the image's race, but in a
+  runner-level consumer with no wait of its own, and one runner's view does not
+  prove another's. `gh run rerun --failed` made it green, with four bundles
+  attached. **That re-run had a cost that nobody had written down**: it erased
+  the approval record `release-followup` reads (the attempt-2 endpoint is
+  empty), while the deployment's own states still show the gate held. The fix
+  for that check is separate from this block.
+
+  **The next tag must show** the pair again, present for every pin, and, if
+  `pip` is ever handed an older serial than the wait read, the two lines that
+  say so. The signatures step may want the index wait `docker-publish` already
+  has. Not ruled: one instance is weather until it recurs.
+
 - **v0.20.1 — the in-build divergence came back, after the same-question
   fix. So the diagnostic is owed before the next tag.** `docker-publish` failed
   on attempt 1 and passed on attempt 2 (`gh run rerun --failed`), which is the
