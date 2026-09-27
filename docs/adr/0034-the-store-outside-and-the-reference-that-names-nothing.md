@@ -111,9 +111,11 @@
   §6**'s tolerance of a differently-named score (§7, route 4); **ADR 0014
   §3**'s refusal of a promotion history (§3, and it belongs to the record that
   decides identity); **ADR 0002 §1**'s *"enforced by the filesystem"*, which is
-  true of addressing and false of access (§13); **ADR 0022 §6**'s list of
-  harmless `config_hash` inputs, one entry of which is no longer harmless
-  (§12); **ADR 0023**'s own header, rewritten at *its* acceptance and not here
+  true of addressing and false of access (§13) — *corrected 2026-09-27: that
+  correction was already made on 2026-09-26, by PR #141, a day before this
+  record was written, and §13 says how the claim got here*; **ADR 0022 §6**'s
+  list of harmless `config_hash` inputs, one entry of which is no longer
+  harmless (§12); **ADR 0023**'s own header, rewritten at *its* acceptance and not here
 - Closes: [ADR 0033](0033-the-server-that-promotes-for-one-browser.md) §6's
   third bullet — *"A store outside the repository reaches fixed decision 2,
   which puts everything in `.digline/<tenant>/` inside the user's repository.
@@ -756,6 +758,37 @@ repository:** `tenant` and `suite` are directory names, and the guarantee stops
 at the file boundary. ADR 0002 §1's *"enforced by the filesystem"* is owed the
 correction that it is true of addressing and false of access; that amendment is
 named here and made in its own record.
+
+*Corrected 2026-09-27; the paragraph above is kept as written.* **The
+correction it calls owed was already made**, on 2026-09-26, by PR #141 — a day
+before this record was written. ADR 0002 §1 carries it as a dated note beside
+the original sentence: addressing, not access; the two `os.open` modes digline
+never reads back; the front ends and the operations that pair two runs as where
+the perimeter is enforced; `pytest-digline` as the unruled crossing. `CLAUDE.md`'s
+decision 8 carries the same text. **Nothing is owed to ADR 0002 §1.**
+
+**How a false sentence got here, because the route is the finding.** A working
+note written on the morning of 2026-09-26 found that §1's sentence was true of
+addressing and false of access and should be corrected in the ADR — **true when
+it was written**. #141 made that correction the same afternoon. This record
+carried the note's finding forward the next day as still owed, and a working
+record of this record's amendments then copied it from here. **Three citations
+in a chain, and at no link did anybody read the text being cited.** That is the
+case `CONTRIBUTING.md`'s sweep bullet describes, arriving from a fourth
+direction: not a search that misses a site, and not a search that merges two
+questions, but **no search at all** — a claim about another record's state
+taken from a record about it rather than from the record itself.
+
+The sweep that found it: regular expressions over a whitespace-folded form of
+every tracked `*.md`, `*.py`, `*.toml` and `*.txt`, for *enforced by the
+filesystem*, *filesystem enforces*, *perimeter in the filesystem*, *separation
+is enforced* and *separation between perimeters*, every site read. Beside ADR
+0002 §1, its correction and `CLAUDE.md`, it returns the two repetitions ADR 0002
+§1's correction already names — `store/file_store.py`'s module docstring and
+ADR 0011 §8 — plus a third it does not: `tests/test_store.py`'s module
+docstring, which repeats `file_store.py`'s sentence word for word. All three are
+tracked by issue #140 and none is edited here. `CHANGELOG.md`'s 0.21.0 entry
+quotes the sentence as released history and is left as written.
 
 ### 14. What the store must gain, and the two side-cars
 
