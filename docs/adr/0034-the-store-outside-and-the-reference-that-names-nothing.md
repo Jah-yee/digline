@@ -234,10 +234,15 @@ the wire and the report already call directly, so the question is whether the
 key rule belongs to the store or to the document — and that answer binds the
 Postgres store ADR 0002 §6 plans. ADR 0014 §1 already prices a `ResultStore`
 protocol change as a cost, so growing it is not free by this project's own
-standard. **And nothing protects the result:** the bare name `ResultStore`
-appears in no test, no in-memory implementation exists, and pyright strict
-accepts a concrete annotation — so the retyping would have nothing holding it
-in place. **Item 7's *"about twenty lines"* is low.** The composition is
+standard. **What the protocol has and has not got, because the obvious sentence
+here is wrong in a way that matters.** It **is** type-held by name:
+`JournallingStore` pairs it with `SupportsJournal`, `measure()` takes that pair,
+and pyright strict checks `FileResultStore` against it at both call sites. What
+does not exist is a **second implementation** — `FileResultStore` is the only
+one, and the single test subclass inherits it — so **the protocol has never been
+shown sufficient**, which is a different gap from an unprotected annotation. That
+is what a fake store inside the retyping would buy: not drift protection, but the
+first evidence that five methods are enough. **Item 7's *"about twenty lines"* is low.** The composition is
 `cmd_report` **and** `_report_single`, 77 lines and 42 of code, and it is not a
 move: `emit` and `say` are `digline.cli.output`, which nothing below a front end
 may import, so the function has to hand back a document, an exit code and both
