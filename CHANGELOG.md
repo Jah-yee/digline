@@ -6,6 +6,26 @@ upgrading, and what deliberately did not move. The reasoning lives in
 read the [release titles](https://github.com/digline/digline/releases) — the
 notes under them are this file, verbatim.
 
+## 0.21.2 — unreleased
+
+digline **0.21.2**. One fix so far, found by 0.21.1's own delta-pass in the
+code 0.21.1 added. Nothing to migrate.
+
+### Fixed — the object that holds the launch key printed it
+
+- **`digline view --allow-promote` no longer keeps its two secrets in a
+  printable form.** 0.21.1 moved the launch key and the session it is traded
+  for into a small object. That object's default text form, the one an
+  exception log, a `%r` or a debugger shows, printed both of them. Nothing in
+  digline prints it, so no release exposed either secret this way. But the
+  first debug line anybody added would have. The launch key had no such
+  exposure before 0.21.1, when it was a plain string: the fix for
+  [GHSA-cf5q-xj23-cr2q](https://github.com/digline/digline/security/advisories/GHSA-cf5q-xj23-cr2q)
+  closed a defect and opened this smaller one in the same change. Both fields
+  are now left out of that form, and a test fails if either comes back. No
+  advisory: it was never reachable.
+  (0.21.1 delta-pass, D-1)
+
 ## 0.21.1 — 2026-09-27
 
 digline **0.21.1**, a security release. **Upgrade before relying on `digline
