@@ -401,6 +401,21 @@ for itself.
 5. Stop the server, start it again, and press *Make baseline* in the tab from
    step 2 without reopening the new address. Refused, and the baseline does
    not move.
+6. **What must fail: the printed address, opened a second time** (since
+   0.21.1, ADR 0033 §11). After step 2 of a fresh start, paste the *same*
+   address step 2 opened into a private window. All three of these must fail:
+   - **The address itself is refused.** A 403 saying it *has already been
+     opened*, and no runs page behind it.
+   - **The button is refused.** Go to the bare `http://127.0.0.1:<port>/` in
+     that window and press *Make baseline*: a 403 saying the request *carries
+     no cookie from this server*.
+   - **Nothing moves.** `git diff .digline/*/baselines/` shows nothing.
+
+   **If any of the three succeeds, stop: the tag waits.** A working button in
+   that window means the key was not spent. That is 0.21.0's K-1 exactly: the
+   browser's history keeps this address, so anything that reads the history can
+   do what that window just did. Step 2 is where the address has to work; this
+   step is only the refusal, and a refusal is the only result that passes it.
 
 Do it in the browser you use, and in a second engine if you have one. `SameSite`
 is where engines have differed. If step 3 is refused, the release is wrong, not

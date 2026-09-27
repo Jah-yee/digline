@@ -14,7 +14,7 @@ import os
 import subprocess
 import sys
 import tarfile
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, ClassVar
@@ -50,7 +50,13 @@ from digline.core import (
     run_to_json,
     scale_lost,
 )
-from digline.core.run import SCHEMA_VERSION, run_to_dict
+from digline.core.run import (
+    SCHEMA_VERSION,
+    DocumentRefusedError,
+    run_from_dict,
+    run_to_dict,
+)
+from digline.host.refusals import REFUSALS
 from digline.report import (
     explain_text,
     facts,
@@ -1250,3 +1256,44 @@ def test_the_fields_are_never_written_and_a_quoting_reason_stays_inside() -> Non
     for sink, text in boundary.items():
         assert "HALF-RIGHT" not in text, sink
         assert "How do refunds work?" not in text, sink
+
+
+# --------------------------------------------------------------------------- #
+# A refusal a document provokes is a typed one (0.21.0 delta-pass, S-1)
+# --------------------------------------------------------------------------- #
+
+
+def _unbind_the_band(document: dict[str, Any]) -> None:
+    document["results"][1]["calibration"]["assertion_id"] = "f" * 16
+
+
+def _threshold_out_of_range(document: dict[str, Any]) -> None:
+    document["results"][0]["verdicts"][0]["threshold"] = 5.0
+
+
+@pytest.mark.parametrize(
+    ("label", "edit"),
+    [
+        ("a band that binds no verdict (new in 0.21.0)", _unbind_the_band),
+        (
+            "a threshold outside [0, 1] (a validator that predates it)",
+            _threshold_out_of_range,
+        ),
+    ],
+)
+def test_an_edited_document_is_refused_by_a_type_the_front_ends_translate(
+    label: str, edit: Callable[[dict[str, Any]], None]
+) -> None:
+    """The band check raised the builtin `ValueError`, which the CLI prints and
+    `digline-mcp` does not translate: one edited run file made `list_runs`
+    answer an agent with "Error executing tool". The classification test could
+    not see it, because it walks the exception classes digline *defines*, and a
+    builtin is not one. So this asserts the type at the boundary, for a check
+    new in 0.21.0 and for one that is older, which is the point: the defect was
+    the boundary, and the band was only the latest validator behind it."""
+    document = run_to_dict(execute(suite(), Counting(), created_at=CREATED))
+    edit(document)
+    with pytest.raises(DocumentRefusedError) as refused:
+        run_from_dict(document)
+    assert type(refused.value) is DocumentRefusedError, label
+    assert DocumentRefusedError in REFUSALS

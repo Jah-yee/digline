@@ -6,6 +6,107 @@ upgrading, and what deliberately did not move. The reasoning lives in
 read the [release titles](https://github.com/digline/digline/releases) — the
 notes under them are this file, verbatim.
 
+## 0.21.1 — unreleased
+
+digline **0.21.1**, a security release. **Upgrade before relying on `digline
+view --allow-promote`.** On 0.21.0, the address that command prints could be
+read back from the browser's history and used to promote by any process of the
+same user, for as long as the server ran. That is the one caller the key exists
+to refuse.
+
+```sh
+uv add --upgrade digline
+```
+
+### Security — the launch key worked more than once ([GHSA-cf5q-xj23-cr2q](https://github.com/digline/digline/security/advisories/GHSA-cf5q-xj23-cr2q), Medium)
+
+- **The address `digline view --allow-promote` prints now works once.** In
+  0.21.0 the key in that address was valid for the server's whole life, and the
+  cookie a browser got for it *was* the key. A browser writes the pages it
+  opened into its history file.
+  - **Measured** with Chromium: the address was written, key included, into
+    `History` (a plaintext SQLite file) and into the session files, when the
+    browser exited.
+  - A separate process, given nothing but that profile directory, read the
+    address, opened it, and POSTed `/promote` with no `Origin`. The baseline
+    moved.
+
+  The mechanism exists for an agent on the same machine. That is exactly the
+  caller it failed against, which is why this is an advisory and not a
+  footnote: *"it is the same user"* is the case the key was built for, not a
+  reason it does not matter.
+  ([ADR 0033 §11](docs/adr/0033-the-server-that-promotes-for-one-browser.md),
+  amended 2026-09-27)
+  - **The key is spent on its first hand-over, and that works because of when
+    the address reaches disk.** The same measurement found the key **not on
+    disk at any point in the first 60 seconds** the browser ran; it was written
+    at exit. The hand-over happens the moment the address is opened, so by the
+    time a file holds the key, the key opens nothing.
+  - **The cookie now carries a second secret, minted at the hand-over, and
+    that is the other half of the fix, not a detail of it.** The defect had two
+    halves: the key was reusable, and the cookie *was* the key. Spending the key
+    closes only the first. A spent key read out of the history would still have
+    promoted, one request shorter: skip the address and send it as the cookie.
+  - **The spend happens under a lock**, so two openings of one address cannot
+    both win.
+  - **The 0.21.0 entry below is corrected in place.** Its sentence that the
+    server *"promotes only from the browser that opens the address"* was false
+    as published, and so was *"never written"*. A reader of that entry would
+    have taken the browser for the wall.
+  - **What breaks:** the printed address opened a second time, in any browser,
+    is refused with a 403 saying *it has already been opened*. A second
+    browser, or the right one after opening the address in the wrong one,
+    needs a restart and the new address. The startup line now says *for the
+    first browser that opens this address*.
+  - **Still not covered, and ADR 0033 §5 says why:** reading the server's
+    memory, or the browser's encrypted cookie store, is an attack on the user
+    boundary. The cookie is also sent to every port on the same host, so a
+    local server the person visits receives it (K-2 of the delta-pass).
+
+### Fixed — a 403 that named the wrong cause
+
+- **A promotion refused because of somebody else's cookie now says so, instead
+  of telling you that you never opened the address.** The cookie was read with
+  Python's `SimpleCookie`, which stops at the first value it cannot parse. A
+  cookie another app on `127.0.0.1` had set, with a JSON value or a space in it,
+  therefore hid digline's own cookie. The person who **had** opened the address
+  was told the server promotes *"only from the browser that opened the
+  address"*. That sentence asserted the one cause that was false, the same
+  family as a control that answers the wrong question.
+  - The header is now read pair by pair, and a pair that cannot be read is
+    skipped.
+  - The refusal now says what the request **carried**: *no cookie from this
+    server*, or *a cookie this start did not issue*. It never says what the
+    browser did, which the server cannot see.
+  - **What breaks:** anything matching the old sentence.
+
+### Fixed — an edited run document reached an agent as "Error executing tool"
+
+- **A run document that fails a validator is now refused by a type every front
+  end translates.** One stored run whose calibration band bound no verdict made
+  `digline-mcp`'s `list_runs` answer *"Error executing tool list_runs"* with the
+  reason on stderr. That is the defect class 0.20.0 closed for the store's
+  refusals.
+  - **Why the test that closed it did not catch this one.** The check that
+    every refusal is classified walks the exception **classes digline defines**.
+    This refusal was raised as Python's builtin `ValueError`, which digline does
+    not define, so it was invisible to that test by construction. The CLI hid it
+    too, because it maps any `ValueError` to exit 64, so on the command line it
+    always looked handled.
+  - **It was not one refusal.** `run_from_dict` already turned a `TypeError` or
+    an `AttributeError` into `DocumentRefusedError`, and left `ValueError` out,
+    because the CLI handled it. Every validator behind that call raises
+    `ValueError`. An older one, a threshold outside `[0, 1]`, raised the same
+    builtin type through the same call.
+  - So the fix is at the boundary, not at the raise site. A bare `ValueError`
+    raised while a document becomes a run is now `DocumentRefusedError`, with
+    the validator's own sentence unchanged. A test asserts the type for both the
+    new check and the old one, and fails with the boundary removed.
+  - **Not fixed:** one such file still makes the whole suite's listing refuse,
+    in `list`, in `view`'s run list and in `list_runs`. It fails closed, and
+    each front end now says why, but it does not skip the file the way it skips
+    one at an older schema.
+
 ## 0.21.0 — 2026-09-27
 
 digline **0.21.0**. A calibration case now finds its verdict by identity, and
@@ -77,7 +178,12 @@ digline migrate --suite suite.py
 ### Changed — the promoting `digline view` promotes for one browser
 
 - **`digline view --allow-promote` now promotes only from the browser that
-  opens the address it prints.** Before, once a person had started the flagged
+  opens the address it prints.** *Corrected in 0.21.1: this was false as
+  published, and so was "never written" below.* The key worked more than once,
+  and the browser writes the address it opens into its history file. A process
+  that read that file could promote until the server stopped
+  ([GHSA-cf5q-xj23-cr2q](https://github.com/digline/digline/security/advisories/GHSA-cf5q-xj23-cr2q)).
+  0.21.1 spends the key on its first use. Before, once a person had started the flagged
   server, any process of the same user could move the baseline with one POST
   and no `Origin` header, the way `curl` sends one. That included an agent's
   shell, and the Claude Code plugin's hook never saw it, because nobody typed
