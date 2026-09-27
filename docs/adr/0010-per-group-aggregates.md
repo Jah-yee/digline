@@ -179,7 +179,7 @@ and the other amendments in its family do not.*
 
 *__What would remove the date without removing the amendment.__ The deadline
 rests on there being a committed reference to precede. If the shape ADR 0034
-proposes falls — its own §6 names the question that would fell it, and its
+accepts falls — its own §6 names the question that would fell it, and its
 *Alternatives considered* names what the design becomes instead, a comparison
 performed where the data is — then nothing is committed, and the date has
 nothing to attach to. **The amendment would still be owed**, because the premise
