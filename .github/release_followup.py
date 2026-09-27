@@ -57,10 +57,12 @@ import sys
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from typing import cast
 
 __all__ = [
     "Finding",
     "approvals_finding",
+    "keep_record",
     "digests_finding",
     "lock_versions",
     "locks_finding",
@@ -228,7 +230,14 @@ def _one_of(stale: Mapping[str, str | None]) -> str:
     return versions.pop() if len(versions) == 1 else "several versions"
 
 
-def approvals_finding(approvals: object, control: object) -> Finding:
+def approvals_finding(
+    approvals: object,
+    control: object,
+    *,
+    attempt: int = 1,
+    kept: object = None,
+    publish_run: str | None = None,
+) -> Finding:
     """Post-tag step 1: the reviewer gate recorded an approval.
 
     Read from the record rather than from the run's green, for the reason
@@ -239,27 +248,110 @@ def approvals_finding(approvals: object, control: object) -> Finding:
     The control is the approvals of a run with no gated environment, which the
     workflow fetches beside it. That list must be empty: if this reads an
     approval there, it is reading something other than an approval.
+
+    **A re-run erases the record.** The endpoint answers for the run's latest
+    attempt only, so `gh run rerun --failed` — which `RELEASING.md` calls safe,
+    and which is, for what it uploads — leaves an attempt with nothing to
+    approve, and the approval of attempt 1 stops being readable. v0.21.0 met it
+    (friction 71). So the run that reads an approval keeps what it read
+    (`keep_record`), and a later run on a re-run attempt reads that back —
+    `kept`, the record of *this* publish run, from an *earlier* attempt. It is
+    the same reading, made by this check, preserved; not a substitute for one.
+
+    Without it, a re-run attempt is said as what it is — the evidence is out of
+    reach — and never as a gate that did not hold, which it would be false to
+    say. It is still not ticked: unreadable is not approved.
+
+    **Considered and refused: an attestation file** — a reviewed file in the
+    repository that says, for a release, "the gate held, here is the evidence",
+    and ticks the line. It is the obvious answer and it was refused on
+    2026-09-27, for two reasons. Once it exists it is a written way to say
+    *trust me, it happened*, and it serves any line and any release: used today
+    for an honest case, in six months by somebody in a hurry, and the file
+    cannot tell the two apart. And it replaces the evidence with an assertion
+    exactly when the evidence is missing, which is when it is needed most. A
+    release whose reading was not kept is closed by hand, with the reason
+    written in the issue, once.
     """
     approved = _approved(approvals)
     control_approved = _approved(control)
+    carried = None if approved else _kept_by(kept, publish_run, attempt)
+    if approved:
+        said = "the publish run records an approved"
+    elif carried is not None:
+        read_at, read_by = carried
+        said = (
+            f"the publish run recorded an approved on attempt {read_at}, as read "
+            f"and kept by release-followup run {read_by}; the endpoint now answers "
+            f"only for attempt {attempt}"
+        )
+    elif attempt >= 2:
+        said = (
+            f"the publish run was re-run (attempt {attempt}), and the endpoint "
+            "answers only for the latest attempt, so an approval on an earlier one "
+            "is not readable here and none was kept. That is not evidence the gate "
+            "failed: read the release-followup run that followed attempt 1"
+        )
+    else:
+        said = (
+            "the publish run records no approved: either the gate did not "
+            "hold, or nobody has approved it yet"
+        )
     return Finding(
         step="the reviewer gate",
-        ok=approved,
+        ok=approved or carried is not None,
         held=not control_approved,
-        said=(
-            "the publish run records an approved"
-            if approved
-            else "the publish run records no approved: either the gate did not "
-            "hold, or nobody has approved it yet"
-        ),
+        said=said,
         control_said=(
             "and a run with no gated environment records none"
             if not control_approved
             else "but a run with no gated environment also reads as approved, "
             "so this is not reading approvals"
         ),
-        title="the reviewer gate recorded no approval",
+        title=(
+            "the reviewer gate's approval is not readable after a re-run"
+            if attempt >= 2 and not approved
+            else "the reviewer gate recorded no approval"
+        ),
     )
+
+
+def keep_record(
+    approvals: object, *, publish_run: str, attempt: int, read_by: str
+) -> dict[str, object] | None:
+    """What a run keeps when it reads an approval, so that a re-run cannot erase
+    it; `None` when there is nothing to keep. See `approvals_finding`."""
+    if not _approved(approvals):
+        return None
+    return {
+        "publish_run": publish_run,
+        "attempt": attempt,
+        "read_by": read_by,
+        "approvals": approvals,
+    }
+
+
+def _kept_by(
+    kept: object, publish_run: str | None, attempt: int
+) -> tuple[int, str] | None:
+    """The attempt a kept record was read at and the run that read it, if it is
+    an approval of *this* publish run from an *earlier* attempt."""
+    if publish_run is None or not isinstance(kept, dict):
+        return None
+    record = cast("dict[str, object]", kept)
+    read_at = record.get("attempt")
+    read_by = record.get("read_by")
+    if (
+        record.get("publish_run") != publish_run
+        or not isinstance(read_at, int)
+        or isinstance(read_at, bool)
+        or not 1 <= read_at < attempt
+        or not isinstance(read_by, str)
+        or not read_by
+        or not _approved(record.get("approvals"))
+    ):
+        return None
+    return read_at, read_by
 
 
 def _approved(payload: object) -> bool:
@@ -461,16 +553,49 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--releasing", default="RELEASING.md")
     parser.add_argument("--approvals", required=True)
     parser.add_argument("--approvals-control", required=True)
+    parser.add_argument(
+        "--publish-run",
+        default=None,
+        help="the publish run the approvals are of, to keep or read back a record",
+    )
+    parser.add_argument("--attempt", type=int, default=1)
+    parser.add_argument(
+        "--kept",
+        default=None,
+        help="a record an earlier run kept of this publish run's approval",
+    )
+    parser.add_argument(
+        "--keep-out",
+        default=None,
+        help="where to write the record to keep, when this run reads an approval",
+    )
+    parser.add_argument("--read-by", default=None, help="this run's id")
     parser.add_argument("--digests", required=True)
     parser.add_argument("--out", required=True)
     args = parser.parse_args(argv)
 
     root = Path(args.root)
     digests = _load(args.digests)
+    approvals = _load(args.approvals)
+    if args.keep_out and args.publish_run and args.read_by:
+        record = keep_record(
+            approvals,
+            publish_run=args.publish_run,
+            attempt=args.attempt,
+            read_by=args.read_by,
+        )
+        if record is not None:
+            Path(args.keep_out).write_text(json.dumps(record), encoding="utf-8")
     current = args.newest is None or args.newest == args.version
     findings = [
         locks_finding(root, args.version, current=current),
-        approvals_finding(_load(args.approvals), _load(args.approvals_control)),
+        approvals_finding(
+            approvals,
+            _load(args.approvals_control),
+            attempt=args.attempt,
+            kept=_load(args.kept) if args.kept and Path(args.kept).exists() else None,
+            publish_run=args.publish_run,
+        ),
         digests_finding(
             digests if isinstance(digests, dict) else {},
             args.version,
