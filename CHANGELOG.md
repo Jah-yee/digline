@@ -42,10 +42,11 @@ uv add --upgrade digline
     disk at any point in the first 60 seconds** the browser ran; it was written
     at exit. The hand-over happens the moment the address is opened, so by the
     time a file holds the key, the key opens nothing.
-  - **The cookie now carries a second secret, minted at the hand-over.** That
-    half is easy to miss. With the key as the cookie, a spent key read out of
-    the history would still have promoted: skip the hand-over and send it as the
-    cookie.
+  - **The cookie now carries a second secret, minted at the hand-over, and
+    that is the other half of the fix, not a detail of it.** The defect had two
+    halves: the key was reusable, and the cookie *was* the key. Spending the key
+    closes only the first. A spent key read out of the history would still have
+    promoted, one request shorter: skip the address and send it as the cookie.
   - **The spend happens under a lock**, so two openings of one address cannot
     both win.
   - **The 0.21.0 entry below is corrected in place.** Its sentence that the
