@@ -125,8 +125,12 @@ class Launch:
     things — the key names a start, the session names a browser.
     """
 
-    key: str
-    session: str = ""
+    # Out of the repr, both: a dataclass prints its fields by default, so the
+    # object that holds the secrets would hand them to any exception log, `%r`
+    # or debugger that ever formats it. The bare `str` this replaced had no
+    # such default. (0.21.1 delta-pass, D-1)
+    key: str = field(repr=False)
+    session: str = field(default="", repr=False)
     _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
 
     @classmethod

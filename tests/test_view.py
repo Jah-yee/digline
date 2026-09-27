@@ -1120,6 +1120,21 @@ def test_the_spend_is_one_step_under_the_lock(
     assert sorted(outcomes) == ["issued", "spent", "spent", "spent"], outcomes
 
 
+def test_the_holder_of_the_secrets_does_not_print_them() -> None:
+    """D-1 of the 0.21.1 delta-pass. `Launch` is a dataclass, and a dataclass's
+    repr prints every field: the key and the session went into any log line,
+    `%r` or traceback that formatted the object. Nothing formats it today; the
+    day a debug line does, this is what keeps the secrets out of it. Asserted
+    after the hand-over, when both exist."""
+    from digline.cli.view import Launch
+
+    launch = Launch.minted()
+    assert launch.trade(launch.key) == "issued"
+    shown = repr(launch)
+    assert launch.key not in shown
+    assert launch.session not in shown
+
+
 def test_a_foreign_cookie_before_ours_does_not_hide_it(
     repo: Path, served_promoting: tuple[str, str, str]
 ) -> None:
