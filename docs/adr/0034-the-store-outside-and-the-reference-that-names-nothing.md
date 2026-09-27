@@ -1,21 +1,35 @@
 # ADR 0034 — The store outside the repository, and the reference that names nothing
 
-- Status: proposed — the text first, checkpointed before any code, the way
-  [ADR 0021](0021-the-register.md) and [ADR 0023](0023-capture.md) were. Landed
-  on `main` as proposed so that its number is a record and not a hole; nothing
-  in it is implemented. **Acceptance waits on two answers, and neither of them
-  is in this tree.** The first is not ours: whether a record that carries
-  structural identifiers and no text, left in a repository's history, is still
-  personal data once the mapping that resolves it has been destroyed — §6
-  states both branches and what each does to §2. The second is ours and is
-  stated as a question rather than answered: **who the digests protect
-  against** (§12), which decides what happens to `assertion_id` and
-  `config_hash`; until it is answered §12 lists options and ranks none. **What
-  it amends waits for its acceptance**: the sections named in *Amends* are
-  edited when this is accepted, not when it lands. An amendment to a record the
-  *fixed* section rests on, reading as in force while the record that makes it
-  is undecided, would be a ruling and not a landing. Until then *Amends* says
-  what acceptance would change
+- Status: accepted 2026-09-27, by Alessandro Prandini — the text first,
+  checkpointed before any code, the way [ADR 0021](0021-the-register.md) and
+  [ADR 0023](0023-capture.md) were. It landed on `main` as proposed earlier the
+  same day so that its number was a record and not a hole; nothing in it is
+  implemented. **Acceptance waited on two answers. One was ruled; the other is
+  sidestepped by the design, not answered.**
+  **Who the digests protect against** (§12) was ruled on 2026-09-27: *nobody in
+  particular*. The committed reference and the suite live in one repository,
+  so whoever can read a digest already holds its inputs. `assertion_id` and
+  `config_hash` stay as they are, and §12's options are refused for that reason,
+  not for their costs.
+  **Counsel's narrowed question is sidestepped, not answered**: whether a record
+  of structural identifiers and no text, left in a repository's history, is
+  still personal data once the mapping that resolves it has been destroyed. The
+  argument: a reference that carries no text has nothing to erase. Under
+  pseudonymisation, erasure happens where the mapping lives — the name table,
+  at the data owner's side (§6) — so what history keeps afterwards is tokens
+  that point at nothing. **What stays true:** a pseudonymised record is still
+  personal data, and this record does not claim otherwise. Nothing here is
+  legal advice.
+  **What would reopen acceptance:** counsel saying the sidestep does not hold —
+  then §6's second branch applies, and the design becomes compare-at-the-owner
+  (§*Alternatives considered*) — or **a redacted reference reaching a place the
+  suite does not**: a fork or partial copy, a backup taken apart from the
+  source, a handover to a third party, or a later design that ships a
+  reference on its own. That removes the reason the digest ruling stands on,
+  and §12's options reopen with it. **What it amends is owed from acceptance
+  and is not made by it**: the sections named in *Amends* are edited in their
+  own changes, and until each one lands the record it amends still reads as it
+  did
 - Shipped: unreleased
 - Date: 2026-09-27
 - Opens: **nothing on landing.** No `SCHEMA_VERSION`, no `OUTPUT_VERSION`, no
@@ -75,7 +89,7 @@
   `key_of` lives in the core) and §2 (where the key is carried);
   [ADR 0033](0033-the-server-that-promotes-for-one-browser.md) §6 (world 2
   stays out, and what it needs first)
-- Amends, **at acceptance and not on landing**:
+- Amends, **owed from acceptance on 2026-09-27, and not yet made**:
   [ADR 0002](0002-three-worlds-and-where-the-data-lives.md) §6 — its carve-out
   widens from *the production stream* to *offline runs against the end
   company's own cases*, which is §1 below and the whole of what fixed decision
@@ -432,6 +446,13 @@ committed shape falls and the design becomes compare-at-the-owner
 (§*Alternatives considered*). **It blocks accepting this record. It does not
 block writing it.** Nothing here is legal advice.
 
+*Accepted 2026-09-27 without that answer:* the design sidesteps the question
+rather than answering it. The committed file carries no text, so there is
+nothing in it to erase; erasure happens here, in this table, and what history
+keeps is tokens that point at nothing. That does not make the tokens anything
+other than personal data. If counsel says the sidestep does not hold, the
+second branch above applies and acceptance reopens (the status line).
+
 ### 7. The six routes, and which of them this record closes
 
 The routes are mechanisms by which text reaches a document that has been
@@ -665,6 +686,19 @@ the artifact — a leak, a later maintainer, the repository host — and not the
 party.** Until that is ruled, this section states the question and §16 reports
 the green with the sentence above beside it.
 
+*Ruled 2026-09-27: nobody in particular.* The committed reference and the suite
+live in one repository, so no reader of a digest lacks its inputs — the reader
+who could run ADR 0003 §4's loop on `assertion_id` can open the suite and read
+the rubric instead. `assertion_id` and `config_hash` keep their recipes, and the
+three options above are refused **on that reason, not on their costs**, so a
+proposal to revive one meets the reason rather than a silence. The same reason
+keeps the declared rate a latch in `config_hash`: it is written in the suite.
+ADR 0022 §6's sentence about it is still owed. The ruling holds for as long as a
+redacted reference cannot reach a place the suite does not; when one can, the
+question and all three options are open again. **The sentence above stands
+unchanged**: the digests still carry content, and what the ruling settles is
+who reads it.
+
 ### 13. What decides the tenant when the suite is not loaded
 
 **Today the suite decides and the flag only verifies.** Every command loads a
@@ -875,8 +909,10 @@ should find it named rather than assume it was settled.
   whether a served page may carry the rule the end company is judged by, and
   whether a read is recorded. All three arrive with the door in §1 and none is
   answered.
-- **Whether the identities and the pricing digest change recipe** (§12), and
-  **whether digline refuses a bad co-versioning claim or records it** (§11).
+- **Whether digline refuses a bad co-versioning claim or records it** (§11).
+  *Whether the identities and the pricing digest change recipe* (§12) was
+  listed here until 2026-09-27, when it was ruled: they do not, for as long as
+  the reference travels with the suite.
 
 ## What this record does not claim
 
