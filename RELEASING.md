@@ -1445,6 +1445,52 @@ tag* updates it on every tag, and step 6 is what puts the capture's reading in
 it — including the sentence that says the capture ran and found nothing, which
 is the one a quiet log cannot supply.
 
+- **v0.21.1 — the capture caught the divergence, the in-build wait absorbed
+  it, and the lines name the cache server.** This is the first release where
+  the capture recorded the thing it was built to explain. `docker-publish`
+  passed on attempt 1. All three tags resolve to one digest,
+  `sha256:a3c4f1649abffc2ae9476c566b5d8ce92ef789c97aec64f0137fb113d90ad2a5`.
+
+  **Runner level.** The wait read `serial=41512032` until `12:31:59.3`, then
+  `41515308` at `12:32:29.4` (`every version is served (after 301s)`). As on
+  0.21.0, those seconds were the `pypi` approval, not the index.
+
+  **Inside the smoke build (`#9`, amd64), fifteen seconds later, the index was
+  older again.** The in-build wait read `serial=41512032` at `12:32:44.7`
+  (`waiting digline==0.21.1 — … none at 0.21.1`). It waited, read `41515308` at
+  `12:32:59.9` (`served digline==0.21.1 (after 15s)`), and only then did `pip`
+  ask: `side=pip … serial=41515308` at `12:33:00.9`, followed by `#9 22.83
+  Successfully installed … digline-0.21.1 …`. **The pair agreed because the
+  wait refused to hand `pip` the stale answer.** On v0.15.0 and v0.20.1 the
+  wait said *served* and `pip` got the older list. Here the older list reached
+  the wait first, and the wait held.
+
+  **Per-server luck, observed rather than inferred.** Every reading at
+  `41512032`, from the runner and from inside the build, came through the
+  first hop `cache-iad-khef600057-IAD`. Every reading at `41515308` came
+  through `cache-iad-khef600044-IAD`. Both are the `json` variant, so this is
+  not the `Vary` defect #29 fixed: it is two cache servers of one variant, one
+  refreshed and one not, and which one answers is luck. *The diagnostic,
+  built* left that hypothesis standing after v0.20.1 with no way to decide it
+  after the fact. These lines decide it for this release.
+
+  **The multi-arch build (`#15`, arm64)** read `41515308` on both sides
+  (`served … (after 0s)`, then `pip` at `12:35:19.5`), through `khef600044`,
+  and installed at `#15 104.2`. The other three pins (`digline-anthropic`,
+  `digline-openai`, `digline-bedrock`) paired on one serial each in both
+  builds.
+
+  **Elsewhere.** `publish`'s signatures job did not meet the race this time,
+  and passed on attempt 1. **The example locks met it:** `uv lock
+  --upgrade-package digline --refresh-package digline` left `classifier` at
+  0.21.0 while five others took 0.21.1. A second run of the same command, once
+  the simple index listed 0.21.1, fixed it, and the versions were read back out
+  of all six locks before committing.
+
+  **The next tag must show** the pair for every pin again. If a stale serial
+  appears, the line to read is its `via=` first hop. One observation names a
+  server; a second naming the same pattern would be worth a sentence to PyPI.
+
 - **v0.21.0 — the capture ran, the pair was present for every pin, and it had
   nothing to explain.** The first release with *The diagnostic, built* in the
   image. `docker-publish` passed on attempt 1, and all three tags resolve to
