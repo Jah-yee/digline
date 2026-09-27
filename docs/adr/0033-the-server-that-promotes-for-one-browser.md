@@ -2,7 +2,7 @@
 
 - Status: accepted — ruled on 2026-09-25, the design first and the code
   written against it on `view-launch-token`
-- Shipped: unreleased
+- Shipped: 0.21.0
 - Blocked: **the 0.21.0 tag**, until Alessandro had clicked the printed
   address in a real browser and pressed *Make baseline* — §8. Ruled
   2026-09-25, and **satisfied the same day**: all five steps held, both

@@ -150,7 +150,16 @@ grep -l '^- Shipped: unreleased' docs/adr/*.md
 ```
 
 For each one whose implementation is in this release, write the new version
-and make sure its status is `accepted`. Decide *is in this release* from the
+and make sure its status is `accepted`. **A record that shipped in part says
+which part**: the version, ` — `, and what is not built, as ADR 0030 does from
+0.21.0 on. Half a thing shipped is neither `unreleased` nor shipped. Those
+records are out of the grep above for good, so sweep them too, and when the
+rest ships, drop the qualifier and leave the version: it names where the record
+*first* shipped.
+
+```sh
+grep -l '^- Shipped: [0-9][^ ]* —' docs/adr/*.md
+``` Decide *is in this release* from the
 tree being tagged, not from the changelog: a changelog cites a record when it
 mentions it, and that is how ADR 0030 — cited in 0.19.1 as "accepted, not
 implemented" — would have been given a version it never shipped in. `tests/test_adr.py` refuses a version

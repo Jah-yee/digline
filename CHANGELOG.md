@@ -6,12 +6,13 @@ upgrading, and what deliberately did not move. The reasoning lives in
 read the [release titles](https://github.com/digline/digline/releases) — the
 notes under them are this file, verbatim.
 
-## 0.21.0 — unreleased
+## 0.21.0 — 2026-09-27
 
 digline **0.21.0**. A calibration case now finds its verdict by identity, and
 schema 17 comes with that. The migration can turn a stored green run red,
 because the document had been saying something false about it. Read the first
-section before you migrate.
+section before you migrate. An HTTP suite can now also declare the
+configuration it expects its application to report.
 
 ```sh
 uv add --upgrade digline
@@ -69,6 +70,9 @@ digline migrate --suite suite.py
     surfaces and check that the old grant is gone. The Claude Code plugin's
     hook asks a person before `promote`, `register` and `view --allow-promote`,
     but not before `migrate`.
+  - **The MCP playbook reaches PyPI as `digline-mcp` 0.4.1**, published by
+    this tag. Its text changed after 0.4.0 was on the index, and the version
+    had not, so an installed server still gave the old grant.
 
 ### Changed — the promoting `digline view` promotes for one browser
 
@@ -106,6 +110,50 @@ digline migrate --suite suite.py
     example's own `.venv` resolves digline from PyPI, and a published
     `view --allow-promote` prints *promotion enabled* while testing nothing of
     this release. The steps now begin with that check.
+
+### Added — an HTTP suite can declare the configuration it expects
+
+- **`HttpTarget(expect_config=…)`, and `expect_config` in `[target]`, check
+  what an application reports against what the suite declares.** Over HTTP the
+  application writes every field of the configuration it reports, so the
+  `provider` and `model` in a run were values nobody reviewed, and they cross a
+  boundary in clear. Declare the ones you expect, and a reported value that
+  contradicts the declaration **errors the case**, naming both values. The
+  value in the record is then one a reviewer wrote in a file that went through
+  a pull request, and the application's part is to agree with it. This is the
+  gate half of [ADR 0030 §4](docs/adr/0030-the-configuration-an-application-reports.md),
+  and only that half: see the last point.
+
+  ```toml
+  [target]
+  type = "http"
+  url = "http://localhost:8080/answer"
+  output_path = "data"
+  config_path = "config"
+  expect_config = { provider = "gemini", model = "gemini-2.5-flash" }
+  ```
+
+  - **The keys you name are the keys checked.** Nothing is mandatory, and a
+    key you leave out is not constrained. A key you name and the application
+    never reports is a mismatch: absence is not agreement.
+  - **Every answer is checked, not only the first**, and nothing earlier can
+    check it: `preflight` sends a `HEAD`, and an HTTP target has no
+    configuration until it has answered.
+  - **Refused when the target is built**, because each would be a green run
+    that reviewed nothing: `expect_config` without `config_path`, an empty
+    `expect_config`, a key outside the configuration contract, and a value that
+    is not a scalar or is an empty string.
+  - **It stays outside `config_hash`.** Adding the key costs no re-promotion,
+    and changing the declared model does not move the hash either
+    ([ADR 0030 §7](docs/adr/0030-the-configuration-an-application-reports.md)).
+  - **What is not built: the run does not record whether its configuration was
+    reviewed.** §4 also rules that a suite which declares nothing has its
+    configuration recorded as `unreviewed`. That field does not exist, and it
+    is not in schema 17, which carries the calibration band alone. So a suite
+    without `expect_config` is exactly where it was: its `provider` and `model`
+    are the application's word, they travel in clear, and a reader of the run
+    cannot tell it from one that declared. ADR 0030 §6 says what stays open
+    until that field is written.
 
 ### Changed
 
@@ -207,6 +255,22 @@ digline migrate --suite suite.py
     `commit .digline/acme/register/…`. That is the tenant as a path segment,
     not a statement of it, and only on the command that writes the register.
     It is how somebody could believe this was already covered.
+
+## digline-mcp 0.4.1 — 2026-09-27
+
+Published by digline's `v0.21.0` tag, with the core.
+
+A **patch**: the text an agent reads changed, and nothing else did. The
+`list_runs` playbook no longer lets an agent run `digline migrate` on its own
+initiative. It says to propose the command, and that a person runs it or tells
+the agent to, because since schema 17 a migration can change what a stored run
+says (ADR 0032 §4a, amended 2026-09-26). 0.4.0 shipped the old grant, and this
+text reached `main` after 0.4.0 was on the index under the same number, so
+without this version no install of the server would ever have carried it.
+
+The floor stays at `digline>=0.20.0`: the server imports nothing new, and the
+sentence is true against any core. The same eight tools, the same read-only
+hints, and still no way to promote a baseline.
 
 ## 0.20.1 — 2026-09-25
 
