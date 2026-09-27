@@ -952,6 +952,40 @@ This is the same move as the counts at the `[GATE]`: a number read out loud
 rather than a memory trusted. `tests/test_tag_names.py` covers it offline, with
 `v0.17.0`'s real message as the control that must fail.
 
+### Not built: a package whose text moved under a version the index serves
+
+**`tag_names.py` asks which *versions* the index lacks, so it cannot see a
+package whose shipped files changed while its version did not.** Such a package
+is served already, the run uploads nothing for it, and the new text reaches
+nobody who installs it. The version-literal gate cannot see it either: it
+watches numbers, not what the numbers ship.
+
+It happened on the way to `v0.21.0`. `digline-mcp`'s `list_runs` playbook
+stopped letting an agent run `digline migrate` (d8cbbeb) after 0.4.0 was on
+PyPI, and the version stayed 0.4.0. Run against that tree, `tag_names.py` listed
+`digline 0.21.0` alone and exited 0, while the changelog said every agent-facing
+surface carried the change. It was caught by reading, and 0.4.1 was cut for it.
+
+**The proposed check**, in `tag_names.py` because that step already talks to the
+index and already runs before every tag: for each workspace package whose
+version the index serves, download that wheel, build one from the tree, and
+compare the importable files — the wheel minus `.dist-info`. Any difference
+refuses the tag and names the files. **On that tree it would have named
+`digline_mcp/descriptions.py`**, and that is the control that must fail when it
+is built: at `bc8eb16`, the first parent of `v0.21.0`'s commit, `digline-mcp`
+still says 0.4.0 over the new text, and the check has to refuse there.
+
+- **The built wheel, not a git diff.** A diff against the tag that published a
+  version needs the tags, which a shallow CI clone does not have, and it needs
+  the prose *Published by … tag* line to find the tag at all.
+- **`.dist-info` is reported and not refused.** A change there alone is
+  metadata, and metadata rides a package's next real release rather than
+  earning its own.
+
+Until it is built, the check is a person: before tagging, for each package
+`tag_names.py` does **not** list, ask whether anything under its `src/` changed
+since the tag that published its version.
+
 ### A floor names a core version, so the core publishes first
 
 **Not negotiable, and it is an ordering rule rather than a waiting one.** When a
