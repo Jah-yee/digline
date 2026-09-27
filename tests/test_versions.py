@@ -141,7 +141,14 @@ RECORDED: dict[str, dict[str, str]] = {
         ),
     },
     "AGENTS.md": {
+        "0.21.0": "'a permission until 0.21.0' — the release that withdrew the "
+        "agent's grant to run `migrate`, told as when it stopped. History",
         "0.4.0": "'the one case in 0.4.0' — the state of a shipped release",
+    },
+    "docs/migrate.md": {
+        "0.21.0": "'a person's decision from 0.21.0 on' — the release that "
+        "made `migrate` one, because its step can change what a run says. "
+        "History: moving it would date the change to a later release",
     },
     "docs/log.md": {
         "0.16.0": (
@@ -191,12 +198,16 @@ RECORDED: dict[str, dict[str, str]] = {
         "what digline is at now",
     },
     ".claude/skills/operating-digline/SKILL.md": {
+        "0.21.0": "'a permission until 0.21.0', AGENTS.md's sentence in the "
+        "skill: when the grant to run `migrate` was withdrawn. History",
         "0.4.0": "'the one case in 0.4.0', the same sentence as AGENTS.md's — "
         "the state of a shipped release. The skill holds AGENTS.md's rules, not "
         "its bytes: test_agents.py gates the rule list and the probe line, and "
         "this sentence is prose around them that nothing holds to AGENTS.md's",
     },
     "plugins/digline/skills/operating-digline/SKILL.md": {
+        "0.21.0": "the plugin's byte-for-byte copy of the skill's "
+        "'a permission until 0.21.0'. History",
         "0.4.0": "the plugin's copy of the skill above, byte for byte, gated by "
         "test_claude_plugin.py — the one link of the two that holds bytes",
     },
@@ -285,6 +296,14 @@ RECORDED: dict[str, dict[str, str]] = {
         "the lesson; moving the number would claim a later pass audited it",
     },
     "RELEASING.md": {
+        "0.21.0": (
+            "the release whose records, measurements and follow-up are told here "
+            "as history: ADR 0030's partial Shipped line as the worked case, "
+            "digline-mcp 0.4.1 cut on the way to v0.21.0, the Status block's "
+            "capture reading, the signatures re-run that erased the approval "
+            "record, and the walkthrough's control for 0.21.0's K-1. It stopped "
+            "being the tree's version when 0.21.1 moved it"
+        ),
         "0.4.1": (
             "digline-mcp's version, not a digline one: the release cut on the way "
             "to v0.21.0 because its playbook text had moved under 0.4.0, quoted "
@@ -631,6 +650,8 @@ RECORDED: dict[str, dict[str, str]] = {
         "tests/test_examples.py, which is where a third-party version belongs",
     },
     "examples/langchain4j/README.md": {
+        "0.21.0": "the release `expect_config` arrived in, named where the "
+        "README says the line is now owed. A fact about one release",
         "0.3.0": "'Needs digline 0.3.0 (config_path on HttpTarget)' — the same "
         "kind of floor",
         "0.19.1": "the release that shipped tools_path, tool_calls_path and "
@@ -704,6 +725,9 @@ RECORDED: dict[str, dict[str, str]] = {
         "why the classification exists. History",
     },
     "docs/view.md": {
+        "0.21.0": "'In 0.21.0, a process that read that file could promote' — "
+        "the release whose reusable launch key was K-1, told as why the "
+        "address now works once. History",
         "0.20.0": "'On 0.20.0, --a started the same server' — the release whose "
         "view accepted abbreviated options, told as why the flag is now spelled "
         "in full. History",
@@ -752,6 +776,9 @@ RECORDED: dict[str, dict[str, str]] = {
         "Moving the number would claim a later pass found it",
     },
     "src/digline/core/run.py": {
+        "0.21.0": "'(0.21.0 delta-pass, S-1)' — the pass that found a bare "
+        "ValueError reaching the MCP as an opaque error. Moving it would say a "
+        "later pass found it",
         "0.19.0": (
             "the 0.19.0 delta-pass, which found what this file now does, told as "
             "history. Moving the number would claim a later pass audited its own "
