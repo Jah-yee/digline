@@ -6,7 +6,7 @@ upgrading, and what deliberately did not move. The reasoning lives in
 read the [release titles](https://github.com/digline/digline/releases) — the
 notes under them are this file, verbatim.
 
-## 0.21.0 — unreleased
+## 0.21.0 — 2026-09-27
 
 digline **0.21.0**. A calibration case now finds its verdict by identity, and
 schema 17 comes with that. The migration can turn a stored green run red,
@@ -256,7 +256,9 @@ digline migrate --suite suite.py
     not a statement of it, and only on the command that writes the register.
     It is how somebody could believe this was already covered.
 
-## digline-mcp 0.4.1 — unreleased
+## digline-mcp 0.4.1 — 2026-09-27
+
+Published by digline's `v0.21.0` tag, with the core.
 
 A **patch**: the text an agent reads changed, and nothing else did. The
 `list_runs` playbook no longer lets an agent run `digline migrate` on its own
