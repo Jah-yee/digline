@@ -642,7 +642,7 @@ requires-dist = [
 
 [[package]]
 name = "digline-mcp"
-version = "0.4.0"
+version = "0.4.1"
 source = { editable = "packages/digline-mcp" }
 dependencies = [
     { name = "digline" },

@@ -104,6 +104,14 @@ def test_every_adr_has_a_page_in_the_site_nav() -> None:
 # What this cannot see is a record left `unreleased` after its code ships.
 # RELEASING.md's "moving the number" sweeps for it at every bump, beside the
 # `RELEASED` row this check reads.
+#
+# A record can ship in part, and then the line says which part: the version,
+# ` — `, and what is not built (ADR 0030 in 0.21.0 shipped §4's gate and not
+# §4's recorded fact). Half a thing shipped is neither `unreleased` nor shipped,
+# and either bare word would be false of it. The version is still the part this
+# checks; the words after it are for a reader and are required only to exist.
+# `unreleased` takes none: nothing of such a record shipped, so there is no
+# part to name.
 
 #: The words a status may start with. The site copies any word, so a new one —
 #: `superseded`, the first time a record is — is added here on purpose.
@@ -134,8 +142,20 @@ def shipped_problems(head: str, released: set[str]) -> list[str]:
             *problems,
             f"{len(shipped)} `- Shipped:` lines above the first `## `, not 1",
         ]
-    value = shipped[0]
+    value, dash, rest = shipped[0].partition(" —")
+    rest = rest.strip()
+    if dash and not rest:
+        problems.append(
+            f"`Shipped: {value} —` names nothing after the dash; say what of the "
+            "record is not built, or write the version alone"
+        )
     if value == "unreleased":
+        if dash:
+            problems.append(
+                "`Shipped: unreleased` with a qualifier: a qualifier names the "
+                "part of a shipped record that is not built, and nothing of an "
+                "unreleased one shipped"
+            )
         return problems
     if value not in released:
         problems.append(
@@ -177,6 +197,10 @@ def test_the_valid_header_the_controls_start_from_passes() -> None:
     """Each control below is this header with one field changed, so a control
     that fails is failing on that field and on nothing else."""
     assert shipped_problems(header(_VALID), {"0.13.0"}) == []
+    partial = _VALID.replace(
+        "0.13.0", "0.13.0 — §4's gate; §4's recorded fact is unbuilt"
+    )
+    assert shipped_problems(header(partial), {"0.13.0"}) == []
     unreleased = _VALID.replace("0.13.0", "unreleased")
     assert shipped_problems(header(unreleased), set()) == []
     assert (
@@ -213,6 +237,21 @@ def test_the_valid_header_the_controls_start_from_passes() -> None:
             "a Shipped line only below the first ##",
             _VALID.replace("- Shipped: 0.13.0\n", "") + "- Shipped: 0.13.0\n",
             "0 `- Shipped:` lines",
+        ),
+        (
+            "a partial release naming a version never released",
+            _VALID.replace("0.13.0", "0.99.0 — §4's gate only"),
+            "names no release",
+        ),
+        (
+            "a dash with nothing after it",
+            _VALID.replace("0.13.0", "0.13.0 —"),
+            "names nothing after the dash",
+        ),
+        (
+            "unreleased with a qualifier",
+            _VALID.replace("0.13.0", "unreleased — §4's gate only"),
+            "`Shipped: unreleased` with a qualifier",
         ),
         (
             "a status word nobody uses",
