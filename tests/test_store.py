@@ -21,6 +21,7 @@ from digline.core import (
     Verdict,
     compare,
     config_hash,
+    key_of,
 )
 from digline.store import (
     ConfigMismatchError,
@@ -334,11 +335,12 @@ def test_dangerous_names_are_rejected(tmp_path: Path) -> None:
 
 
 def test_a_real_run_key_is_still_a_legal_name(tmp_path: Path) -> None:
-    """The check above has to admit what `key_for` produces, or it refuses every
+    """The check above has to admit what `key_of` produces, or it refuses every
     run there has ever been. `latest` too: `resolve_key` normally spends it
     before the store sees it, but nothing stops a caller passing it through."""
     store = FileResultStore(tmp_path)
-    key = store.key_for(run())
+    document = run()
+    key = key_of(document.created_at, document.config_hash)
     assert (
         store.run_path(RunRef(tenant="acme", suite="qa", key=key)).name == f"{key}.json"
     )
