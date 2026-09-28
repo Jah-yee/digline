@@ -412,6 +412,26 @@ a filter, and a filter has to know what it is looking for. The gate is a test
 that walks the serializer and fails when an unclassified field appears — the
 shape `tests/test_wire_boundary.py` already has for the wire.
 
+*Corrected 2026-09-28; the list and the paragraph above are kept as written.*
+**Read literally, they refuse every number.** The only numbers the three
+classes name are `canonical`'s `"nan"` and `"inf"`, and those are the string
+spellings of non-finite floats. A score, a threshold, a tolerance and every
+count are in none of the three, so the rule above would refuse them — and they
+are what the gate reads (§15) and what ADR 0002 §2 says may cross (§8). That
+was never the intent: §7 and *What this record does not claim* say numbers
+cross, and say what that leaves open.
+**Neither reading is the rule today. A class for numbers is deliberate, and it
+is not written yet**, because it depends on a fact the code does not record:
+**which code wrote a number.** A measurement and a value copied out of the
+answer are indistinguishable by type, by field path or by range (§7), and the
+only place that knows which assertion wrote a verdict is the driver, while it
+runs — nothing on the value, the verdict or the document says so. Until that
+fact is recorded, and recorded so that it can be refused at construction the way
+`redacted` is (§8), there is nothing for the class to test. So a reader of this
+section should conclude neither *numbers cross* nor *numbers are refused*:
+**numbers are the one axis this enumeration does not yet decide**, and the gate
+described above cannot be complete until it does.
+
 **Route 6 is enumerated here rather than excepted.** `target_config` and
 `judge_config` carry keys and values written by the provider *or by the end
 company's own application*, reported through a shipped target; they cross in
@@ -557,6 +577,15 @@ crosses only inside a bound its assertion declares, which built-ins can all
 state, and an 88-bit integer fails any plausible bound. It narrows the alphabet
 again and does not close the channel: a length bounded at a million still
 carries twenty bits per case.
+
+*Corrected 2026-09-28; the paragraph above is kept as written.* **§4 is not "a
+stringless rule".** It classifies every serialized field and refuses a field in
+none of its classes; read that way it refuses an integer rather than admitting
+one. What this paragraph describes — the string routes closed by type, numbers
+let through — is the intent, and §4's correction of the same date says so where
+the gate is defined: a class for numbers is deliberate and not yet written,
+because the fact it depends on is not recorded. **Route 2 stays open either
+way**, and *"it does not close route 2"* above remains true.
 
 **And the hole the three refusals share, stated once and cited where it
 matters:**
