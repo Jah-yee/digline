@@ -261,10 +261,12 @@ invent one.*
   so that can happen. When it does, the missing clause is not a gap of this
   marker's. Measured on 2026-09-28: a reference holding an errored verdict
   reads *"Every case could be judged."* beside an errored delta **whatever the
-  error's cause**, an assertion that raised included. F-10 closed that for one
-  cause, the unreconciled gap. A clause for this marker would close it for a
-  second cause and leave the others open. The general gap is recorded here, not
-  decided. Beside it stands the Consequences' limit: the marker is a
+  error's cause**, an assertion that raised included. F-10 gave one cause,
+  the unreconciled gap, a clause of its own. It placed that clause before the
+  claim and left the claim standing: measured, the F-10 case also reads *"Every
+  case could be judged."* A clause for this marker would add a second cause and
+  leave the other causes, and the claim, as they are. The general gap is
+  recorded here, not decided. Beside it stands the Consequences' limit: the marker is a
   self-declaration, and a hand edit can remove it as easily as add it.*
 
 *__What it does not close__, so that a fix to one route does not read as
