@@ -39,7 +39,7 @@ import pytest
 if TYPE_CHECKING:
     from digline.core import AssertionDelta, Comparison, ScaleLost, Verdict
     from digline.run import Suite
-    from digline.store import FileResultStore
+    from digline.store import ResultStore
 
 # **digline is imported inside the hooks, not here**, and the reason is
 # measured rather than tidy-minded.
@@ -297,7 +297,7 @@ def _measure(
     loaded: Any,
     spec: str,
     path: Path,
-    store: FileResultStore,
+    store: ResultStore,
     *,
     root: Path,
 ) -> None:
