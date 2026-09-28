@@ -439,6 +439,60 @@ payload never leaves the perimeter; whether a repository is inside it is
 declared, and where it is not, capture refuses.* It lands in
 `examples/operator/DESIGN.md` and on the page digline.dev builds from it.
 
+**Amended 2026-09-28: where the store lives in the owner's perimeter, a
+software house needs no regime of its own.** This section was written expecting
+world 2 to fall wholly on the refusal side: a software house's private
+repository holding an end company's text is `"public"` by the definition above.
+[ADR 0034](0034-the-store-outside-and-the-reference-that-names-nothing.md) §1,
+accepted since, puts the store — cases, runs, recorded responses — in the end
+company's perimeter wherever the cases are the end company's, and execution
+there with it. A capture that writes its file there writes inside the perimeter
+of whoever owns the text, which is this section's own definition of
+`"private"`. **The definition is met, not widened, and no third value is
+added.** Where capture's file sits in that layout, and whether an election
+reaches the software house's repository at all, are not ruled here: ADR 0034
+names material entering the perimeter as this record's question and leaves it
+open. Three things follow, and each is written down because it reads as though
+it did not.
+
+1. **The field names a repository and now asserts a residency.** `repository`
+   keeps its name and its two values. What `"private"` asserts in that shape is
+   *the file is written inside the owner's perimeter* — a fact about where a
+   store sits, not about a hosting platform. It can be declared falsely exactly
+   as before: learning whose perimeter a machine is in would be a network call
+   nobody configured, and *no type can stop a false declaration* holds
+   unchanged.
+2. **The derogation turns around, and it is the owner's alone.** *A person
+   writing the case by hand* was written for world 1, where the person who
+   writes the case owns the text. Once the two are different parties, the same
+   gesture has two authors with opposite results. **Written by the end company,
+   in its own perimeter,** it is its own text where it already lives, and
+   nothing is in question. **Written by the software house into the software
+   house's repository,** it is an end company's text committed where this
+   section exists to refuse it — and a refusal that names the derogation would
+   be pointing at the act it refuses. So the refusal's text says whose
+   derogation it is: the owner of the text may write the case by hand; a
+   software house hand-writing its client's text into its own repository is the
+   act this section refuses, whether a command or a person performs it. A
+   software house's hand writing inside the owner's perimeter is not ruled
+   here. Capture cannot see whose hand wrote a case, and does not claim to; the
+   sentence is what makes the difference a lie rather than a misunderstanding.
+3. **What would authorise a software house's repository to hold the text is
+   asked on two paths and no others.** Residency answers *what makes it
+   private*. It does not answer *what authorises* the software house to hold
+   the text — a written delegation from the end company, a ceiling, mandatory
+   redaction. But that question has an instance only where the text would enter
+   the software house's repository, and ADR 0034 §3 rules that reading at the
+   owner's side is not residency: *reading to work is not residency; writing a
+   copy is.* So it survives on two paths:
+   - the derogation, when the hand is the software house's (2 above);
+   - an election committed to the software house's repository, if that shape
+     is chosen and what it commits carries any of the owner's text rather than
+     identifiers alone.
+
+   On both, the question is open and is not answered here. The character
+   ceiling's refusal above stands on reasons residency does not touch.
+
 ### 9. Cadence: the operator says when, and a person launches
 
 **The operator counts.** A cycle may report *N disagreements not yet examined*,
