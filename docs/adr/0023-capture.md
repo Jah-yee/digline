@@ -32,10 +32,16 @@
   human), §4 (the operator never writes it), §6 (absence is stated, never read
   as zero), §7 (content-derived identifiers)
 - Amends: [ADR 0002](0002-three-worlds-and-where-the-data-lives.md) §5 — the
-  generated `case_id`'s recipe (§6 below); ADR 0002's *Consequences*, second
-  bullet — "anonymization is mandatory" at the bridge becomes a declared regime
-  (§8); `examples/operator/DESIGN.md`'s *Designed with pilots* sentence, and
-  the page on digline.dev built from it (§8)
+  generated `case_id`'s recipe (§6 below); ADR 0002's *Consequences*, **the
+  bridge bullet** — "anonymization is mandatory" at the bridge becomes a
+  declared regime (§8); `examples/operator/DESIGN.md`'s *Designed with pilots*
+  sentence, and the page on digline.dev built from it (§8).
+  *Named and not counted, 2026-09-28: this said `second bullet`, which was true
+  when written and stopped being true on 2026-09-27 at 16:29 (`3aeb53d`), when
+  ADR 0034 inserted a bullet above it and made it the third. Nothing it points
+  at moved, which is the whole reason an ordinal is the wrong handle — the same
+  correction ADR 0002 §8 made about its own conditions, and about its own
+  number.*
 - Closes: ADR 0015's deferred *traffic-to-case ADR*; ADR 0019 §10's and
   ADR 0021's deferred *label loop's distillation*, by ruling what it is (§10)
   and deferring only its reader
