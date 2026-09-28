@@ -68,6 +68,15 @@ Thanks for looking. A few things worth knowing before you open a pull request.
   And from the other side: **a red on a guard somebody is currently building is
   a worktree question before it is a defect** — run `git worktree list` and look
   at the branch names before filing it as one.
+
+  **And nothing tells you which tree a session is in.** `git worktree list`
+  gives you the trees; the listing of live sessions gives a name, a state and a
+  start time, and **no working directory** — so a note about a red cannot be
+  addressed to the tree that made it. Send it to every live session, open with
+  *"if this is you"*, and let whoever it does not concern say so. Measured
+  while writing this bullet: the note went to two sessions, one of them was not
+  the one, and it said so in a minute. The noise is the price of the gap, spent
+  deliberately rather than discovered.
 - **If you write a permission as a condition, write what fires it.** A
   condition says *when* the answer will change, and that is worth doing: ADR
   0032 §4a let an agent run `digline migrate` "for as long as every step is
