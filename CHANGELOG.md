@@ -23,6 +23,17 @@ protocol rather than the one store that implements it. Nothing to migrate.
   narrows back — **it is not a second backend**, and it does not show that the
   protocol's five methods are enough for one.
 
+### CI only
+
+- **Every example lock now has to install before a pull request can merge.**
+  `gates` gains a last step that runs `uv sync --locked` in each example that
+  carries a `uv.lock`, found by the glob rather than from a list. Until now no
+  pull request read those locks, so a dependabot bump to one was first
+  installed by the post-release check of the release it rode in. It installs
+  and runs nothing: a break between an example's code and the versions its lock
+  pins is still green, and the step's comment in `ci.yml` says what else it does
+  not prove. Nothing a user installs changed.
+
 ## 0.21.2 — 2026-09-28
 
 digline **0.21.2**, with `digline-mcp` 0.4.2, which this tag carries because
