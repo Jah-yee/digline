@@ -240,11 +240,32 @@ invent one.*
   code it could not account for); and `misnamed` on `compare --json`'s headline
   and as a tally kind on `explain --json`. These are added keys under
   `OUTPUT_VERSION = 2`'s rule, and neither is a bump.*
-- *__The reference is not read for it.__ `unreconciled` has a reference
-  clause (F-10), and this has none. No path digline writes can put a refused
-  name into a reference: promotion refuses every errored run. A reference
-  edited by hand is covered by the Consequences below: the marker is a
-  self-declaration. If that changes, the precedent is F-10's.*
+- *__The reference is not read for it__, where `unreconciled` has a
+  reference clause (F-10). **No path digline writes can put the marker into a
+  reference, and this is what makes that true.** The marker counts only on an
+  errored verdict: `misnamed()` reads nothing else. A reference is written by
+  one call, `promote_baseline`. Its callers are `digline promote` and `view`'s
+  promote form. The file store runs `refusals_for` before it writes, and one of
+  its conditions refuses any run that holds an errored verdict.
+  `tests/test_promotion_conditions.py` fails if a store in this repository
+  promotes without reaching the conditions. Migration rewrites a document's
+  shape, never a verdict's status or this key. A baseline promoted before this
+  amendment can carry a name its assertion did not declare, but not the
+  marker, because the check that writes the marker did not exist yet.*
+
+  *__The condition this rests on is that every promotion goes through
+  `refusals_for`.__ A store that promoted without it would make the sentence
+  above false. The clause would then be owed, on F-10's precedent.*
+
+  *__What remains is a reference edited by hand.__ `baselines/` is committed,
+  so that can happen. When it does, the missing clause is not a gap of this
+  marker's. Measured on 2026-09-28: a reference holding an errored verdict
+  reads *"Every case could be judged."* beside an errored delta **whatever the
+  error's cause**, an assertion that raised included. F-10 closed that for one
+  cause, the unreconciled gap. A clause for this marker would close it for a
+  second cause and leave the others open. The general gap is recorded here, not
+  decided. Beside it stands the Consequences' limit: the marker is a
+  self-declaration, and a hand edit can remove it as easily as add it.*
 
 *__What it does not close__, so that a fix to one route does not read as
 closing the class:*
