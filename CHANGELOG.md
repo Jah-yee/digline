@@ -6,7 +6,7 @@ upgrading, and what deliberately did not move. The reasoning lives in
 read the [release titles](https://github.com/digline/digline/releases) — the
 notes under them are this file, verbatim.
 
-## 0.21.2 — unreleased
+## 0.21.2 — 2026-09-28
 
 digline **0.21.2**, with `digline-mcp` 0.4.2, which this tag carries because
 the core's one removal breaks the server's published version. One fix found
