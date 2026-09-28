@@ -262,11 +262,23 @@ nothing else*):
    left behind, naming the package.
 2. **Regenerate the home capture**, which becomes due at exactly that moment and
    not before — see the rule above for why the two answers differ.
-3. **Expect the image job to go red on this commit** and read it as the short
-   post-tag red rather than a defect: dating the heading switches off
-   `image_pins.py`'s window substitution, so the build waits for a version the
-   index does not serve yet. It heals when `publish` finishes. This is not the
-   days-long window red described above.
+3. **Expect the image job to *skip* on this commit, and do not read the skip as
+   a check that went missing.** `image-touched` builds only when the diff
+   touches `docker/` or `ci.yml`/`docker-publish.yml`, and a release commit that
+   dates the changelog and regenerates the capture touches none of them. On
+   v0.21.2 it skipped, and that was correct.
+
+   This step used to say to expect a **red** here. That is true of the *bump*
+   commit — which does edit `docker/Dockerfile` and `docker/README.md`, so it
+   does trip `image-touched`, and where dating is irrelevant because the heading
+   is still `unreleased` — and of any build with no base to diff against, such
+   as the weekly scheduled `ci`, where the substitution is switched off by the
+   dated heading and the wait fails on a version the index does not serve yet.
+   It was never true of the release commit, and it read as a defect in reverse:
+   **a step that promises a signal which never arrives teaches people to stop
+   reading the step.** The short post-tag red it was describing is real and
+   heals when `publish` finishes; it simply arrives somewhere else. This is not
+   the days-long window red described above either.
 
 The reason this needs writing down at all is that the feature commit is *tempting*:
 it is green, it is the change everyone was working on, and nothing about it
@@ -1471,6 +1483,54 @@ tag* updates it on every tag, and step 6 is what puts the capture's reading in
 it — including the sentence that says the capture ran and found nothing, which
 is the one a quiet log cannot supply.
 
+- **v0.21.2 — the divergence appeared again, the wait held again, and the
+  second observation falsifies the per-server hypothesis rather than
+  confirming it.** `publish` and `docker-publish` both passed on attempt 1.
+  All three tags resolve to one digest,
+  `sha256:6057342d7be85e4796c7aad94debfbb0ff745f9742dc8e65ed9de043d1091554`.
+
+  **Runner level.** `every version is served (after 10s)` — not the five
+  minutes of the last two releases, because the `pypi` approval came before
+  the wait rather than during it. `digline` read `serial=41552657` via
+  `cache-iad-khef600045-IAD`, `digline-mcp` `41552658` via
+  `cache-iad-kcgs7200132-IAD`, both `served=yes`.
+
+  **Inside the smoke build (`#9`, amd64) the index was older, and stayed
+  older for 211 seconds.** The wait read `41515308` — the serial v0.21.1
+  ended on — **seven times**, every one of them via
+  `cache-iad-khef600044-IAD`, each saying `/simple/digline/ is served and
+  lists 41 file version(s), none at 0.21.2`. It then read `41552657` via
+  `cache-iad-khef600045-IAD` (`served digline==0.21.2 (after 211s)`), and only
+  then did `pip` ask: `side=pip … serial=41552657`, same first hop, followed
+  by `Successfully installed … digline-0.21.2 …` (`#9 9.729`). **The pair
+  agreed because the wait refused to hand `pip` the stale answer**, for the
+  second release running. The other three pins (`digline-anthropic`,
+  `digline-openai`, `digline-bedrock`) paired on one serial each, and the
+  multi-arch build (`#15`, arm64) read `41552657` on both sides.
+
+  **The falsification, and it is the point of this entry.** v0.21.1 left the
+  hypothesis that one cache server lags: there, `khef600057` served the stale
+  serial and `khef600044` the fresh one, and the entry asked whether a second
+  observation would name the same server. It did not. Here the stale server
+  **is `khef600044`** — the one that was fresh last time — and the fresh one
+  is `khef600045`. So what is stable is not *which* server is behind but
+  *that* one of them can be: which server answers is luck, and a server fresh
+  for one release is not fresh for the next. **No sentence to PyPI is owed**,
+  and the two-observation question that entry opened is closed. What remains
+  worth watching is only whether the wait keeps holding.
+
+  **Elsewhere.** The example locks did **not** meet the race this time:
+  `uv lock --upgrade-package digline --refresh-package digline` took all six
+  to 0.21.2 on the first pass, where v0.21.1 needed a second run. The
+  versions were still read back out of the six files before committing, which
+  is the step that does not depend on which way the race went.
+
+  **The next tag must show** the pair for every pin again. The `via=` first
+  hop is still the line to read on a stale serial, but no longer to identify
+  a culprit — only to confirm that it keeps moving. A stale serial arriving
+  through the *same* server three releases running would reopen what this
+  entry closed.
+
 - **v0.21.1 — the capture caught the divergence, the in-build wait absorbed
   it, and the lines name the cache server.** This is the first release where
   the capture recorded the thing it was built to explain. `docker-publish`
@@ -1516,6 +1576,11 @@ is the one a quiet log cannot supply.
   **The next tag must show** the pair for every pin again. If a stale serial
   appears, the line to read is its `via=` first hop. One observation names a
   server; a second naming the same pattern would be worth a sentence to PyPI.
+
+  *Answered by v0.21.2, above: the second observation named a **different**
+  server as the stale one — `khef600044`, which is the one that was fresh
+  here. No sentence to PyPI is owed. Read this entry as the observation it
+  was, not as a standing suspicion.*
 
 - **v0.21.0 — the capture ran, the pair was present for every pin, and it had
   nothing to explain.** The first release with *The diagnostic, built* in the
