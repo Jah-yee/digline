@@ -48,6 +48,14 @@
   right; the sizings are not.** Nothing about the decision moves: §16's other
   five tests, §8's *prerequisite* clause and every section of the *Decision*
   stand
+- Amended: 2026-09-28 — **§*What reading the code found*, item 8's last
+  clause, corrected where it is made.** Typing the store is a prerequisite of
+  nothing this record decides. The clause came from a scenario that §1 had
+  already replaced: the software house's digline reading a remote store. The
+  line above, which keeps §8's *prerequisite* clause standing, is corrected
+  with it. The condition that would restore the clause is written beside the
+  correction, and it would restore the clause for the channel, not for this
+  record
 - Opens: **nothing on landing.** No `SCHEMA_VERSION`, no `OUTPUT_VERSION`, no
   `REGISTER_VERSION`, no `JOURNAL_VERSION`, no migration — nothing is
   implemented. At implementation §8 is a field in the run document and
@@ -253,6 +261,66 @@ computed over the run **after** `redact` rebinds it, which a naive move reorders
 silently with no test to catch it. **Neither correction changes item 8's last
 clause:** typing the store is still the prerequisite, which is why the questions
 above are the first ones to answer and not the last.
+
+*Corrected 2026-09-28, at item 8's last clause; the item and the correction
+above are kept as written.* **Typing the store is not a prerequisite for
+anything this record decides.** Each piece of surface the record opens was
+checked against the store it would call:
+
+- the projection takes the `Run` that `promote_baseline` returns, and no store
+  at all (§2);
+- the writer works on the store at the data owner's side, which keeps the same
+  layout under the same key (§1): the file store;
+- `delete` is a sixth method *on* the protocol, and growing a protocol does not
+  require its callers to be typed to it (§14);
+- the name table is its own optional protocol (§6);
+- §8's field and §9's refusal read the document and the promotion conditions,
+  which are callable without a store;
+- the two readers of a committed file (§15) read the software house's own
+  `.digline/<tenant>/` through the file store.
+
+**No section of the *Decision* designs a store other than `FileResultStore`.**
+
+**How the clause got here, because the route is the finding, as in §13.**
+
+1. **The claim was true where it started.** The eleven signatures were first
+   counted on 2026-09-25, in a working note that measured one scenario: the
+   software house running digline from its own repository **against a store in
+   the end company's infrastructure**. There the software house's digline reads
+   a remote store. A remote store is a second implementation, and typing the
+   callers is its prerequisite.
+2. **The count was carried forward.** A structural pass on 2026-09-26 carried
+   it as *"a refactor with no design in it"*.
+3. **This record added the word.** It carried the count on and added *"a
+   prerequisite for anything else here"*, **in the same text whose §1 had
+   already replaced that scenario.** Under §1 the store and execution are at the
+   data owner's side. The join happens before rendering, where the data is
+   (§15). What reaches the software house is a page served from there, or a
+   projection it reads locally.
+4. **The clause was then reaffirmed twice.** The 2026-09-27 correction above
+   (*"typing the store is still the prerequisite"*) and the *Amended* line in
+   the header both reaffirmed it from the clause itself, not from its premise.
+
+**The conclusion outlived its premise by a day, and gained a word on the way.**
+
+**What the typing is still for.** Two things, and neither is in this record:
+
+- a second backend: ADR 0002 §6's production store;
+- the first evidence that the protocol's five methods are enough, which a fake
+  store would give.
+
+The code this record opens — the writer and the name-table read — can be typed
+against the protocols from its first line, without retyping the eleven.
+`JournallingStore` is the pattern. So this record's code adds no twelfth
+concrete signature.
+
+**The condition that restores the clause, written as one:** if the software
+house reads the end company's store **as a store**, through the channel's read
+and by a client on its own side, rather than through pages served where the
+store is, then that client is a second implementation, and typing the callers
+is its prerequisite again. **It would then be a prerequisite of the channel,
+not of this record.** The channel is not decided here (§*Not decided here*),
+and nothing this record decides changes with it.
 
 **One measurement that reorders the rest.** A run document with recording on is
 **88.3% recorded responses** — measured on twelve archived documents of one

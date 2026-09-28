@@ -223,6 +223,37 @@ Thanks for looking. A few things worth knowing before you open a pull request.
   correction of a count"*) and once for its own number, which moved when §1-bis
   was inserted. A position is a claim about the neighbours, and the neighbours
   are not yours.
+
+  **Fold the verification too, or it confirms anything.** Naming instead of
+  counting is the remedy upstream; this is the remedy downstream, and **without
+  the second you cannot confirm the first.** That ordinal wrapped across two
+  lines in `0023-capture.md`, and the same wrap beat the same sentence three
+  times on 2026-09-28:
+
+  1. It hid the stale ordinal from whoever wrote #179, who carried *second
+     bullet* across from 0023's *Amends* line into a new note in ADR 0002 §5
+     (`89ad49d`) — two readings of the line, no recount.
+  2. It hid it from the next pass, which wrote *the second bullet of
+     Consequences* in its own first draft of that same note and caught it only
+     by **enumerating** the bullets, never by searching for them.
+  3. Then it lied about the repair. The check run against `origin/main`
+     afterwards was `grep -c "the bridge bullet"` and returned **0**, with
+     `grep -c "second bullet"` returning **1** — the exact reading of a tree
+     that still carried the defect, on a tree that no longer did. The phrase had
+     wrapped again, and the one remaining `second bullet` was the dated note
+     quoting the old value as history.
+
+  So a check written as a phrase search **cannot** confirm a fix to a phrase
+  that wraps: it reports the same thing before and after, and the second report
+  is the dangerous one, because that is the one somebody believes. Fold the
+  check the way you fold the sweep — `re.sub(r"\s+", " ", text)` on both sides —
+  and make it **discriminate**: run it against the tree before the fix as well,
+  and if it answers the same, it is measuring your pattern and not the tree.
+  Measured on these two trees — folded, the ordinal count goes **1 before,
+  0 after**; as a phrase, `the bridge bullet` is **0 before and 0 after**, the
+  same answer on the broken tree and the fixed one. Counting is not enough
+  either: a count of 1 can be the correction quoting what it corrected, which is
+  what the `second bullet` still in that file is. Read the hit.
 - **`-m live` costs money** and needs `ANTHROPIC_API_KEY` *and* `DIGLINE_LIVE=1`.
   Never required to contribute.
 - **One check runs only in CI, and it is not required.** The `docs` job builds
