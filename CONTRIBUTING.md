@@ -82,6 +82,21 @@ Thanks for looking. A few things worth knowing before you open a pull request.
   and whether the reader already holds the text in the other, and only the
   first was ruled, so read every site it returns instead of counting them.
 
+  **A folded search still only finds strings, and the same claim can be written
+  twice in different words.** The tenant-separation correction (#141, ADR 0002
+  §1) named three sites that repeat the claim it corrects. A **fourth** turned
+  up two days later, found by somebody editing the file for another reason:
+  `ResultStore`'s class docstring says *"the filesystem then enforces the
+  separation that a field could only describe"*, where `file_store.py`'s module
+  docstring — which the list did name — says *"the separation between
+  perimeters is something the filesystem enforces"*. Folded and counted, `the
+  filesystem enforces` matches the named site and **not** the missed one; `The
+  tenant is a directory`, which both sentences open with, matches both. Note
+  what does *not* explain the miss: both are code, and one of them was named.
+  **So anchor on the part a paraphrase keeps** — the subject, the name of the
+  thing, the path — and read what comes back, rather than on the phrase that
+  made you notice the claim. (#140)
+
   **Then say in the amendment which method built the list.** *"One other site"*
   is a claim about a search before it is a claim about the repository, and a
   reader who cannot tell which search you ran cannot tell whether the list is
