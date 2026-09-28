@@ -72,8 +72,11 @@ def _reaches(cls: type[object], target: str) -> bool:
     **Not a text search over the class**, and the difference is the whole
     guard: `FileResultStore` calls the helper from a private method, so a class
     that kept that method and stopped calling it would satisfy a text search
-    while promoting without condition 8. That mutation was run, it passed
-    against the first version of this file, and this is what replaced it.
+    while promoting without condition 8. That mutation passed against the first
+    version of this file, and this is what replaced it. It is held by
+    `test_a_helper_that_is_kept_and_never_called_is_not_reached`, not by this
+    sentence: a defect a docstring records is one nothing stops anybody from
+    putting back.
 
     Reached through `getattr` it does not see — as `tests/test_plugin_floors.py`
     says of the same dodge, code written to be invisible to a check built to
@@ -152,3 +155,46 @@ def test_the_walk_sees_the_one_store_there_is() -> None:
     assert walked, "the walk found no class implementing promote_baseline"
     assert "digline.store.file_store.FileResultStore" in walked, sorted(walked)
     assert walked["digline.store.file_store.FileResultStore"] is FileResultStore
+
+
+class _KeepsTheHelperNeverCallsIt:
+    """The mutation, kept: `FileResultStore`'s shape with the one call removed.
+    The private method still names condition 8, so a text search over the class
+    finds it; `promote_baseline` never reaches the method, so nothing is
+    refused."""
+
+    def promote_baseline(self) -> None:
+        self._write()
+
+    def _refuse_a_moved_baseline(self) -> object:
+        return refusal_for_a_moved_baseline
+
+    def _write(self) -> None:
+        pass
+
+
+class _KeepsTheHelperAndCallsIt:
+    """The same class with the call in place — the control that says the
+    mutant's `False` is the walk's answer, not a walk that answers `False` to
+    everything."""
+
+    def promote_baseline(self) -> None:
+        self._refuse_a_moved_baseline()
+        self._write()
+
+    def _refuse_a_moved_baseline(self) -> object:
+        return refusal_for_a_moved_baseline
+
+    def _write(self) -> None:
+        pass
+
+
+def test_a_helper_that_is_kept_and_never_called_is_not_reached() -> None:
+    """The defect `_reaches` was written to replace: a text search passes the
+    mutant, and the walk must not."""
+    assert CONDITION_8 in inspect.getsource(_KeepsTheHelperNeverCallsIt), (
+        "the mutant no longer names condition 8, so it no longer fools a text "
+        "search and this test proves nothing"
+    )
+    assert _reaches(_KeepsTheHelperAndCallsIt, CONDITION_8)
+    assert not _reaches(_KeepsTheHelperNeverCallsIt, CONDITION_8)
