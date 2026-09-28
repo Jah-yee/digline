@@ -8,8 +8,45 @@ notes under them are this file, verbatim.
 
 ## 0.22.0 — unreleased
 
-digline **0.22.0**. The readers in `digline.host` are typed against the store
-protocol rather than the one store that implements it. Nothing to migrate.
+digline **0.22.0**. One refusal, which is why this is a minor: a verdict named
+otherwise than its assertion now errors, and a suite with such an assertion
+exits `2` where it exited `0`. No shipped assertion does this. New names in
+`digline.core`, a new tally kind and an added key on the wire. And the readers
+in `digline.host` are typed against the store protocol rather than the one
+store that implements it. Nothing to migrate.
+
+### Changed — a verdict named otherwise than its assertion is refused
+
+- **A verdict now carries the name of the assertion that produced it, or it is
+  refused** ([ADR 0027](docs/adr/0027-the-run-reconciles.md) §6, amended). A
+  verdict's name crosses into every document, redacted ones included. So a
+  third-party assertion that named its verdict from the answer carried the
+  answer out, past the redaction of the reason beside it. That is route 4 of
+  [ADR 0034](docs/adr/0034-the-store-outside-and-the-reference-that-names-nothing.md)
+  §7. The driver now compares every verdict with the name its assertion
+  declared before the first case. It checks every sample and every judgement,
+  before either fold can out-vote one. A mismatch errors **that one check on
+  that case**, under the declared name, and the case's other checks stand. The
+  run exits `2` and cannot be promoted.
+- **The refusal is marked, so a redacted reader can see it.**
+  `Score.metadata["misnamed"] = True` survives `redact()`, which the reason
+  does not. Without the marker, a redacted document would show an assertion
+  that raised. The headline gains a clause, placed directly before the one
+  about cases that could not be judged. `explain` gains a tally kind,
+  `misnamed`. `compare --json` gains `misnamed` on its headline. These are
+  added keys: no `OUTPUT_VERSION` bump and no schema bump. `digline.core`
+  exports `misnamed`, `misnamed_verdict`, `misnamings` and `MISNAMED`.
+- **What changes for a suite that ran green.** Nothing, unless one of its
+  assertions is third-party and names its verdicts otherwise than itself. No
+  shipped assertion does. A suite that has one now exits `2` where it exited
+  `0`, and every case of that check counts as could-not-be-judged. Before,
+  those cases were counted under the other name. That tolerance, ADR 0027
+  §6's, is what is withdrawn.
+- **What it does not close.** An assertion *declared* with a name taken from
+  client data matches its own verdicts, and passes. Runs and baselines already
+  written keep their names. So do results reused by a resume and aggregate
+  verdicts. An inner assertion under `Repeated` is renamed to `Repeated`'s own
+  name before the check sees it.
 
 ### Changed — the readers take the protocol, not the file store
 

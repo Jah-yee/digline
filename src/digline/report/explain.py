@@ -40,6 +40,7 @@ from digline.core import (
     case_count,
     checked_denominator,
     considered_cases,
+    misnamed,
     on_the_line,
     scale_lost,
     unreconciled,
@@ -174,6 +175,14 @@ type TallyKind = Literal[
     # only against a reference, because without one there is nothing to say.
     # It moves no exit code. (F-10, the second 0.17.0 delta-pass)
     "reference_unreconciled",
+    # The tenth amendment, from ADR 0027 §6 as amended on 2026-09-28: how many
+    # checks this run refused because their verdict was named otherwise than
+    # their assertion. It earns its place by ADR 0012 §3's own test: the
+    # headline says it, and a reading that left it out would describe an exit
+    # code it could not account for — in a redacted run, where the reasons are
+    # gone, it is the only thing that says why those checks were not judged.
+    # Read off the run alone, so it is stated with or without a reference.
+    "misnamed",
 ]
 
 
@@ -324,12 +333,17 @@ def _tallies(run: Run, comparison: Comparison | None) -> list[Fact]:
     appear — which is the visibility half of ADR 0012 §2, failing.
     """
     tally = run_tally(run)
+    refused = len(misnamed(run))
     out: list[Fact] = [
         # First, because it qualifies every count under it: these verdicts were
         # produced from answers that were replayed, not measured.
         *([TallyFact("rejudged", state=True)] if run.rejudged_from is not None else []),
         TallyFact("cases", count=tally.cases),
         TallyFact("checks", count=tally.checks),
+        # Directly before the unjudged count it explains, as in the headline,
+        # and silent at zero like the clause it mirrors. (ADR 0027 §6, amended
+        # 2026-09-28)
+        *([TallyFact("misnamed", count=refused)] if refused else []),
         TallyFact("unjudged", count=tally.unjudged),
         TallyFact("suspended", count=tally.suspended),
     ]
@@ -829,6 +843,12 @@ def _tally_line(fact: TallyFact, locale: Locale, counts: dict[str, int]) -> str:
             return phrase(
                 locale,
                 f"explain.tally.unreconciled.{'one' if fact.count == 1 else 'many'}",
+                count=fact.count,
+            )
+        case "misnamed":
+            return phrase(
+                locale,
+                f"explain.tally.misnamed.{'one' if fact.count == 1 else 'many'}",
                 count=fact.count,
             )
         case "reference_unreconciled":

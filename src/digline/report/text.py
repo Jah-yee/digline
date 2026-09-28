@@ -245,6 +245,24 @@ TEXT: Mapping[Locale, Mapping[str, str]] = {
             "{count} checks, including {gaps}. What the reference measured is "
             "not known, and this comparison is made against it."
         ),
+        # A verdict named otherwise than its assertion was refused, and each is
+        # one of the checks the unjudged clause counts: this says why, so it
+        # sits directly before that clause. (ADR 0027 §6, amended 2026-09-28)
+        "fact.misnamed.one": (
+            "1 check returned a verdict under a name that is not its "
+            "assertion's, and it was refused: {gaps}. The assertion is at "
+            "fault, not the system under test."
+        ),
+        "fact.misnamed.many": (
+            "{count} checks returned a verdict under a name that is not their "
+            "assertion's, and they were refused: {gaps}. The assertion is at "
+            "fault, not the system under test."
+        ),
+        "fact.misnamed.capped": (
+            "{count} checks returned a verdict under a name that is not their "
+            "assertion's, and they were refused, including {gaps}. The "
+            "assertion is at fault, not the system under test."
+        ),
         "fact.target_config.changed": (
             "The system under test answered under a different configuration: {changes}."
         ),
@@ -786,6 +804,18 @@ TEXT: Mapping[Locale, Mapping[str, str]] = {
             "suite asked. What the reference measured is not known, and this "
             "comparison is made against it."
         ),
+        "explain.tally.misnamed.one": (
+            "1 check returned a verdict under a name that is not its "
+            "assertion's, and it was refused. The assertion is at fault, not "
+            "the system under test. It is named below, among the checks that "
+            "could not be judged."
+        ),
+        "explain.tally.misnamed.many": (
+            "{count} checks returned a verdict under a name that is not their "
+            "assertion's, and they were refused. The assertion is at fault, not "
+            "the system under test. They are named below, among the checks "
+            "that could not be judged."
+        ),
         "explain.tally.calibration.one": (
             "1 calibration case scored outside its declared band: the judged "
             "scores in this run are not placed on the scale they are compared "
@@ -1302,6 +1332,21 @@ TEXT: Mapping[Locale, Mapping[str, str]] = {
             "Il riferimento non torna con ciò che la sua suite ha chiesto, in "
             "{count} controlli, fra cui {gaps}. Non si sa che cosa il "
             "riferimento abbia misurato, e questo confronto è fatto contro di esso."
+        ),
+        "fact.misnamed.one": (
+            "1 controllo ha restituito un verdetto con un nome che non è quello "
+            "della sua asserzione, ed è stato rifiutato: {gaps}. Il difetto è "
+            "dell'asserzione, non del sistema sotto esame."
+        ),
+        "fact.misnamed.many": (
+            "{count} controlli hanno restituito un verdetto con un nome che non "
+            "è quello della loro asserzione, e sono stati rifiutati: {gaps}. Il "
+            "difetto è dell'asserzione, non del sistema sotto esame."
+        ),
+        "fact.misnamed.capped": (
+            "{count} controlli hanno restituito un verdetto con un nome che non "
+            "è quello della loro asserzione, e sono stati rifiutati, fra cui "
+            "{gaps}. Il difetto è dell'asserzione, non del sistema sotto esame."
         ),
         "fact.target_config.changed": (
             "Il sistema in prova ha risposto con una configurazione diversa: {changes}."
@@ -1832,6 +1877,18 @@ TEXT: Mapping[Locale, Mapping[str, str]] = {
             "{count} controlli del riferimento non tornano con ciò che la sua "
             "suite ha chiesto. Non si sa che cosa il riferimento abbia "
             "misurato, e il confronto è fatto contro di esso."
+        ),
+        "explain.tally.misnamed.one": (
+            "1 controllo ha restituito un verdetto con un nome che non è quello "
+            "della sua asserzione, ed è stato rifiutato. Il difetto è "
+            "dell'asserzione, non del sistema sotto esame. È nominato sotto, tra i "
+            "controlli non valutati."
+        ),
+        "explain.tally.misnamed.many": (
+            "{count} controlli hanno restituito un verdetto con un nome che non "
+            "è quello della loro asserzione, e sono stati rifiutati. Il difetto "
+            "è dell'asserzione, non del sistema sotto esame. Sono nominati sotto, "
+            "tra i controlli non valutati."
         ),
         "explain.tally.calibration.one": (
             "1 caso di calibrazione è fuori dalla banda dichiarata: i punteggi "

@@ -41,6 +41,8 @@ from digline.core import (
     fold_judgements,
     identity_of,
     judged,
+    misnamed_verdict,
+    misnamings,
     reconcile,
     record_output,
     record_trajectory,
@@ -442,11 +444,24 @@ def _judge(assertion: Assertion, inputs: EvaluatorInputs) -> Verdict:
         )
 
 
+#: The name each assertion declared, captured before the first case, keyed by
+#: `id()` — the object's own identity for as long as it lives, and the suite
+#: holds its assertions for the whole run. Not keyed by `assertion.identity`:
+#: that is derived from the fields, the name among them, so an assertion that
+#: renamed itself would move its own key. (ADR 0027 §6, amended 2026-09-28)
+type Declared = Mapping[int, str]
+
+
+def _declared(suite: Suite) -> Declared:
+    return {id(assertion): assertion.name for assertion in suite.assertions}
+
+
 def _graded(
     suite: Suite,
     assertion: Assertion,
     samples: Sequence[EvaluatorInputs],
     judge_samples: int,
+    declared: Declared,
 ) -> Verdict:
     """One check over a case's samples, folded.
 
@@ -455,25 +470,27 @@ def _graded(
     check is asked `judge_samples` times per sample, **serially, in call
     order**, and `fold_judgements` records what a single judgement would have
     recorded and puts the judge's own range in metadata. (ADR 0024 §5)
+
+    **Every raw verdict is checked for its name before any fold.** The folds
+    take the first verdict's name and drop the others', and `fold_judgements`
+    counts an errored judgement without escalating it, so a refusal made per
+    sample would be out-voted and a misnamed second sample never seen. One
+    misnamed verdict among them refuses the check on this case, and only that
+    check. (ADR 0027 §6, amended 2026-09-28)
     """
     floor = 1.0 if suite.min_agreement is None else float(suite.min_agreement)
+    name = declared[id(assertion)]
     if judge_samples < 2 or not judged(assertion):
-        return _stamped(
-            assertion,
-            combine_samples(
-                [_judge(assertion, inputs) for inputs in samples], min_agreement=floor
-            ),
-        )
-    return _stamped(
-        assertion,
-        fold_judgements(
-            [
-                [_judge(assertion, inputs) for _ in range(judge_samples)]
-                for inputs in samples
-            ],
-            min_agreement=floor,
-        ),
-    )
+        raw = [_judge(assertion, inputs) for inputs in samples]
+        if wrong := misnamings(name, raw):
+            return _stamped(assertion, misnamed_verdict(assertion, name, wrong))
+        return _stamped(assertion, combine_samples(raw, min_agreement=floor))
+    rows = [
+        [_judge(assertion, inputs) for _ in range(judge_samples)] for inputs in samples
+    ]
+    if wrong := misnamings(name, (verdict for row in rows for verdict in row)):
+        return _stamped(assertion, misnamed_verdict(assertion, name, wrong))
+    return _stamped(assertion, fold_judgements(rows, min_agreement=floor))
 
 
 def _replaying(target: Target) -> bool:
@@ -489,7 +506,12 @@ def _replaying(target: Target) -> bool:
 
 
 def _run_case(
-    suite: Suite, target: Target, mapper: Mapper, case: Case, judge_samples: int = 0
+    suite: Suite,
+    target: Target,
+    mapper: Mapper,
+    case: Case,
+    judge_samples: int,
+    declared: Declared,
 ) -> tuple[CaseResult, Cause, CallTotals]:
     """The case, which layer errored it, and what its calls consumed.
 
@@ -521,7 +543,9 @@ def _run_case(
             CallTotals(),
         )
     if case.calibration is not None:
-        return _calibrate(suite, mapper, case, case.calibration, judge_samples)
+        return _calibrate(
+            suite, mapper, case, case.calibration, judge_samples, declared
+        )
 
     line = CallTotals()
     samples: list[EvaluatorInputs] = []
@@ -577,7 +601,7 @@ def _run_case(
     # With one sample `combine_samples` is the identity function, so this is
     # byte for byte what the driver produced before sampling existed.
     verdicts = tuple(
-        _graded(suite, assertion, samples, judge_samples)
+        _graded(suite, assertion, samples, judge_samples, declared)
         for assertion in suite.assertions
     )
     return (
@@ -601,7 +625,8 @@ def _calibrate(
     mapper: Mapper,
     case: Case,
     calibration: Calibration,
-    judge_samples: int = 0,
+    judge_samples: int,
+    declared: Declared,
 ) -> tuple[CaseResult, Cause, CallTotals]:
     """A calibration case: the author's answer, graded by one check.
 
@@ -650,7 +675,7 @@ def _calibrate(
                 "mapper",
                 CallTotals(),
             )
-    verdict = _graded(suite, check, samples, judge_samples)
+    verdict = _graded(suite, check, samples, judge_samples, declared)
     return (
         CaseResult(case_id=case.id, verdicts=(verdict,), calibration=band),
         "assertion" if verdict.status == "error" else "",
@@ -945,6 +970,10 @@ def execute(
     # judge fresh starts at zero and the subtraction is a no-op; one that
     # reuses it across runs is the case this exists for. (ADR 0025 §4)
     judging_before = judge_totals(suite)
+    # Before the first case, like the reading above: the name a verdict is held
+    # to is the one the assertion declared, not one it may have taken since.
+    # (ADR 0027 §6, amended 2026-09-28)
+    declared = _declared(suite)
 
     reuse = dict(done or {})
     unknown = sorted(set(reuse) - {case.id for case in suite.cases})
@@ -983,7 +1012,9 @@ def execute(
         if case.id in reuse:
             results.append(reuse[case.id])
             continue
-        result, cause, line = _run_case(suite, target, mapper, case, judge_samples)
+        result, cause, line = _run_case(
+            suite, target, mapper, case, judge_samples, declared
+        )
         results.append(result)
         billed = billed + line
         if on_case is not None:
