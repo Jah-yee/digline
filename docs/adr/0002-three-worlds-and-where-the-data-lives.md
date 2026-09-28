@@ -221,6 +221,11 @@ side. Whoever writes a transport for `Comparison` is going down the wrong road.
 
 ### 5. The `case_id` is not payload, and there is no way to copy one
 
+> **Amendment owed by [ADR 0023](0023-capture.md) (2026-09-28):** that record
+> amends this section, and its header rules that the edit waits for its
+> acceptance. It is proposed, so nothing here has moved yet. *Consequences*,
+> second bullet, says where the drafted text is parked.
+
 The `case_id` has to cross the boundary: it is the key `compare()` pairs on, and without
 it there is no comparison. So it cannot be payload.
 
