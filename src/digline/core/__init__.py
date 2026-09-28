@@ -83,6 +83,7 @@ from digline.core.diff import (
     Favours,
     diff,
 )
+from digline.core.naming import MISNAMED, misnamed, misnamed_verdict, misnamings
 from digline.core.pii import (
     ITALIAN_PII,
     PiiPattern,
@@ -325,6 +326,10 @@ __all__ = [
     "unreconciled",
     "unreconciled_verdict",
     "UNRECONCILED",
+    "misnamed",
+    "misnamed_verdict",
+    "misnamings",
+    "MISNAMED",
     "Gap",
     "GapKind",
     "meets",
