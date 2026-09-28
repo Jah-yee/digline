@@ -8,11 +8,12 @@ notes under them are this file, verbatim.
 
 ## 0.21.2 — unreleased
 
-digline **0.21.2**. One fix found by 0.21.1's own delta-pass in the code
-0.21.1 added, and two changes to surfaces a library caller can reach: two
-functions added to `digline.store`, one method removed from `FileResultStore`.
-And a bound on what one connection can cost `digline view`. Nothing to
-migrate.
+digline **0.21.2**, with `digline-mcp` 0.4.2, which this tag carries because
+the core's one removal breaks the server's published version. One fix found
+by 0.21.1's own delta-pass in the code 0.21.1 added, and two changes to
+surfaces a library caller can reach: two functions added to `digline.store`,
+one method removed from `FileResultStore`. And a bound on what one connection
+can cost `digline view`. Nothing to migrate.
 
 ### Added — the promotion conditions are callable on their own
 
@@ -50,6 +51,11 @@ migrate.
   outside digline doing the same replaces `store.key_for(run)` with
   `key_of(run.created_at, run.config_hash)`; nothing else changes, and the string
   is identical. `key_of` has been the rule since 0.20.0.
+  **One such caller was already published: `digline-mcp` 0.4.1**, which this
+  release breaks and which `digline-mcp` 0.4.2, below, repairs. The removal is
+  a patch under this project's own rule — `digline.store` is not one of the four
+  modules whose public names make a minor — and the rule did not ask whether
+  anything downstream already called the name.
 - **`ResultStore.write_run` now states the invariant that makes it safe to
   call.** `write_run(run).key == key_of(run.created_at, run.config_hash)` —
   the backend chooses where a run is filed and not what it is named. Nothing
@@ -98,6 +104,38 @@ migrate.
 - **Not the transport.** `view` still serves plain HTTP on loopback. Whether a
   `view` served beyond the developer's machine must refuse plaintext is an
   open question, and this does not answer it.
+
+## digline-mcp 0.4.2 — 2026-09-28
+
+Published by digline's `v0.21.2` tag, with the core.
+
+**Upgrade if you use this server. `digline-mcp` 0.4.1 is broken against
+digline 0.21.2 and every later core.** 0.4.1 calls
+`FileResultStore.key_for`, which 0.21.2 removes, in two of its eight tools:
+`list_runs`, which reports the baseline's key beside the listing, and the
+tool that returns the baseline document. Against a 0.21.2 core both raise
+`AttributeError`. Its floor is `digline>=0.20.0`, which permits 0.21.2, so
+nothing refuses the pair at install time — the failure arrives when the tool
+is called. 0.4.2 calls `digline.core.key_of` instead and is the same server
+otherwise: the same eight tools, the same read-only hints, the same text, and
+still no way to promote a baseline.
+
+0.4.1 stays on the index. With 0.4.2 there, `pip` takes 0.4.2; 0.4.1 is
+reached only by pinning it, and this entry is what says why not to.
+
+**The floor stays at `digline>=0.20.0`.** `key_of` has been in `digline.core`
+since 0.20.0, so the replacement needs nothing newer, and raising the floor
+would refuse cores this server works against. A floor cannot express the
+constraint that actually bit here — it bounds the core from below, and what
+0.4.1 needed was a bound from above, written before anybody knew it was owed.
+
+This is the second release in a row where this package's shipped files moved
+under a version the index already served, and the first where the result was
+a break rather than stale text. `tools/tag_names.py` cannot see it — it asks
+which *versions* the index lacks — and it exited 0 on this tree naming
+`digline 0.21.2` alone. It was caught by RELEASING.md's *Not built: a package
+whose text moved under a version the index serves*, whose check is a person
+until the wheel comparison it proposes is built.
 
 ## 0.21.1 — 2026-09-27
 
