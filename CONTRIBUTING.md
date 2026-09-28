@@ -152,6 +152,77 @@ Thanks for looking. A few things worth knowing before you open a pull request.
   short or the sweep was. The same applies to `git grep -i <word>` for a word
   that appears in more spellings than you checked: state the pattern, not the
   count alone.
+- **The three bullets above name one shape, and it is now measured: right about
+  the fact, wrong about where it lives.** Each of them found it once and called
+  it something else — a guard in front of another one, where a test was right
+  that a refusal came and wrong about *whose*; a folded search, where a
+  correction was right about its claim and wrong about which files carried it;
+  a guard built on `inspect.getsource`, where the name was right there in the
+  text and the call graph never reached it. Three anecdotes, three names, one
+  shape.
+
+  **Measured on 2026-09-28.** Seventeen claims about this repository and its
+  three siblings — written down first, then checked one by one against
+  `origin/main`. **Twelve right, five wrong, and not one of the five wrong
+  about whether the thing existed.** Every miss was the address: which bullet
+  of this file carried a count, which section of a record carried a correction,
+  which of two ADRs had a qualified `Shipped:` line, how far a numbered series
+  of files ran, and whether a row had *landed* or been *never owed*. Nothing
+  was missing. Each thing sat one container over from where it was said to be —
+  the neighbouring bullet, the neighbouring section, the sibling record, one
+  item further along.
+
+  **So the rule this adds to the three: check the container as hard as the
+  content.** When you write *"X is in Y"*, grep for X and read **which** Y came
+  back; when you write a count, enumerate it rather than recall it. The three
+  bullets above tell you how to find every site of a claim. This one says that
+  finding them is not the hard part — *saying which one you found* is, and a
+  citation to the wrong section is read as a citation, not as a guess.
+
+  **And the half worth the measurement:** two of the five re-made a correction
+  the tree already held in writing. One said a row *landed* where the record
+  says *"this row was never owed"*; one filed a correction under the section
+  that has none instead of the section that carries it, dated, twice. **The
+  repository was already right about the thing the claim was wrong about.**
+  That is the failure mode with teeth, because it survives a careful reader:
+  the sentence is true, the record agrees with it, and only the address is
+  false — so nothing in the citation looks like something to check. **One of
+  those two is repaired around this change** — ADR 0002 §5 had no dated note at
+  all, so it read as settled; #179 gave it one while this was being written, and
+  this adds what was still missing beside it: *which* sentence is owed, and that
+  the structural half and world 1 do not wait. The other is in a working record
+  outside this repository and is corrected there.
+
+  **The fifth miss earned no repair, and that is the sharper lesson of the
+  five.** The claim was that ADR 0033's `- Shipped:` line was qualified like ADR
+  0030's; it is bare. The finding was right — and the fix drawn from it was
+  **refused**, on 2026-09-28, in these words: *the bare line is correct, and
+  "where the record first shipped" answers one question and answers it well.*
+  `RELEASING.md`'s *say which decisions this release ships* step says to drop a
+  qualifier once the rest ships, `tests/test_adr.py`
+  defines the line as the release a record's behaviour **first** shipped in, and
+  a qualifier names what is **not built** — §11 is built, so bare is what the
+  convention produces, not what it failed to produce. #179 had already declined
+  the same change for the same reason and said so in its body. **So: a
+  difference is not a defect.** A reconnaissance says what the tree holds; whether
+  it should hold something else is a second question, with a different owner and
+  a convention to read first. Finding a surprise and proposing a repair are two
+  passes, and the second one is where this went wrong even though the first was
+  right.
+
+  **And the measurement found a live one while the repairs were being written**,
+  which is the argument for measuring rather than remembering. ADR 0023's
+  *Amends* line cited *"ADR 0002's Consequences, **second** bullet"*. True the
+  day it was written; ADR 0034 inserted a bullet above it on 2026-09-27 and made
+  it the third, and nothing that anybody touched was the thing the line points
+  at. It is now named instead of counted. **So the specific rule, because
+  ordinals are where this shape breeds: cite a section, a bullet or an item by
+  something it carries — a name, a key, a first phrase — not by its position.**
+  ADR 0002 §8 has paid for this twice in one section, once for its conditions
+  (*"the argument for naming conditions rather than counting them, made by the
+  correction of a count"*) and once for its own number, which moved when §1-bis
+  was inserted. A position is a claim about the neighbours, and the neighbours
+  are not yours.
 - **`-m live` costs money** and needs `ANTHROPIC_API_KEY` *and* `DIGLINE_LIVE=1`.
   Never required to contribute.
 - **One check runs only in CI, and it is not required.** The `docs` job builds
