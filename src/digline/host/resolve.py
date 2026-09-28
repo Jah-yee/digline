@@ -1,9 +1,9 @@
 """Naming a stored run, and finding the baseline. Resolution, never shape.
 
 Both front ends need these and neither should grow its own: `latest` resolved
-two ways is `latest` meaning two things. They bind `FileResultStore` concretely
-and raise `UsageError`, which is why they are here rather than in
-`digline.wire`, which is pure and knows no store. (ADR 0011 §7)
+two ways is `latest` meaning two things. They take any `ResultStore` and raise
+`UsageError`, which is why they are here rather than in `digline.wire`, which
+is pure and knows no store. (ADR 0011 §7)
 
 `resolve_key` **returns** what the scan could not read instead of printing it.
 In the CLI that note goes to stderr, where it cannot break a pipeline reading
@@ -20,7 +20,7 @@ from dataclasses import dataclass
 from digline.core import NO_BASELINE, Run, key_of
 from digline.host.errors import UsageError
 from digline.run import Suite
-from digline.store import FileResultStore, RunRef
+from digline.store import ResultStore, RunRef
 
 __all__ = [
     "LATEST",
@@ -54,7 +54,7 @@ class Resolved:
     note: str = ""
 
 
-def resolve_key(store: FileResultStore, suite: Suite, key: str) -> Resolved:
+def resolve_key(store: ResultStore, suite: Suite, key: str) -> Resolved:
     """`latest` means the most recent run of this suite in this perimeter.
 
     Not a guess and not a default: the caller still names a run, and `latest` is
@@ -94,11 +94,11 @@ def resolve_key(store: FileResultStore, suite: Suite, key: str) -> Resolved:
     return Resolved(key_of(newest.created_at, newest.config_hash), listing.note())
 
 
-def read_run(store: FileResultStore, suite: Suite, key: str) -> Run:
+def read_run(store: ResultStore, suite: Suite, key: str) -> Run:
     return store.read_run(RunRef(tenant=suite.tenant, suite=suite.name, key=key))
 
 
-def need_baseline(store: FileResultStore, suite: Suite) -> Run:
+def need_baseline(store: ResultStore, suite: Suite) -> Run:
     baseline = store.read_baseline(suite.tenant, suite.name)
     if baseline is None:
         raise UsageError(

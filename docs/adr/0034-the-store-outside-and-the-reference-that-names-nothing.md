@@ -1108,6 +1108,25 @@ should find it named rather than assume it was settled.
 - **Who may promote.** ADR 0033 §6 orders it behind a question about material
   entering the perimeter, so it cannot be settled here without settling that
   first.
+
+  *Corrected 2026-09-28; the bullet above is kept as written, and it was wrong
+  on the day it was written.* **ADR 0033 §6 does not say that.** Its second
+  bullet reads: *"where a world-2 promotion is reviewed has to be answered
+  before who may make one"*. It orders **where** a promotion is reviewed before
+  **who** may make it, and it mentions neither an election nor material
+  entering the perimeter. Material entering is a separate entry further down
+  this list, and the sentence above ran the two together. So *who may
+  promote* waits on where a world-2 promotion is reviewed, which is still
+  unanswered. Any ordering of it behind material entering the perimeter has to
+  stand on its own reason, and 0033 §6 is not that reason.
+  **How it spread, because the route is the finding, as in §13.** Two working
+  records quoted this sentence as 0033's text, and one of them drew an order of
+  work from it. Neither opened 0033. The paraphrase was found when a ruling
+  that rested on it was checked against 0033 itself. Nothing else in the
+  repository repeats it: `0033 §6` is cited twice here. The other citation,
+  *"a per-start key still serves one operator"*, is 0033's first bullet and is
+  accurate. ADR 0023 §8 cites this list's own *material entering* entry, not
+  0033.
 - **Authentication and authorisation on the way in, and the channel itself.**
   Which machine may speak, which verbs exist — reading is the only one this
   record grants, and promote, delete and configuration change are unruled
