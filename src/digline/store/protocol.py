@@ -429,6 +429,38 @@ class ResultStore(Protocol):
            beside the write, which is as narrow as the window gets without a
            lock (ADR 0031 §2, *Not decided here*).
 
+        **Where each of the eight is met, and what this protocol obliges you to
+        write yourself.** They are three questions, not one list:
+
+        - **1 and 7 belong to the reading** — whether the document says it is
+          where it was found — and are met as you read the run.
+        - **2, 3, 4, 5 and 6 answer from the document alone.** They are
+          `digline.store.refusals_for(run, expected_config_hash)`, which returns
+          them in the order they are owed. **Call it rather than restating
+          them**: a second copy of the five drifts from this one the first time
+          a ninth condition lands, and the miscount above is what that looks
+          like.
+        - **8 is yours, beside your own write**, because it asks what the store
+          holds *now*. Read the baseline and compare it inside whatever makes
+          your write atomic — an in-process lock, a transaction. A parameter
+          carrying the current key into the five would look like a complete
+          check while reporting a fact one instant old, which is why it is not
+          one. `digline.store.refusal_for_a_moved_baseline` writes its sentence;
+          the read, and the window around it, are yours.
+
+        **Nothing checks that you did 8**, and this is the honest form of that:
+        an obligation stated where an implementer reads it, beside the key
+        invariant on `write_run`. Two things hold it up rather than one — this
+        sentence, and `tests/test_promotion_conditions.py`, which fails if a
+        class in this repository defines `promote_baseline` without reaching
+        `refusal_for_a_moved_baseline`. That walk reaches implementations here;
+        yours, if it lives elsewhere, is held by this paragraph alone.
+
+        **And no test may assert 8's behaviour through a fake store.** A fake
+        that skips the condition proves nothing about promotions, so a green
+        obtained through one is a green about the fake — exactly the case the
+        condition exists for. Test it against a store that really writes.
+
         What is written carries `promoted_at`: `created_at` says when the run was
         measured, and this says when a person signed it off.
 
