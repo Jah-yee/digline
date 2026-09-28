@@ -41,6 +41,7 @@ from digline.core import (
     Run,
     compare,
     diff,
+    key_of,
     redact,
     withhold_artifacts,
 )
@@ -636,7 +637,9 @@ def cmd_list(args: argparse.Namespace) -> int:
     suite, _loaded, store = _load(args)
 
     baseline = store.read_baseline(suite.tenant, suite.name)
-    baseline_key = None if baseline is None else store.key_for(baseline)
+    baseline_key = (
+        None if baseline is None else key_of(baseline.created_at, baseline.config_hash)
+    )
 
     listing = store.scan_runs(suite.tenant, suite.name)
     rows = [store.read_run(ref) for ref in listing.runs]
@@ -659,7 +662,7 @@ def cmd_list(args: argparse.Namespace) -> int:
     say(f"  {'KEY':<49}  {'CREATED':<33}  {'ENV':<12}  {'COMMIT':<14}  CASES")
     replayed = False
     for run in rows:
-        key = store.key_for(run)
+        key = key_of(run.created_at, run.config_hash)
         # Two markers sharing one column, which they can do because they cannot
         # collide: `promote` refuses a run that declares `rejudged_from`
         # (`ReplayedRunError`), so nothing listed here is both the baseline and

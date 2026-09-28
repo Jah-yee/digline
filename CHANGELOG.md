@@ -8,8 +8,32 @@ notes under them are this file, verbatim.
 
 ## 0.21.2 — unreleased
 
-digline **0.21.2**. One fix so far, found by 0.21.1's own delta-pass in the
-code 0.21.1 added. Nothing to migrate.
+digline **0.21.2**. One fix found by 0.21.1's own delta-pass in the code
+0.21.1 added, and one change to a surface a library caller can reach.
+Nothing to migrate.
+
+### Changed — the key a run is known by is the document's, not the store's
+
+- **`FileResultStore.key_for` is gone; call `digline.core.key_of` instead.** It
+  was a `@staticmethod` that only ever returned
+  `key_of(run.created_at, run.config_hash)`, and the wire and the report — which
+  import nothing but the core — already called `key_of` directly. Ten callers in
+  `digline` and its plugins went through the store for the same answer. A caller
+  outside digline doing the same replaces `store.key_for(run)` with
+  `key_of(run.created_at, run.config_hash)`; nothing else changes, and the string
+  is identical. `key_of` has been the rule since 0.20.0.
+- **`ResultStore.write_run` now states the invariant that makes it safe to
+  call.** `write_run(run).key == key_of(run.created_at, run.config_hash)` —
+  the backend chooses where a run is filed and not what it is named. Nothing
+  checks it, so it is written where a second implementer will read it, and a
+  test pins it for the one store that exists.
+
+  Why now, and it is not a tidy-up: the readers are typed against
+  `FileResultStore` rather than the protocol, and a method the protocol does not
+  have is one of the three things stopping that. This removes the one of the
+  three with a question in it — does the key rule belong to the store or to the
+  document — and answers it: to the document, because a baseline has no `RunRef`
+  at all and its own claim is the only key it has.
 
 ### Fixed — the object that holds the launch key printed it
 

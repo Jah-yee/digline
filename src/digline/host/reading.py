@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Literal
 
-from digline.core import Run, compare
+from digline.core import Run, compare, key_of
 from digline.host.errors import UsageError
 from digline.host.resolve import read_run
 from digline.report import (
@@ -104,7 +104,11 @@ def history(
         until=until,
         skipped=listing.skipped,
         unreadable=len(listing.unreadable),
-        baseline=None if baseline is None else (store.key_for(baseline), baseline),
+        baseline=(
+            None
+            if baseline is None
+            else (key_of(baseline.created_at, baseline.config_hash), baseline)
+        ),
         register=register.entries,
         register_torn=register.torn,
         register_unreadable=register_unreadable,
