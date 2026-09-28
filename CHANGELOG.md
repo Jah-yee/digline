@@ -11,7 +11,8 @@ notes under them are this file, verbatim.
 digline **0.21.2**. One fix found by 0.21.1's own delta-pass in the code
 0.21.1 added, and two changes to surfaces a library caller can reach: two
 functions added to `digline.store`, one method removed from `FileResultStore`.
-Nothing to migrate.
+And one refusal: a verdict named otherwise than its assertion. Nothing to
+migrate.
 
 ### Added — the promotion conditions are callable on their own
 
@@ -80,6 +81,39 @@ Nothing to migrate.
     The launch key, the hand-over and the promote form have not changed since
     0.21.1, the last release that ran it. This fix changes only the object's
     `repr`. The move under *Changed* is about the run key, which is another key.
+
+### Changed — a verdict named otherwise than its assertion is refused
+
+- **A verdict now carries the name of the assertion that produced it, or it is
+  refused** ([ADR 0027](docs/adr/0027-the-run-reconciles.md) §6, amended). A
+  verdict's name crosses into every document, redacted ones included. So a
+  third-party assertion that named its verdict from the answer carried the
+  answer out, past the redaction of the reason beside it. That is route 4 of
+  [ADR 0034](docs/adr/0034-the-store-outside-and-the-reference-that-names-nothing.md)
+  §7. The driver now compares every verdict with the name its assertion
+  declared before the first case. It checks every sample and every judgement,
+  before either fold can out-vote one. A mismatch errors **that one check on
+  that case**, under the declared name, and the case's other checks stand. The
+  run exits `2` and cannot be promoted.
+- **The refusal is marked, so a redacted reader can see it.**
+  `Score.metadata["misnamed"] = True` survives `redact()`, which the reason
+  does not. Without the marker, a redacted document would show an assertion
+  that raised. The headline gains a clause, placed directly before the one
+  about cases that could not be judged. `explain` gains a tally kind,
+  `misnamed`. `compare --json` gains `misnamed` on its headline. These are
+  added keys: no `OUTPUT_VERSION` bump and no schema bump. `digline.core`
+  exports `misnamed`, `misnamed_verdict`, `misnamings` and `MISNAMED`.
+- **What changes for a suite that ran green.** Nothing, unless one of its
+  assertions is third-party and names its verdicts otherwise than itself. No
+  shipped assertion does. A suite that has one now exits `2` where it exited
+  `0`, and every case of that check counts as could-not-be-judged. Before,
+  those cases were counted under the other name. That tolerance, ADR 0027
+  §6's, is what is withdrawn.
+- **What it does not close.** An assertion *declared* with a name taken from
+  client data matches its own verdicts, and passes. Runs and baselines already
+  written keep their names. So do results reused by a resume and aggregate
+  verdicts. An inner assertion under `Repeated` is renamed to `Repeated`'s own
+  name before the check sees it.
 
 ## 0.21.1 — 2026-09-27
 

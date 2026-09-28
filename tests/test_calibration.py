@@ -15,7 +15,7 @@ import subprocess
 import sys
 import tarfile
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, ClassVar
 
@@ -45,6 +45,7 @@ from digline.core import (
     ToolsCalled,
     Verdict,
     compare,
+    misnamed,
     redact,
     run_from_json,
     run_to_json,
@@ -75,7 +76,7 @@ from digline.run import (
     planned_calls,
     rejudge,
 )
-from digline.store import FileResultStore, UncalibratedRunError
+from digline.store import ErroredRunError, FileResultStore, UncalibratedRunError
 from digline.store.migrate import NonAdditiveError, upgrade_document
 from digline.targets import CompletionResult, ModelPrice, Pricing, ScoreJudge, Usage
 from digline.wire import (
@@ -813,20 +814,57 @@ def misnamed_suite() -> Suite:
     )
 
 
-def test_a_third_party_check_that_names_its_score_otherwise_still_loses_its_scale(
+def recorded_before_the_name_check(run: Run) -> Run:
+    """`run` as the driver recorded `misnamed_suite()` before ADR 0027 §6's
+    amendment of 2026-09-28: each verdict under the name the check gave it.
+
+    The driver now refuses that verdict, so no run it produces has this shape.
+    A run or a baseline written before it does, and the band still has to bind
+    it, which is what §4.7's identity binding is for.
+    """
+    check = Misnamed()
+
+    def as_recorded(case: CaseResult) -> CaseResult:
+        output = HALF if case.case_id == "half" else "an ordinary answer"
+        verdict = replace(check(EvaluatorInputs(output=output)), judged=True)
+        return replace(case, verdicts=(verdict,))
+
+    return replace(run, results=tuple(as_recorded(case) for case in run.results))
+
+
+def test_a_third_party_check_that_names_its_score_otherwise_is_refused_by_the_driver(
     tmp_path: Path,
 ) -> None:
-    """The reachable route, through the real driver: the band's name is the
-    declared one, the verdict's is not, and the score is at an extreme. Bound by
-    name this read as a band that held — exit 0, promotable."""
+    """**This test changed meaning on 2026-09-28** (ADR 0027 §6, amended).
+
+    It was *"still loses its scale"*: through the real driver, the band's name
+    was the declared one, the verdict's was not, and the identity binding read
+    the score at the extreme. The driver now refuses the verdict first, so the
+    calibration case is not judged at all. It is marked, it exits 2 and it is
+    not promotable, by the errored-run refusal rather than the calibration one.
+
+    What the old test proved, that the band binds a differently named verdict
+    by identity, is still true and still needed, for documents written before
+    the refusal. It is asserted on such a document below."""
     declared = misnamed_suite()
     run = execute(declared, Counting(), created_at=CREATED)
-    [lost] = scale_lost(run)
-    assert (lost.case_id, lost.check, lost.score) == ("half", "graded", 1.0)
+    assert misnamed(run) == (("one", "graded"), ("half", "graded"))
+    assert scale_lost(run) == ()
     head = headline(compare(run, run), run, run, locale="en")
     assert exit_code(head) == EXIT_UNJUDGED
     store = FileResultStore(str(tmp_path))
     ref = store.write_run(run)
+    with pytest.raises(ErroredRunError):
+        store.promote_baseline(
+            ref, declared.config_hash(), expected_baseline=None, promoted_at=LATER
+        )
+
+    before = recorded_before_the_name_check(run)
+    [lost] = scale_lost(before)
+    assert (lost.case_id, lost.check, lost.score) == ("half", "graded", 1.0)
+    head = headline(compare(before, before), before, before, locale="en")
+    assert exit_code(head) == EXIT_UNJUDGED
+    ref = store.write_run(replace(before, created_at=LATER))
     with pytest.raises(UncalibratedRunError, match="calibration case"):
         store.promote_baseline(
             ref, declared.config_hash(), expected_baseline=None, promoted_at=LATER
@@ -902,7 +940,11 @@ def test_the_step_to_seventeen_binds_by_structure_and_can_turn_a_run_red() -> No
     nothing and it read as exit 0. Migrated, its identity comes from the one
     verdict the case holds, and the score at 1.0 is read. The migration does
     not change what happened; it corrects what the document said about it."""
-    run = execute(misnamed_suite(), Counting(), created_at=CREATED)
+    # As the driver wrote it then: a schema-16 document is by definition one
+    # written before the name check. (ADR 0027 §6, amended 2026-09-28)
+    run = recorded_before_the_name_check(
+        execute(misnamed_suite(), Counting(), created_at=CREATED)
+    )
     old = at_sixteen(run)
     assert old["results"][1]["verdicts"][0]["assertion"] != "graded"
     migrated = upgrade_document(old)
