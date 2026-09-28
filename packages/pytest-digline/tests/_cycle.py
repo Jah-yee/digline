@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from digline.core import key_of
 from digline.host import load_suite, load_target, read_artifacts, utc_now_iso
 from digline.run import execute
 from digline.store import FileResultStore
@@ -42,7 +43,11 @@ def cycle(path: Path, root: Path, *, promote: bool) -> str:
         store.promote_baseline(
             ref,
             suite.config_hash(),
-            expected_baseline=None if current is None else store.key_for(current),
+            expected_baseline=(
+                None
+                if current is None
+                else key_of(current.created_at, current.config_hash)
+            ),
             promoted_at="2026-01-02T09:00:00+00:00",
         )
     return ref.key

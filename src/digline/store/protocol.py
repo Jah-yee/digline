@@ -324,7 +324,30 @@ class ResultStore(Protocol):
     one end customer's results cannot be read by pointing at another's path.
     """
 
-    def write_run(self, run: Run) -> RunRef: ...
+    def write_run(self, run: Run) -> RunRef:
+        """File a run and return the reference it is addressed by.
+
+        **The key is the document's, not the backend's:**
+
+            write_run(run).key == key_of(run.created_at, run.config_hash)
+
+        Stated here because nothing checks it. It held while one store existed
+        and computed the key itself; a second backend is free to file the run
+        wherever it likes, and not free to name it something else. Three things
+        already depend on the rule rather than on this implementation of it:
+        `compare --json` prints the key through `digline.core.key_of` and a
+        person passes it straight back to `promote --replacing`, so a backend
+        answering differently would refuse every promotion made after a
+        comparison (`BaselineMovedError`); `journal_key` restates it over the
+        journal header, so a resumed run writes the file the killed run was
+        always going to write (ADR 0017 §8); and the register commits keys to
+        git, where they outlive whichever backend wrote them.
+
+        The rule lives in the core because it names a *reference* and not a
+        file — `key_of`'s own docstring — and the report and the wire, which
+        import nothing but the core, print the same string.
+        """
+        ...
 
     def scan_runs(self, tenant: str, suite: str) -> Listing:
         """Survey the runs of a suite, skipping what this version cannot read.

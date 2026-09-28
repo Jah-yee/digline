@@ -216,20 +216,12 @@ class FileResultStore:
             / f"{_check_name(ref.key, 'run')}.json"
         )
 
-    @staticmethod
-    def key_for(run: Run) -> str:
-        """The key a run is filed under. Public because listing has to be able
-        to say which stored run the baseline was made from, and recomputing the
-        rule in two places is how the two answers start to differ. The rule
-        itself is `digline.core.key_of`, which the report and the wire share."""
-        return key_of(run.created_at, run.config_hash)
-
     def write_run(self, run: Run) -> RunRef:
         self.ensure_layout(run.tenant)
         ref = RunRef(
             tenant=_check_name(run.tenant, "tenant"),
             suite=_check_name(run.suite, "suite"),
-            key=self.key_for(run),
+            key=key_of(run.created_at, run.config_hash),
         )
         _write_atomic(self.run_path(ref), run_to_json(run))
         return ref
@@ -468,7 +460,9 @@ class FileResultStore:
         bytes changed while its verdicts did not is the same reference.
         """
         current = self.read_baseline(run.tenant, run.suite)
-        found = None if current is None else self.key_for(current)
+        found = (
+            None if current is None else key_of(current.created_at, current.config_hash)
+        )
         if found == expected:
             return
         compare = (
@@ -1084,10 +1078,10 @@ _LEG_RE = re.compile(r"^(?P<key>.+)\.(?P<leg>[0-9]+)$")
 def journal_key(header: JournalHeader) -> str:
     """The key a journal — and therefore the run it becomes — is named after.
 
-    The same rule as `FileResultStore.key_for`, over the header instead of the
-    run, and that is the point: a resumed run keeps the original `created_at`
-    (ADR 0017 §8), so it is written to exactly the file the killed run was
-    always going to write.
+    `key_of` again, over the header instead of the run — the same rule
+    `write_run` is held to — and that is the point: a resumed run keeps the
+    original `created_at` (ADR 0017 §8), so it is written to exactly the file
+    the killed run was always going to write.
     """
     return key_of(header.created_at, header.config_hash)
 

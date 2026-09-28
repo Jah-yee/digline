@@ -24,6 +24,7 @@ from digline.core import (
     RegisterEntry,
     Run,
     compare,
+    key_of,
 )
 from digline.host.errors import UsageError
 from digline.host.resolve import need_baseline, read_run
@@ -113,7 +114,7 @@ def record(
         run,
         key,
         baseline,
-        store.key_for(baseline),
+        key_of(baseline.created_at, baseline.config_hash),
         # Narrowed by the membership check above: `in DISPOSITIONS` over a tuple
         # of literals is a check pyright reads as the literal type itself.
         disposition=disposition,

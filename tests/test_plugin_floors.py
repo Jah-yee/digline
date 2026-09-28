@@ -79,6 +79,12 @@ INTRODUCED: dict[str, str] = {
     # number: `--replacing` makes the release a minor (ADR 0031); whoever cuts
     # it owns the number, and this moves with digline-mcp's floor.
     "REFUSALS": "0.20.0",
+    # 0.20.0 — `key_of` shipped with `--replacing` (ADR 0031, `0faa931`,
+    # `v0.20.0~6^2~3`). A plugin reaches for it now because the key rule moved
+    # off the store: `FileResultStore.key_for` was a passthrough to this, and
+    # naming a run's key is the document's business, not a backend's. No floor
+    # moves — digline-mcp already requires `>=0.20.0` for `REFUSALS`.
+    "key_of": "0.20.0",
     # 0.19.2 — the store's two refusals gained types, so a boundary can tell a
     # refusal from a bug (the standing-code pass of 2026-09-23). Ruled as a
     # patch because nothing a legitimate user relies on changes; conditional on
