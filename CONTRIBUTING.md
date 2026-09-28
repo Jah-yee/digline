@@ -44,6 +44,39 @@ Thanks for looking. A few things worth knowing before you open a pull request.
   already testing yours. This is the same family as the flag bullet above,
   where a test stays correct about a request while what stands in front of
   it moves, and it has four instances in one week.
+- **A mutation is a red made on purpose, so look for another tree before you
+  make one.** Two bullets above end in the same instruction, and the sweep
+  bullet below repeats it: delete the thing the test is supposed to notice and
+  run the suite. That instruction manufactures a failing test. The failure
+  stays inside your checkout. **The red does not**: push it to a branch with a
+  pull request open and it is a CI failure with your name on it, and saying
+  *"`test_x` fails"* anywhere makes it a claim about the code. Whoever reads it
+  has no way to know it was meant.
+
+  **Two people on one file and two on one guard are different situations**, and
+  only the first is one git can see. Editing the same file conflicts, out loud,
+  at merge. Mutating a guard somebody else is building conflicts with nothing:
+  their tree is untouched, no merge complains, and all they learn is that a
+  test neither of them wrote is failing. Worktrees make this more likely, not
+  less — they are how parallel work is done here (`CLAUDE.md`, the worktree
+  audit) and each one hides its own mutations from the others.
+
+  So: **mutate in your own worktree, restore before you push, and never leave a
+  mutated tree to go and do something else.** Restore from a copy rather than
+  `git checkout -- <file>`, which takes uncommitted work with it. If you report
+  a red you caused deliberately, say in the same sentence that you caused it.
+  And from the other side: **a red on a guard somebody is currently building is
+  a worktree question before it is a defect** — run `git worktree list` and look
+  at the branch names before filing it as one.
+
+  **And nothing tells you which tree a session is in.** `git worktree list`
+  gives you the trees; the listing of live sessions gives a name, a state and a
+  start time, and **no working directory** — so a note about a red cannot be
+  addressed to the tree that made it. Send it to every live session, open with
+  *"if this is you"*, and let whoever it does not concern say so. Measured
+  while writing this bullet: the note went to two sessions, one of them was not
+  the one, and it said so in a minute. The noise is the price of the gap, spent
+  deliberately rather than discovered.
 - **If you write a permission as a condition, write what fires it.** A
   condition says *when* the answer will change, and that is worth doing: ADR
   0032 §4a let an agent run `digline migrate` "for as long as every step is
