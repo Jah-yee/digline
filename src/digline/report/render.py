@@ -40,6 +40,7 @@ from digline.core import (
     considered_cases,
     directions,
     key_of,
+    misnamed,
     on_the_line,
     scale_lost,
     unreconciled,
@@ -76,6 +77,7 @@ __all__ = [
     "suspended_cases",
     "unjudged_cases",
     "unjudged_sentence",
+    "misnamed_fact",
     "reference_unreconciled_fact",
     "unreconciled_fact",
 ]
@@ -273,6 +275,13 @@ class Headline:
     #: The reference needs re-promoting, and only a person can do that.
     #: (F-10, the second 0.17.0 delta-pass)
     reference_unreconciled: int = 0
+    #: How many checks this run refused because their verdict was named
+    #: otherwise than their assertion. Each is already an errored verdict, so it
+    #: moves the exit code through that and needs no branch in `exit_code()`,
+    #: like `unreconciled`. What it adds is the reason those checks could not be
+    #: judged, which a redacted reader has no other way to learn.
+    #: (ADR 0027 §6, amended 2026-09-28)
+    misnamed: int = 0
 
 
 def fmt_value(value: ConfigValue) -> str:
@@ -838,6 +847,8 @@ def headline(
     # delta-pass)
     reference_gaps = unreconciled(baseline)
     reference_unreconciled_text = reference_unreconciled_fact(reference_gaps, locale)
+    refused = misnamed(run)
+    misnamed_text = misnamed_fact(refused, locale)
     # Before the configuration clause, because it qualifies what the numbers
     # *are* rather than how the system was set up: a replay did not ask the
     # target anything. The configuration clause still prints below it — it
@@ -907,6 +918,7 @@ def headline(
         denominator_moved=incomparable,
         unreconciled=len(gaps),
         reference_unreconciled=len(reference_gaps),
+        misnamed=len(refused),
         # Config and artifacts last, because they modify the meaning of
         # everything before them: same rules, different prompt, different run.
         # The judge is last of all: it is the only one that makes the numbers
@@ -946,6 +958,10 @@ def headline(
                 # own noise, it *sits* on the bar, so which side it reports is a
                 # property of the draw. Both qualify the counts above them.
                 on_line_text,
+                # Directly before the unjudged clause, because it says why some
+                # of those cases could not be judged: an assertion broke its own
+                # contract. (ADR 0027 §6, amended 2026-09-28)
+                misnamed_text,
                 unjudged_text,
                 suspended_text,
                 config_text,
@@ -1002,6 +1018,29 @@ def unreconciled_fact(gaps: Sequence[tuple[str, str]], locale: Locale) -> str:
     else:
         key = "fact.unreconciled.capped"
     return phrase(locale, key, count=len(gaps), gaps=named)
+
+
+def misnamed_fact(refused: Sequence[tuple[str, str]], locale: Locale) -> str:
+    """The clause a run earns for refusing a verdict named otherwise than its
+    assertion, naming each as *case · check*, or nothing at all. The check is
+    the declared name, which is the only one the document carries.
+
+    Capped at `NAMED_GAPS`, for `unreconciled_fact`'s reason: a third-party
+    assertion that names every verdict from the answer is refused on every
+    case. (ADR 0027 §6, amended 2026-09-28)
+    """
+    if not refused:
+        return ""
+    named = ", ".join(
+        f"{case}{SUMMARY_SEPARATOR}{check}" for case, check in refused[:NAMED_GAPS]
+    )
+    if len(refused) == 1:
+        key = "fact.misnamed.one"
+    elif len(refused) <= NAMED_GAPS:
+        key = "fact.misnamed.many"
+    else:
+        key = "fact.misnamed.capped"
+    return phrase(locale, key, count=len(refused), gaps=named)
 
 
 def reference_unreconciled_fact(gaps: Sequence[tuple[str, str]], locale: Locale) -> str:
@@ -2429,6 +2468,11 @@ def _run_answer(run: Run, locale: Locale) -> str:
         else ""
     )
     unjudged_line = f"<p>{escape(unjudged)}</p>\n" if unjudged else ""
+    # Before it, as in the headline: it says why. Absent on a run that refused
+    # nothing, so that document is byte for byte what it was. (ADR 0027 §6,
+    # amended 2026-09-28)
+    refused = misnamed_fact(misnamed(run), locale)
+    unjudged_line = (f"<p>{escape(refused)}</p>\n" if refused else "") + unjudged_line
     return (
         '<section class="answer">\n'
         f'<p class="verdict">{escape(phrase(locale, "noreference.title"))}</p>\n'
