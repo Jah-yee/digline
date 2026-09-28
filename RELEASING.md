@@ -453,6 +453,7 @@ uv run ruff format --check .
 uv run ruff check .
 uv run pyright
 uv run python tools/home_capture.py --check
+uv run python tools/example_locks.py
 ```
 
 Copied from `.github/workflows/ci.yml` and held to it by
