@@ -2246,12 +2246,57 @@ names.
 5. **The example reports:** re-render every committed `report.html` **whose
    recorded commit is clean** against the tagged release, in the order the
    ritual requires — commit the example, render, commit the report on top,
-   never amend — so each report records a commit somebody can reach. A report
+   never amend and **never rebase** — so each report records a commit somebody
+   can reach. A report
    is a photograph of the run that produced it, which is why a string change
    does **not** regenerate one: four of them carried a stale `What answered`
    heading from the moment that heading was corrected, deliberately, until the
    next tag. This step is what clears that debt, and it is a step so that it
    happens by procedure rather than because somebody noticed a heading.
+
+   **`never rebase` is not a second way of saying `never amend`, and it is the
+   one the process pushes you into.** A report names a commit; a rebase rewrites
+   commits; so a rebase leaves every report naming something that no longer
+   exists. Paid for on v0.21.2. Nine reports had been re-rendered, each
+   recording its parent, when `main` moved and the branch went `BEHIND` — which
+   the ruleset requires you to fix before merging. The branch was rebased, and
+   **eight of the nine reports were left naming orphaned commits**: the files
+   still said `86d2ff8`, `7904aa6` and six more, and those commits had ceased to
+   be. Only the first survived, because it names a commit that was already on
+   `main`.
+
+   **The remedy is to merge `main` into the branch instead**, which is what
+   every other branch in this repository does anyway — `git merge origin/main`,
+   whose merge commit reads *Merge remote-tracking branch 'origin/main' into
+   &lt;branch&gt;*. It satisfies the same up-to-date requirement and rewrites
+   nothing.
+
+   ```sh
+   git merge origin/main        # not `git rebase origin/main`
+   ```
+
+   Then **check, rather than assume it held** — one line, and it is the only
+   thing that answers the question the step exists for:
+
+   ```sh
+   for f in examples/*/report.html; do
+     grep -q -- '-dirty' "$f" && continue          # curated: see the rule below
+     c=$(grep -oE '\b[0-9a-f]{40}\b' "$f" | head -1)
+     git merge-base --is-ancestor "$c" HEAD || echo "unreachable: $f ($c)"
+   done
+   ```
+
+   The `-dirty` skip is not tidiness: a curated report names a commit that is on
+   no branch **on purpose** — checked on v0.21.2, `examples/classifier`'s
+   `b44ad6f` is a real object that `git branch --contains` finds nowhere — so
+   without the skip this check reports the one report the step is telling you to
+   leave alone. The same signature does both jobs, which is the point of it.
+
+   Written down because the original rule named the door nobody is pushed
+   through and stayed silent about the one the CI pushes everybody through:
+   `--amend` is a choice somebody makes, a rebase is what an out-of-date branch
+   asks for. A step that forbids the first and says nothing about the second is
+   half a step.
 
    **A report whose commit ends in `-dirty` is curated, and this step leaves it
    alone.** Read it as a signature rather than as an accident: `-dirty` means
@@ -2280,6 +2325,57 @@ names.
    So the step is not *re-render the examples*. It is **re-render the ones that
    are not claims**, and the discriminator is in the file you are about to
    overwrite.
+
+   **There are two kinds of curated report and only one of them carries a
+   signature.** A perturbed tree stamps `-dirty`. A **live measurement** stamps
+   nothing, because the tree was clean when it ran: being live is not being
+   dirty, and the rule above reads dirtiness. So the signature rule, which is
+   right about what it can see, is blind to the second kind — and the second
+   kind is the more valuable artefact, because it cost a key and a real model.
+
+   `examples/prompt-first` is the one today, and **it is held by judgement, not
+   by signature**. Its commit is clean, so the rule says re-render it; doing so
+   without `DIGLINE_LIVE=1` and a key would replace a live measurement with a
+   stand-in's. Its README says what that is worth, and the sentence is the
+   reason this paragraph exists rather than a list: *"a baseline of canned
+   answers scored that way is a measurement of nothing […] and the danger is
+   precise: it looks exactly like a green run."*
+
+   Naming it here contradicts *read the signature, do not keep a list* directly,
+   and that is deliberate: **a declared list is less bad than a signature that
+   silently fails to cover a case.** A stale name is a thing somebody notices; a
+   rule that quietly does not apply is not. The list stands until the marker
+   below exists, and the first thing that marker buys is deleting this
+   paragraph.
+
+   **Owed: a way for a run to declare that a real provider answered it — and it
+   is an ADR before it is code**, because it adds a field to the run document,
+   which is a published format under `SCHEMA_VERSION`.
+
+   **The proof that nothing in the tree can answer it today**, checked on
+   v0.21.2 rather than recalled:
+
+   - A target's `config` property records **what it sends, and only that** — and
+     that is correct, not a defect. `AnthropicTarget` keeps an injected client in
+     `self._injected` and its `config` returns `super().config` plus
+     `max_tokens` and `temperature`; the client is never mentioned
+     (`packages/digline-anthropic/src/digline_anthropic/target.py`). **It is
+     precisely because the target declares what it sends that the document
+     cannot say who answered.** A run driven by `fake.FakeAnthropic()` writes the
+     same `target_config` as a live one — `provider: anthropic`,
+     `model: claude-haiku-4-5`, `resolved_model: …` — and no reader can tell them
+     apart.
+   - `DIGLINE_LIVE` appears **nowhere** under `src/` or any `packages/*/src/`. It
+     is an example convention, read in four `suite.py` files to choose a client,
+     and it never reaches a document.
+   - Neither `Run` nor `Suite` has a field for it. `Run.metadata` is free-form,
+     nothing in `src/` writes such a key, and every committed baseline has `{}`.
+   - **`Run.rejudged_from` is the precedent to copy, and the near-miss that shows
+     the shape is right.** `run/replay.py` says it exists so that *"no reader and
+     no pipeline can mistake it for a measurement"* — exactly the job. But it
+     separates *replayed from stored answers* from *measured now*, and a run
+     against a stand-in is measured now by that definition: the field is absent
+     for a faked run exactly as it is for a live one.
 
    **The trap, and it is the step immediately before this one: `uv sync` writes
    a `uv.lock` into the five examples that deliberately keep none.** That lock
