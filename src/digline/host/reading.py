@@ -30,7 +30,12 @@ from digline.report import (
     unjudged_cases,
 )
 from digline.run import Suite
-from digline.store import FileResultStore, Register, RegisterRefusedError
+from digline.store import (
+    FileResultStore,
+    Register,
+    RegisterRefusedError,
+    ResultStore,
+)
 from digline.wire import EXIT_OK, EXIT_UNJUDGED, exit_code
 
 __all__ = ["Explained", "explained", "history", "instant"]
@@ -53,7 +58,7 @@ class Explained:
     exit_code: int
 
 
-def explained(store: FileResultStore, suite: Suite, key: str) -> Explained:
+def explained(store: ResultStore, suite: Suite, key: str) -> Explained:
     """The scope follows the store, never a flag (ADR 0012 §1).
 
     With no baseline, "worse" is a relation with nothing on the other side, so
