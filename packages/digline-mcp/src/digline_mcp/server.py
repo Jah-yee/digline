@@ -32,7 +32,7 @@ from typing import Any
 from mcp.server.mcpserver import MCPServer
 from mcp.types import ToolAnnotations
 
-from digline.core import Run
+from digline.core import Run, key_of
 from digline.core import compare as compare_runs
 from digline.core import diff as diff_runs
 from digline.host import (
@@ -222,7 +222,11 @@ def build_server(root: str, tenant: str | None, environment: str | None) -> MCPS
             rows,
             tenant=loaded_suite.tenant,
             suite=loaded_suite.name,
-            baseline_key=None if baseline is None else store.key_for(baseline),
+            baseline_key=(
+                None
+                if baseline is None
+                else key_of(baseline.created_at, baseline.config_hash)
+            ),
             listing=listing,
         )
 
@@ -238,7 +242,7 @@ def build_server(root: str, tenant: str | None, environment: str | None) -> MCPS
         baseline = need_baseline(store, loaded_suite)
         return {
             **run_document(baseline, loaded_suite.disclosure),
-            "key": store.key_for(baseline),
+            "key": key_of(baseline.created_at, baseline.config_hash),
         }
 
     @translated

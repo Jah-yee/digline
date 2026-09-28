@@ -99,7 +99,8 @@ def test_the_second_of_two_promotions_against_one_reference_is_refused(
     assert f"--replacing {theirs.key}" in message
     # The refusal is real, not cosmetic: the reference is still theirs.
     current = store.read_baseline("acme", "qa")
-    assert current is not None and store.key_for(current) == theirs.key
+    assert current is not None
+    assert key_of(current.created_at, current.config_hash) == theirs.key
 
 
 def test_none_is_refused_when_a_baseline_exists(tmp_path: Path) -> None:
@@ -206,10 +207,18 @@ def test_the_check_runs_after_the_refusals_about_the_run(tmp_path: Path) -> None
 # --------------------------------------------------------------------------- #
 
 
-def test_the_key_is_the_one_every_other_surface_uses() -> None:
+def test_the_key_is_the_one_every_other_surface_uses(tmp_path: Path) -> None:
+    """`write_run`'s invariant: the key is the document's, not the backend's.
+
+    This compared `key_of` against `FileResultStore.key_for` while that
+    passthrough existed. With the rule in the core and the method gone, what is
+    worth pinning is the store *filing* a run under it — which is the sentence
+    the protocol now states and nothing else checks.
+    """
+    store = FileResultStore(tmp_path)
     document = run("2026-01-01T10:00:00.123456+00:00")
-    assert key_of(document.created_at, document.config_hash) == FileResultStore.key_for(
-        document
+    assert store.write_run(document).key == key_of(
+        document.created_at, document.config_hash
     )
     assert key_of(document.created_at, document.config_hash) != NO_BASELINE
 

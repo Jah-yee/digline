@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from digline.core import NO_BASELINE, Run
+from digline.core import NO_BASELINE, Run, key_of
 from digline.host.errors import UsageError
 from digline.run import Suite
 from digline.store import FileResultStore, RunRef
@@ -91,7 +91,7 @@ def resolve_key(store: FileResultStore, suite: Suite, key: str) -> Resolved:
     newest = max(
         (store.read_run(ref) for ref in listing.runs), key=lambda r: r.created_at
     )
-    return Resolved(store.key_for(newest), listing.note())
+    return Resolved(key_of(newest.created_at, newest.config_hash), listing.note())
 
 
 def read_run(store: FileResultStore, suite: Suite, key: str) -> Run:

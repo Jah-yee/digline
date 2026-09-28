@@ -70,6 +70,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from digline.cli.output import say
+from digline.core import key_of
 from digline.host import REFUSALS, replacing
 from digline.report import Locale, case_history, escape, pages
 from digline.run import Suite
@@ -435,7 +436,9 @@ class ViewHandler(BaseHTTPRequestHandler):
 
     def _baseline_key(self) -> str | None:
         baseline = self.store.read_baseline(self.suite.tenant, self.suite.name)
-        return None if baseline is None else self.store.key_for(baseline)
+        if baseline is None:
+            return None
+        return key_of(baseline.created_at, baseline.config_hash)
 
     # -- the screens -------------------------------------------------------- #
 
@@ -527,7 +530,11 @@ class ViewHandler(BaseHTTPRequestHandler):
         )
 
         baseline = self.store.read_baseline(self.suite.tenant, self.suite.name)
-        baseline_key = None if baseline is None else self.store.key_for(baseline)
+        baseline_key = (
+            None
+            if baseline is None
+            else key_of(baseline.created_at, baseline.config_hash)
+        )
 
         other = (query.get("against") or [""])[0]
         if other and other != baseline_key:
