@@ -133,6 +133,13 @@ uv add --upgrade digline
     memory, or the browser's encrypted cookie store, is an attack on the user
     boundary. The cookie is also sent to every port on the same host, so a
     local server the person visits receives it (K-2 of the delta-pass).
+  - **Seen refusing in a browser, before the tag.** A maintainer ran step 6 of
+    the walkthrough in `RELEASING.md` between the merge of #153 and the tag.
+    All three checks gave the expected refusal. The reopened address was
+    refused. The button, pressed from a window that had no cookie from this
+    server, was refused. `git diff` of the baselines was empty. *Recorded
+    2026-09-28, after the release: until then this entry did not say it, and
+    the exact date of the run is not known.*
 
 ### Fixed — a 403 that named the wrong cause
 
