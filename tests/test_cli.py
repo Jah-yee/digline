@@ -369,6 +369,11 @@ COMPARE_KEYS = {
     # A pipeline that wants to refuse a comparison standing on a reference
     # nobody can state now has a number to refuse on.
     "reference_unreconciled",
+    # ADR 0027 §6, amended 2026-09-28: how many checks the run refused because
+    # their verdict was named otherwise than their assertion. An added key, the
+    # same rule again; it moves no exit code of its own, because each refusal is
+    # already an errored verdict and exits 2 as one.
+    "misnamed",
     "counts",
     "reasons_available",
     "sentence",

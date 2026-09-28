@@ -34,6 +34,7 @@ from digline.core import (
     Score,
     Verdict,
     compare,
+    misnamed,
     reconcile,
     redact,
     run_from_json,
@@ -318,9 +319,20 @@ class Renamed:
         )
 
 
-def test_an_aggregate_counts_a_renamed_score_rather_than_setting_it_aside() -> None:
-    """Before this, every case landed in `suspended_excluded` with no case
-    suspended, and the aggregate errored on an empty denominator."""
+def test_a_renamed_score_is_refused_and_still_not_set_aside() -> None:
+    """**This test changed meaning on 2026-09-28** (ADR 0027 §6, amended).
+
+    It used to assert that `Renamed`'s three cases were *counted*: §6 matched
+    the aggregate's verdict by identity and tolerated the other name. The
+    tolerance is withdrawn — `Score.name` crosses verbatim into a redacted
+    document, so a name the assertion did not declare is refused — and each
+    verdict is now errored and marked `misnamed`.
+
+    What it still asserts is the half of §6 that stands: the identity match.
+    Before §6, every case landed in `suspended_excluded` with no case
+    suspended. Now they land in `errored_excluded`, which is the truth — the
+    check could not be judged — and not in a set-aside nobody made.
+    """
     suite = Suite(
         tenant="acme",
         environment="test",
@@ -334,10 +346,11 @@ def test_an_aggregate_counts_a_renamed_score_rather_than_setting_it_aside() -> N
         lambda case: Response(output="no" if case.id == "c3" else "yes"),
         created_at=CREATED,
     )
+    assert misnamed(run) == (("c1", "agrees"), ("c2", "agrees"), ("c3", "agrees"))
     (accuracy,) = run.aggregate
     assert accuracy.score.metadata["suspended_excluded"] == 0
-    assert accuracy.score.metadata["considered"] == 3
-    assert accuracy.score.score == pytest.approx(2 / 3)
+    assert accuracy.score.metadata["errored_excluded"] == 3
+    assert accuracy.score.metadata["considered"] == 0
     assert unreconciled(run) == ()
 
 
