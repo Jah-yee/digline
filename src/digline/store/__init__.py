@@ -15,6 +15,11 @@ from digline.store.migrate import (
     migrate_paths,
     upgrade_document,
 )
+from digline.store.promotion import (
+    PromotionRefusal,
+    refusal_for_a_moved_baseline,
+    refusals_for,
+)
 from digline.store.protocol import (
     JOURNAL_VERSION,
     REGISTER_VERSION,
@@ -60,6 +65,7 @@ __all__ = [
     "JournalRefusedError",
     "Listing",
     "Pending",
+    "PromotionRefusal",
     "MigrationReport",
     "NonAdditiveError",
     "ReplayedRunError",
@@ -72,6 +78,8 @@ __all__ = [
     "BaselineMovedError",
     "TenantMismatchError",
     "journal_key",
+    "refusal_for_a_moved_baseline",
+    "refusals_for",
     "migrate_file",
     "migrate_paths",
     "upgrade_document",
