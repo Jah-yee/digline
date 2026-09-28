@@ -30,8 +30,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import cast
 
-from digline.core.calibration import scale_lost
-from digline.core.reconcile import unreconciled
 from digline.core.register import (
     DISPOSITIONS,
     RecordedOutcome,
@@ -56,12 +54,13 @@ from digline.core.run import (
     without_responses,
 )
 from digline.core.types import Cause
+from digline.store.promotion import (
+    refusal_for_a_moved_baseline,
+    refusals_for,
+)
 from digline.store.protocol import (
     JOURNAL_VERSION,
     REGISTER_VERSION,
-    BaselineMovedError,
-    ConfigMismatchError,
-    ErroredRunError,
     JournalBusyError,
     JournalHeader,
     Listing,
@@ -69,12 +68,10 @@ from digline.store.protocol import (
     Pending,
     Register,
     RegisterRefusedError,
-    ReplayedRunError,
     RunNotFoundError,
     RunRef,
     SuiteMismatchError,
     TenantMismatchError,
-    UncalibratedRunError,
 )
 
 __all__ = [
@@ -368,72 +365,26 @@ class FileResultStore:
         expected_baseline: str | None,
         promoted_at: str,
     ) -> Run:
-        # `read_run` already refuses a run addressed through the wrong tenant.
+        # `read_run` already refuses a run addressed through the wrong tenant,
+        # and a document that declares another suite — conditions 1 and 7, made
+        # as the run is read.
         run = self.read_run(ref)
-        if run.config_hash != expected_config_hash:
-            raise ConfigMismatchError(
-                f"run {ref.key} was produced with config_hash "
-                f"{run.config_hash}, the current configuration is "
-                f"{expected_config_hash}: promoting it would record scores "
-                "obtained under a configuration other than the one in force"
-            )
 
-        if run.rejudged_from is not None:
-            raise ReplayedRunError(
-                f"run {ref.key} was judged from the recorded answers of "
-                f"{run.rejudged_from}, not from the target. Promoting it would "
-                "make a reference out of a measurement the target never took "
-                "part in: its interval is the judge's wobble alone, and every "
-                "ordinary movement of the target would then read as beyond the "
-                "noise. Promote a run that measured"
-            )
-
-        # Before the general refusal below, which would also fire: this is the
-        # stronger statement and it names the checks, not only the cases. A run
-        # that does not reconcile does not know what it measured, and a
-        # reference nobody can say that of is no reference. (ADR 0027 §3)
-        gaps = unreconciled(run)
-        if gaps:
-            named = ", ".join(f"{case} · {check}" for case, check in gaps)
-            raise ErroredRunError(
-                f"run {ref.key} does not reconcile with what its suite asked, at "
-                f"{len(gaps)} check(s) ({named}): this is not a regression, and "
-                "what the run measured is not known. A baseline has to be a "
-                "measurement somebody can state; run the suite again"
-            )
-
-        errored = sorted(
-            {
-                case.case_id
-                for case in run.results
-                for verdict in case.verdicts
-                if verdict.status == "error"
-            }
-        )
-        if errored:
-            raise ErroredRunError(
-                f"run {ref.key} could not judge {len(errored)} case(s) "
-                f"({', '.join(errored)}): a baseline is an approved reference "
-                "and an error is not one. Fix the case or remove it from the "
-                "suite; promoting it would freeze a red line no reader could "
-                "tell apart from a new failure"
-            )
-
-        lost = scale_lost(run)
-        if lost:
-            names = ", ".join(sorted({item.case_id for item in lost}))
-            raise UncalibratedRunError(
-                f"run {ref.key} has {len(lost)} calibration case(s) outside "
-                f"their declared band ({names}): the judged scores in it are not "
-                "placed on the scale they are compared on, and a reference "
-                "scored by a judge that lost its scale hides the loss for as "
-                "long as it stands. Promote a run whose calibration held"
-            )
+        # The five that answer from the document alone, in the order they are
+        # owed. The first is raised and the rest are not looked at, which is
+        # what the body this replaced did; the tuple leaves that choice here
+        # rather than making it for every backend.
+        refusals = refusals_for(run, expected_config_hash)
+        if refusals:
+            raise refusals[0]
 
         # Last, and beside the write: every refusal above is about the run and
         # holds whatever the reference, and this one is about what happened to
-        # the reference since somebody compared against it. (ADR 0031 §2)
-        self._refuse_a_moved_baseline(ref, run, expected_baseline)
+        # the reference since somebody compared against it. This store has no
+        # lock, so the window ADR 0031 leaves open is still open here — what is
+        # narrow is the distance between this read and the rename below.
+        # (ADR 0031 §2)
+        self._refuse_a_moved_baseline(run, expected_baseline)
 
         self.ensure_layout(run.tenant)
         # The answers do not go into git. `baselines/` is committed, and a
@@ -449,51 +400,25 @@ class FileResultStore:
         _write_atomic(self.baseline_path(run.tenant, run.suite), run_to_json(reference))
         return reference
 
-    def _refuse_a_moved_baseline(
-        self, ref: RunRef, run: Run, expected: str | None
-    ) -> None:
-        """Refuse when the baseline present is not the one the caller compared
-        against, naming both. (ADR 0031 §4)
+    def _refuse_a_moved_baseline(self, run: Run, expected: str | None) -> None:
+        """Read the baseline present and raise condition 8's refusal if it is
+        not the one the caller compared against.
 
-        Compared by key, never by the file's bytes: `digline migrate` rewrites
-        every committed baseline when the schema moves, and a reference whose
-        bytes changed while its verdicts did not is the same reference.
+        The reading is this store's, and so is the window around it; the
+        sentence is `refusal_for_a_moved_baseline`'s. What this adds to it is
+        the one clause only a file store can write: the path a reader runs
+        `git log` against to see what removed a reference.
         """
-        current = self.read_baseline(run.tenant, run.suite)
-        found = (
-            None if current is None else key_of(current.created_at, current.config_hash)
+        moved = refusal_for_a_moved_baseline(
+            run,
+            self.read_baseline(run.tenant, run.suite),
+            expected,
+            removed_by=(
+                f"git log -- {self.baseline_path(run.tenant, run.suite)} says which"
+            ),
         )
-        if found == expected:
-            return
-        compare = (
-            f"Compare it with the current one — digline compare --run {ref.key} — "
-            f"and promote with --replacing {found} if it still holds"
-        )
-        if current is None:
-            raise BaselineMovedError(
-                f"run {ref.key} was not promoted: it was compared against baseline "
-                f"{expected}, and that baseline is no longer there — suite "
-                f"{run.suite!r} has none now. A reference that disappeared was "
-                "removed by a commit: git log -- "
-                f"{self.baseline_path(run.tenant, run.suite)} says which"
-            )
-        # The signature's own time where one was recorded, and nothing where it
-        # was not: a baseline promoted before `promoted_at` existed was signed
-        # at a time nobody wrote down. (ADR 0014 §3)
-        when = f" (promoted {current.promoted_at})" if current.promoted_at else ""
-        if expected is None:
-            raise BaselineMovedError(
-                f"run {ref.key} was not promoted: --replacing none says suite "
-                f"{run.suite!r} has no baseline yet, and it has one: {found}{when}. "
-                "Promoting it would replace a reference nobody compared it "
-                f"against. {compare}"
-            )
-        raise BaselineMovedError(
-            f"run {ref.key} was not promoted: it was compared against baseline "
-            f"{expected}, and the baseline of suite {run.suite!r} is now "
-            f"{found}{when}. Promoting it would replace a reference nobody "
-            f"compared it against. {compare}"
-        )
+        if moved is not None:
+            raise moved
 
     # -- the register --------------------------------------------------------- #
 

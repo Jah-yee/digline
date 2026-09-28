@@ -9,8 +9,35 @@ notes under them are this file, verbatim.
 ## 0.21.2 — unreleased
 
 digline **0.21.2**. One fix found by 0.21.1's own delta-pass in the code
-0.21.1 added, and one change to a surface a library caller can reach.
+0.21.1 added, and two changes to surfaces a library caller can reach: two
+functions added to `digline.store`, one method removed from `FileResultStore`.
 Nothing to migrate.
+
+### Added — the promotion conditions are callable on their own
+
+- **`digline.store.refusals_for(run, expected_config_hash)`** returns every
+  refusal a run's own document carries — a moved configuration, a replay, a run
+  that does not reconcile, an errored verdict, a calibration case outside its
+  band — in the order they are owed, and an empty tuple when it carries none.
+  The conditions were a method body inside `FileResultStore.promote_baseline`,
+  so the only way to ask *could this be promoted?* was to try. Now anybody
+  holding the document gets the same answer, including a second store: nothing
+  restates them.
+- **`digline.store.refusal_for_a_moved_baseline(...)`** writes the eighth
+  condition's sentence. It is **not** in the tuple above, and the asymmetry is
+  deliberate: that condition asks whether the baseline present *now* is still
+  the one the run was compared against, which is a question about the store at
+  this instant. Each backend reads the baseline inside whatever makes its write
+  atomic — a lock, a transaction — and a single function taking the answer as a
+  parameter would have looked like a complete check while reporting a fact one
+  instant old ([ADR 0031](docs/adr/0031-the-reference-promote-replaces.md),
+  *Not decided here*).
+- **Nothing a person does changes.** Same conditions, same order, same
+  sentences, same refusal raised first. What changed is that `promote_baseline`
+  is now three gestures a second backend can follow — read, ask, write — and
+  that `ResultStore` says which of the eight it must write for itself.
+  `tests/test_promotion_conditions.py` fails if a store in this repository
+  promotes without reaching the eighth.
 
 ### Changed — the key a run is known by is the document's, not the store's
 
