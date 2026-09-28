@@ -96,6 +96,23 @@ _WILDCARDS = frozenset({"", "0.0.0.0", "::", "[::]"})  # noqa: S104
 #: The query parameter that carries the launch key on the printed address, once.
 LAUNCH = "launch"
 
+#: The largest `POST /promote` body this server reads. The form is two run keys
+#: and a locale, well under 200 bytes, so 4 KiB is twenty times what a real one
+#: needs. `Content-Length` was read and then honoured with no ceiling: one
+#: request that declared a gigabyte held a thread reading for as long as the
+#: caller kept sending, and a caller that sent less held it forever. Refused
+#: before a byte of the body is read.
+MAX_FORM_BYTES = 4096
+
+#: Seconds a connection may take to send its request, and to take its answer.
+#: `ThreadingHTTPServer` starts a thread per connection and, with the
+#: stdlib's default of no timeout, a connection that opened and then went quiet
+#: held its thread for the life of the server: every such caller was one more
+#: thread nobody would ever reclaim. A browser on loopback sends a request in
+#: milliseconds; thirty seconds leaves room for anything slower that is still a
+#: person.
+REQUEST_TIMEOUT_S = 30.0
+
 
 def launch_cookie(port: int) -> str:
     """The cookie's name, which carries the port.
@@ -252,6 +269,11 @@ class ViewHandler(BaseHTTPRequestHandler):
 
     server_version = "digline-view"
     sys_version = ""
+    #: Read by `StreamRequestHandler.setup()`, which puts it on the socket: every
+    #: read and write on this connection then raises `TimeoutError` past it.
+    #: While the request line and headers are read, the stdlib catches that and
+    #: closes the connection; while the body is read, `do_POST` answers 408.
+    timeout = REQUEST_TIMEOUT_S
 
     def __init__(
         self,
@@ -626,8 +648,10 @@ class ViewHandler(BaseHTTPRequestHandler):
             self._error(403, refused)
             return
 
-        length = int(self.headers.get("Content-Length") or 0)
-        form = urllib.parse.parse_qs(self.rfile.read(length).decode("utf-8"))
+        body = self._form_body()
+        if body is None:
+            return
+        form = urllib.parse.parse_qs(body.decode("utf-8"))
         locale: Locale = pages.locale_of(form)
         key = (form.get("run") or [""])[0]
         if not key:
@@ -662,6 +686,46 @@ class ViewHandler(BaseHTTPRequestHandler):
         self._after_promotion(
             locale, pages.phrase(locale, "view.promote.done", run_key=key)
         )
+
+    def _form_body(self) -> bytes | None:
+        """The body `Content-Length` declares, or `None` once refused.
+
+        **The length is judged before anything is read**, because reading is
+        what an oversized or lying length makes expensive. A length that is
+        not a non-negative integer is a 400 rather than the `ValueError` it used
+        to raise, which reached the browser as a closed connection; a negative
+        one would have read until the caller hung up. A body that stops arriving
+        is a 408 with a sentence, so a caller learns the server gave up rather
+        than meeting a connection that ended.
+        """
+        declared = self.headers.get("Content-Length") or "0"
+        # ASCII first: `"²".isdigit()` is true, and `int("²")` raises.
+        if not (declared.isascii() and declared.isdigit()):
+            self._error(400, "refused: the request declared no usable length")
+            return None
+        length = int(declared)
+        if length > MAX_FORM_BYTES:
+            self._error(
+                413,
+                f"refused: a promotion form is at most {MAX_FORM_BYTES} bytes, "
+                f"and this request declared {length}",
+            )
+            return None
+        try:
+            body = self.rfile.read(length)
+        except TimeoutError:
+            self._error(
+                408,
+                "refused: the request did not arrive in time, so none of it was read",
+            )
+            return None
+        if len(body) < length:
+            # The caller closed before sending what it declared: a form cut
+            # short is not a form, and parsing half of it could read a run key
+            # that is a prefix of the one intended.
+            self._error(400, "refused: the request ended before its declared length")
+            return None
+        return body
 
     def _after_promotion(self, locale: Locale, outcome: str) -> None:
         """Say what the promotion did, and draw the runs under it if they can

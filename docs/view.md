@@ -168,6 +168,15 @@ the key stops a process.
 A path outside the routes is a `404` and never a file: the view serves pages it
 renders, never bytes off the disk.
 
+**What one connection can cost the server is bounded.** A promotion form is at
+most 4096 bytes. A larger declared `Content-Length` is refused with `413`
+before any of the body is read. A length that is not a count is refused with
+`400`, and so is a body that ends before its declared length. Every connection
+has 30 seconds to send its request and to take its answer. A body that stops
+arriving is answered `408`, and headers that stop arriving are dropped.
+Without these limits, one caller that declared a large body or went quiet held
+a server thread for as long as it liked.
+
 ## What keeps it honest
 
 Every screen is a pure function in `digline.report.pages`, so the tests are

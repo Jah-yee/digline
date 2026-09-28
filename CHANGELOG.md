@@ -11,7 +11,8 @@ notes under them are this file, verbatim.
 digline **0.21.2**. One fix found by 0.21.1's own delta-pass in the code
 0.21.1 added, and two changes to surfaces a library caller can reach: two
 functions added to `digline.store`, one method removed from `FileResultStore`.
-Nothing to migrate.
+And a bound on what one connection can cost `digline view`. Nothing to
+migrate.
 
 ### Added — the promotion conditions are callable on their own
 
@@ -80,6 +81,23 @@ Nothing to migrate.
     The launch key, the hand-over and the promote form have not changed since
     0.21.1, the last release that ran it. This fix changes only the object's
     `repr`. The move under *Changed* is about the run key, which is another key.
+
+### Fixed — one connection could hold a `digline view` thread for ever
+
+- **`POST /promote` read whatever length the request declared, with no
+  ceiling, and no connection ever timed out.** `ThreadingHTTPServer` gives
+  every connection a thread. A caller that declared a gigabyte, or sent half a
+  request and went quiet, kept its thread for as long as it liked, and each
+  such caller added one more. The form is now read only when it declares at
+  most 4096 bytes. Above that the answer is `413`, before a byte is read. A
+  `Content-Length` that is not a count is a `400`, where it used to close the
+  connection with a traceback on the server. So is a body that ends short of
+  what it declared. Every connection now has 30 seconds to send its request
+  and to take its answer: a body that stops arriving gets a `408`, and headers
+  that stop arriving are dropped.
+- **Not the transport.** `view` still serves plain HTTP on loopback. Whether a
+  `view` served beyond the developer's machine must refuse plaintext is an
+  open question, and this does not answer it.
 
 ## 0.21.1 — 2026-09-27
 
