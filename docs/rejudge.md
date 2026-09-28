@@ -78,6 +78,28 @@ A re-judged run says so, in the document, in the headline sentence, in
 | `config_hash` | the current suite's — the rules moving is the point |
 | `rejudged_from` | the key of the run the answers came from |
 
+**What is still owed: the document records where an answer came *from*, and not
+whether anything real produced it.** `rejudged_from` separates *replayed* from
+*measured now*, which is the distinction this page is about. It does not
+separate *measured against a real provider* from *measured against a stand-in*:
+a run driven by a fake client is measured now, so the field is absent for it
+exactly as it is for a live run.
+
+Nothing else answers it either. A target's `config` records **what it sends, and
+only that** — which is correct, and is precisely why the document cannot say who
+answered: an injected stand-in is invisible there, so a faked run writes the same
+`target_config` as a live one, `resolved_model` included. `DIGLINE_LIVE` is an
+example convention, read in a suite to choose a client, and it reaches no
+document.
+
+A record is owed for it, unnumbered here on purpose: it would add a field to the
+run document, which is a published format under `SCHEMA_VERSION`, so it is an
+ADR before it is code. `rejudged_from` is the shape to copy — a run that declares
+where its answers came from, so that, in this page's own words, no reader and no
+pipeline can mistake one thing for another. Until it exists, the one place that
+needs the answer — `RELEASING.md` *After the tag*, step 5 — keeps a named
+exception instead of a rule.
+
 ## The five refusals
 
 Each one arrives before the first judge is paid, and each names what is missing.
