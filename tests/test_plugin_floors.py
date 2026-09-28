@@ -128,6 +128,7 @@ INTRODUCED: dict[str, str] = {
     "execute": "0.1.0",
     "headline": "0.1.0",
     "FileResultStore": "0.1.0",
+    "ResultStore": "0.1.0",
     "ConfigMismatchError": "0.1.0",
     "ErroredRunError": "0.1.0",
     "TenantMismatchError": "0.1.0",

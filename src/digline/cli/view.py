@@ -74,7 +74,7 @@ from digline.core import key_of
 from digline.host import REFUSALS, replacing
 from digline.report import Locale, case_history, escape, pages
 from digline.run import Suite
-from digline.store import FileResultStore, RunRef, utc_now_iso
+from digline.store import ResultStore, RunRef, utc_now_iso
 
 __all__ = ["Launch", "ViewHandler", "cookie_values", "serve"]
 
@@ -279,7 +279,7 @@ class ViewHandler(BaseHTTPRequestHandler):
         self,
         *args: object,
         suite: Suite,
-        store: FileResultStore,
+        store: ResultStore,
         pricing: str = "",
         known: AbstractSet[str] = frozenset(),
         wildcard: bool = False,
@@ -752,7 +752,7 @@ class ViewHandler(BaseHTTPRequestHandler):
 
 def serve(
     suite: Suite,
-    store: FileResultStore,
+    store: ResultStore,
     *,
     host: str = "127.0.0.1",
     port: int = 7373,
