@@ -134,6 +134,14 @@ __all__ = [
 #:    is every one the shipped promotion path allows, reads `0` here and never
 #:    meets the kind. (F-10, the second 0.17.0 delta-pass)
 #:
+#:    `misnamed` on the headline, and `misnamed` as a tally kind on
+#:    `explain --json`: added keys, under the same rule. It moves no exit code
+#:    of its own, for `unreconciled`'s reason: each refused verdict is already
+#:    errored and exits 2 through that. A run whose assertions name their
+#:    verdicts after themselves, which is every run of a shipped assertion,
+#:    reads `0` here and never meets the kind. (ADR 0027 §6, amended
+#:    2026-09-28)
+#:
 #:    `spread_absence` beside `spread` on `log --json`: an added key, under the
 #:    same rule. The spread comes out empty for four different reasons and only
 #:    one of them is a fact about the suite, so a consumer reading an empty

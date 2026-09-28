@@ -4,6 +4,13 @@
   it on `denominator-sentence`
 - Shipped: 0.17.0
 - Date: 2026-09-19
+- Amended: 2026-09-28, in §6 and in the Consequences bullet it wrote. §6's
+  tolerance of a verdict named otherwise than its assertion is **withdrawn**:
+  such a verdict is now refused, one errored verdict and not the case, and it
+  carries a marker that a redacted reader can see. §6's matching by identity
+  stands. The amendment lands with its implementation, unreleased. It is the
+  last of the five amendments [ADR 0034](0034-the-store-outside-and-the-reference-that-names-nothing.md)
+  names (§7, route 4). No other section changes, and no schema moves
 - Opens: nothing. No schema bump, and not a passenger on one. The run document
   gains no field. §3 says where the fact is written instead
 - Assumes: [ADR 0012](0012-the-reading.md) §3 (the reading's closed tally
@@ -178,6 +185,113 @@ nobody set them aside. This closes finding 2. §1's check could not: that
 verdict was recorded with the right identity, and it was lost afterwards,
 when the aggregate went looking for it.
 
+*__Amended 2026-09-28. The tolerance above is withdrawn; the matching by
+identity is not.__ The paragraph is kept as written, because it was right about
+the question it answered, and a reader who cites it should meet this.*
+
+*__What it did:__ it made a third-party assertion whose `Score` is named
+otherwise than itself count, by finding its verdict by `assertion_id` rather
+than by `score.name`. That closed finding 2, and it was the right fix for the
+aggregate. But it also accepted the shape: the verdict kept its other name, and
+`Score.name` is copied verbatim into every document, **redacted ones
+included**. A name built from the answer carries the answer out of the
+perimeter, past a redaction that removed the `reason` beside it. That is ADR
+0034 §7's route 4.*
+
+*__What it says now: a verdict carries its assertion's name, or it is refused.__
+`Assertion.name` is already documented as the "human-facing label in the
+verdict". No shipped path needs the two to differ. Every built-in returns
+through `_graded` or `error_verdict`, and both name the verdict after the
+assertion. So this enforces a contract that was already written; it does not
+invent one.*
+
+- *__Where.__ In the driver's `_graded`, once every sample is in and before
+  any fold. A refusal on one sample would lose to the folds: `fold_judgements`
+  counts an errored judgement without escalating it, and `combine_samples`
+  can carry a case past one under a `min_agreement` below 1. The comparison is a
+  pure function in the core (`digline.core.naming`), called from the driver
+  the way `reconcile` is (decisions 1 and 7).*
+- *__Against what.__ Against the name each assertion declared **before the
+  first case**, captured by `execute`. It is not compared with `assertion.name`
+  read live, because an assertion that is not frozen could set its name from
+  the answer inside `__call__` and would then always match.*
+- *__What it does to the run.__ **One errored verdict, not the whole case.** The
+  precedent is an assertion that raises: that verdict errors and the case's
+  other verdicts stand. The errored verdict carries the declared name, the
+  assertion's identity, threshold and tolerance, and none of the rejected
+  verdict's metadata. Its reason quotes the name it refused, because a reason
+  is payload. The exit code and the promotion refusal follow from the errored
+  verdict, as they do for §3's gaps: exit 2, never promotable.*
+- *__The marker.__ `Score.metadata["misnamed"] = True`, written by the driver.
+  **Without it the refusal is invisible to the reader it protects.** In a
+  redacted document the reason is gone, so a refused name reads as an assertion
+  that raised. In a one-assertion suite it also reads as a provider error. The
+  marker is a boolean, so it survives `redact()` and the round trip with no
+  schema bump. That is §3's argument for `unreconciled`, applied unchanged. It
+  counts only beside `status == "error"`, and only when it is `True` by
+  identity. An assertion that wrote it itself could only make its own run
+  redder.*
+- *__What the reading gains, which is §7's cost a second time, accepted
+  knowingly:__ a headline clause naming each refusal as *case · check*, placed
+  directly before the clause about cases that could not be judged, because it
+  says why some of them could not; the same clause in the single-run document;
+  a `TallyKind`, `misnamed`, amending ADR 0012 §3 by that section's own test
+  (the headline says it, and a reading that left it out would describe an exit
+  code it could not account for); and `misnamed` on `compare --json`'s headline
+  and as a tally kind on `explain --json`. These are added keys under
+  `OUTPUT_VERSION = 2`'s rule, and neither is a bump.*
+- *__The reference is not read for it__, where `unreconciled` has a
+  reference clause (F-10). **No path digline writes can put the marker into a
+  reference, and this is what makes that true.** The marker counts only on an
+  errored verdict: `misnamed()` reads nothing else. A reference is written by
+  one call, `promote_baseline`. Its callers are `digline promote` and `view`'s
+  promote form. The file store runs `refusals_for` before it writes, and one of
+  its conditions refuses any run that holds an errored verdict.
+  `tests/test_promotion_conditions.py` fails if a store in this repository
+  promotes without reaching the conditions. Migration rewrites a document's
+  shape, never a verdict's status or this key. A baseline promoted before this
+  amendment can carry a name its assertion did not declare, but not the
+  marker, because the check that writes the marker did not exist yet.*
+
+  *__The condition this rests on is that every promotion goes through
+  `refusals_for`.__ A store that promoted without it would make the sentence
+  above false. The clause would then be owed, on F-10's precedent.*
+
+  *__What remains is a reference edited by hand.__ `baselines/` is committed,
+  so that can happen. When it does, the missing clause is not a gap of this
+  marker's. Measured on 2026-09-28: a reference holding an errored verdict
+  reads *"Every case could be judged."* beside an errored delta **whatever the
+  error's cause**, an assertion that raised included. F-10 gave one cause,
+  the unreconciled gap, a clause of its own. It placed that clause before the
+  claim and left the claim standing: measured, the F-10 case also reads *"Every
+  case could be judged."* A clause for this marker would add a second cause and
+  leave the other causes, and the claim, as they are. The general gap is
+  recorded here, not decided. Beside it stands the Consequences' limit: the marker is a
+  self-declaration, and a hand edit can remove it as easily as add it.*
+
+*__What it does not close__, so that a fix to one route does not read as
+closing the class:*
+
+- *__A name the suite declares from client data passes.__ The check ties the
+  verdict to the declaration. It does not tie the declaration to the software
+  house's own text. An assertion named after a value read from the client's
+  cases matches its verdicts exactly, and it carries that value into every
+  redacted document.*
+- *Results reused by a resume, which are appended as they are; runs and
+  baselines already written; aggregate verdicts; the name
+  `unreconciled_verdict` keeps from the verdict it replaces; and an inner
+  assertion under `Repeated`, whose verdict `Repeated` renames to its own before
+  `_graded` sees it. That last one is hidden and not carried: the inner's name
+  never leaves.*
+- *ADR 0034 §7's routes 1, 2, 3, 5 and 6, untouched.*
+
+*__The test that changes meaning.__ `Renamed`, in `tests/test_reconcile.py`,
+emits `agrees_v2` under the declared name `agrees`. It asserted that its three
+cases **are counted**. It now asserts that each of its verdicts is errored and
+marked, and that the aggregate over it counts them as could-not-be-judged and
+not as set aside. The second half is §6's identity matching, still doing its
+job.*
+
 ### 7. The reading
 
 - **Headline.** A new clause, first, naming every gap as *case · check*.
@@ -199,6 +313,9 @@ when the aggregate went looking for it.
 - A third-party assertion whose score name differs from its declared name now
   has its cases counted, which can move an aggregate that was flattered. That
   is the fix, not a side effect.
+  *Withdrawn 2026-09-28 (§6, amended): its verdicts are now refused and marked,
+  so its cases are counted as could-not-be-judged. They are still not set aside,
+  because the matching by identity stands.*
 - The pressure nitish-kmr named is still there. §2 says where it goes, and the
   answer is a check on content, not on counts.
 - **The marker is a self-declaration, and exit 2 is not tamper-evidence.**

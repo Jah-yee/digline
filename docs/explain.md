@@ -103,6 +103,29 @@ It exits `2` and cannot be promoted, and it is not a regression.
 and what it cannot see: a target that catches its own exception and returns an
 empty answer is a case that was scored, and only a check on content can tell.
 
+## A verdict named otherwise than its assertion
+
+A verdict carries the name of the assertion that produced it. Every shipped
+assertion already does. A third-party one that names its verdict otherwise,
+for example from the answer (`named_Rossi`), would put that name into every
+document, redacted ones included, because a verdict's name always crosses. So
+the driver compares each verdict's name with the one the assertion declared
+before the first case, and refuses the mismatch. That check's verdict on that
+case becomes an errored verdict under the declared name, marked `misnamed`. The
+case's other checks stand. The reading says so directly before it counts the
+cases that could not be judged:
+
+```text
+1 check returned a verdict under a name that is not its assertion's, and it was refused. The assertion is at fault, not the system under test. It is named below, among the checks that could not be judged.
+```
+
+The marker survives redaction, which the reason does not. So a redacted
+document still tells this apart from an assertion that raised. It exits `2`
+and cannot be promoted, like every errored verdict.
+[ADR 0027](adr/0027-the-run-reconciles.md) §6, as amended, says why, and what it
+does not close: an assertion *declared* with a name taken from client data
+matches its verdicts, and passes.
+
 ## `--json`: the facts, not the prose
 
 ```console
