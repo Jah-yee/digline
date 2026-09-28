@@ -97,7 +97,9 @@ from digline.store import (
     FileResultStore,
     JournalRefusedError,
     Pending,
+    ResultStore,
     RunRef,
+    SupportsJournal,
     migrate_paths,
 )
 from digline.wire import (
@@ -195,7 +197,7 @@ def _load(args: argparse.Namespace) -> tuple[Suite, Loaded, FileResultStore]:
     return suite, loaded, FileResultStore(args.root)
 
 
-def _resolve(store: FileResultStore, suite: Suite, key: str) -> str:
+def _resolve(store: ResultStore, suite: Suite, key: str) -> str:
     """`resolve_key` for a terminal: the key, and the note on stderr.
 
     The host returns what the scan stepped over rather than printing it
@@ -355,7 +357,7 @@ def _retry_note(retrying: Mapping[str, str]) -> str:
 
 
 def _resume(
-    store: FileResultStore, suite: Suite, requested: str | None
+    store: SupportsJournal, suite: Suite, requested: str | None
 ) -> Pending | None:
     """The journal this launch continues, or `None`, with a word either way.
 

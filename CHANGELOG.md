@@ -11,8 +11,9 @@ notes under them are this file, verbatim.
 digline **0.22.0**. One refusal, which is why this is a minor: a verdict named
 otherwise than its assertion now errors, and a suite with such an assertion
 exits `2` where it exited `0`. No shipped assertion does this. New names in
-`digline.core`, a new tally kind and an added key on the wire. Nothing to
-migrate.
+`digline.core`, a new tally kind and an added key on the wire. And the readers
+in `digline.host` are typed against the store protocol rather than the one
+store that implements it. Nothing to migrate.
 
 ### Changed — a verdict named otherwise than its assertion is refused
 
@@ -47,12 +48,37 @@ migrate.
   verdicts. An inner assertion under `Repeated` is renamed to `Repeated`'s own
   name before the check sees it.
 
-## 0.21.2 — unreleased
+### Changed — the readers take the protocol, not the file store
 
-digline **0.21.2**. One fix found by 0.21.1's own delta-pass in the code
-0.21.1 added, and two changes to surfaces a library caller can reach: two
-functions added to `digline.store`, one method removed from `FileResultStore`.
-Nothing to migrate.
+- **The readers in `digline.host` take any `ResultStore`.** `resolve_key`,
+  `read_run`, `need_baseline` and `explained` were typed against
+  `FileResultStore` and now against the protocol, as are the CLI's own
+  resolution and `digline view`'s server. A caller passing a `FileResultStore`
+  changes nothing. `history` is not among them yet: it reads the register, which
+  is not on the protocol, and its signature changes with that. A store in memory
+  under `tests/` is passed at every retyped site, which is what goes red if one
+  narrows back — **it is not a second backend**, and it does not show that the
+  protocol's five methods are enough for one.
+
+### CI only
+
+- **Every example lock now has to install before a pull request can merge.**
+  `gates` gains a last step that runs `uv sync --locked` in each example that
+  carries a `uv.lock`, found by the glob rather than from a list. Until now no
+  pull request read those locks, so a dependabot bump to one was first
+  installed by the post-release check of the release it rode in. It installs
+  and runs nothing: a break between an example's code and the versions its lock
+  pins is still green, and the step's comment in `ci.yml` says what else it does
+  not prove. Nothing a user installs changed.
+
+## 0.21.2 — 2026-09-28
+
+digline **0.21.2**, with `digline-mcp` 0.4.2, which this tag carries because
+the core's one removal breaks the server's published version. One fix found
+by 0.21.1's own delta-pass in the code 0.21.1 added, and two changes to
+surfaces a library caller can reach: two functions added to `digline.store`,
+one method removed from `FileResultStore`. And a bound on what one connection
+can cost `digline view`. Nothing to migrate.
 
 ### Added — the promotion conditions are callable on their own
 
@@ -90,6 +116,11 @@ Nothing to migrate.
   outside digline doing the same replaces `store.key_for(run)` with
   `key_of(run.created_at, run.config_hash)`; nothing else changes, and the string
   is identical. `key_of` has been the rule since 0.20.0.
+  **One such caller was already published: `digline-mcp` 0.4.1**, which this
+  release breaks and which `digline-mcp` 0.4.2, below, repairs. The removal is
+  a patch under this project's own rule — `digline.store` is not one of the four
+  modules whose public names make a minor — and the rule did not ask whether
+  anything downstream already called the name.
 - **`ResultStore.write_run` now states the invariant that makes it safe to
   call.** `write_run(run).key == key_of(run.created_at, run.config_hash)` —
   the backend chooses where a run is filed and not what it is named. Nothing
@@ -121,6 +152,55 @@ Nothing to migrate.
     The launch key, the hand-over and the promote form have not changed since
     0.21.1, the last release that ran it. This fix changes only the object's
     `repr`. The move under *Changed* is about the run key, which is another key.
+
+### Fixed — one connection could hold a `digline view` thread for ever
+
+- **`POST /promote` read whatever length the request declared, with no
+  ceiling, and no connection ever timed out.** `ThreadingHTTPServer` gives
+  every connection a thread. A caller that declared a gigabyte, or sent half a
+  request and went quiet, kept its thread for as long as it liked, and each
+  such caller added one more. The form is now read only when it declares at
+  most 4096 bytes. Above that the answer is `413`, before a byte is read. A
+  `Content-Length` that is not a count is a `400`, where it used to close the
+  connection with a traceback on the server. So is a body that ends short of
+  what it declared. Every connection now has 30 seconds to send its request
+  and to take its answer: a body that stops arriving gets a `408`, and headers
+  that stop arriving are dropped.
+- **Not the transport.** `view` still serves plain HTTP on loopback. Whether a
+  `view` served beyond the developer's machine must refuse plaintext is an
+  open question, and this does not answer it.
+
+## digline-mcp 0.4.2 — 2026-09-28
+
+Published by digline's `v0.21.2` tag, with the core.
+
+**Upgrade if you use this server. `digline-mcp` 0.4.1 is broken against
+digline 0.21.2 and every later core.** 0.4.1 calls
+`FileResultStore.key_for`, which 0.21.2 removes, in two of its eight tools:
+`list_runs`, which reports the baseline's key beside the listing, and the
+tool that returns the baseline document. Against a 0.21.2 core both raise
+`AttributeError`. Its floor is `digline>=0.20.0`, which permits 0.21.2, so
+nothing refuses the pair at install time — the failure arrives when the tool
+is called. 0.4.2 calls `digline.core.key_of` instead and is the same server
+otherwise: the same eight tools, the same read-only hints, the same text, and
+still no way to promote a baseline.
+
+0.4.1 stays on the index. With 0.4.2 there, `pip` takes 0.4.2; 0.4.1 is
+reached only by pinning it, and this entry is what says why not to.
+
+**The floor stays at `digline>=0.20.0`.** `key_of` has been in `digline.core`
+since 0.20.0, so the replacement needs nothing newer, and raising the floor
+would refuse cores this server works against. A floor cannot express the
+constraint that actually bit here — it bounds the core from below, and what
+0.4.1 needed was a bound from above, written before anybody knew it was owed.
+
+This is the second release in a row where this package's shipped files moved
+under a version the index already served, and the first where the result was
+a break rather than stale text. `tools/tag_names.py` cannot see it — it asks
+which *versions* the index lacks — and it exited 0 on this tree naming
+`digline 0.21.2` alone. It was caught by RELEASING.md's *Not built: a package
+whose text moved under a version the index serves*, whose check is a person
+until the wheel comparison it proposes is built.
 
 ## 0.21.1 — 2026-09-27
 

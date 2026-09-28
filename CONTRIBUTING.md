@@ -146,6 +146,22 @@ Thanks for looking. A few things worth knowing before you open a pull request.
   green. What caught it was the mutation the bullets further up ask for: delete
   the thing the guard is supposed to notice, and watch it fail.
 
+  **A test's name is the same kind of claim, one step further out.** Found on
+  2026-09-28 while measuring what a comparison says about a reference with an
+  errored verdict. F-10's headline test is
+  `test_the_headline_no_longer_claims_every_case_could_be_judged`. Its body
+  asserts that the reference's clause appears, and never that the claim went.
+  The claim did not go: on that test's own fixture, the headline it builds
+  still reads *"Every case could be judged."*, after the clause. The guard above
+  had the name in its source and no call behind it. This test has the property
+  in its name and no assertion behind it.
+
+  **And the mutation would not have caught this one**, because there was
+  nothing to delete: the property never held. Written into the body, the
+  assertion would have been red the day the test was written. So read a test's
+  name as its first assertion. If the name says *no longer*, *never* or
+  *refuses*, one line of the body says it too.
+
   **Then say in the amendment which method built the list.** *"One other site"*
   is a claim about a search before it is a claim about the repository, and a
   reader who cannot tell which search you ran cannot tell whether the list is
