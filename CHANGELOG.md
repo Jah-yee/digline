@@ -6,6 +6,23 @@ upgrading, and what deliberately did not move. The reasoning lives in
 read the [release titles](https://github.com/digline/digline/releases) — the
 notes under them are this file, verbatim.
 
+## 0.22.0 — unreleased
+
+digline **0.22.0**. The readers in `digline.host` are typed against the store
+protocol rather than the one store that implements it. Nothing to migrate.
+
+### Changed — the readers take the protocol, not the file store
+
+- **The readers in `digline.host` take any `ResultStore`.** `resolve_key`,
+  `read_run`, `need_baseline` and `explained` were typed against
+  `FileResultStore` and now against the protocol, as are the CLI's own
+  resolution and `digline view`'s server. A caller passing a `FileResultStore`
+  changes nothing. `history` is not among them yet: it reads the register, which
+  is not on the protocol, and its signature changes with that. A store in memory
+  under `tests/` is passed at every retyped site, which is what goes red if one
+  narrows back — **it is not a second backend**, and it does not show that the
+  protocol's five methods are enough for one.
+
 ## 0.21.2 — 2026-09-28
 
 digline **0.21.2**, with `digline-mcp` 0.4.2, which this tag carries because
