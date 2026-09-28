@@ -31,8 +31,20 @@ import pkgutil
 import textwrap
 
 import digline
+from digline.core import Run
 from digline.store import FileResultStore
 from digline.store.promotion import refusal_for_a_moved_baseline, refusals_for
+
+#: A run for the two fixtures below to pass. They are read as source and never
+#: executed, but they are type-checked like everything else here, so the call
+#: they carry has to be the real one.
+_ANY_RUN = Run(
+    tenant="t",
+    environment="dev",
+    suite="s",
+    config_hash="h",
+    created_at="2026-01-01T00:00:00+00:00",
+)
 
 #: The name a class must reach to have met condition 8, and the name of the
 #: function that writes its sentence.
@@ -111,21 +123,88 @@ def _reaches(cls: type[object], target: str) -> bool:
     return False
 
 
-def test_every_store_that_promotes_reaches_condition_8() -> None:
-    """A class that promotes and never reaches `refusal_for_a_moved_baseline`
-    has skipped the one condition the pure function cannot carry for it."""
+def _raises(cls: type[object], target: str) -> bool:
+    """Whether the value `target` returns reaches a `raise`.
+
+    **Reaching the call is not meeting the condition**, and the difference is
+    what this function adds to `_reaches`. `refusal_for_a_moved_baseline`
+    *returns* a refusal rather than raising one — deliberately, so a backend can
+    read the baseline inside its own lock — so a class that calls it and drops
+    the answer promotes over a moved baseline while satisfying every walk that
+    only asks whether the name was reached. The mutation is two characters
+    (`raise moved` → `pass`), it passed this file's first version 4/4, and
+    `_CallsTheHelperAndDropsIt` below keeps it.
+
+    Same method, on purpose. The refusal is returned, so the read, the question
+    and the raise belong in one place — inside whatever makes the write atomic.
+    A backend that returns it further up is free to, and will fail here: the
+    remedy is to raise it where it is asked for, which is what the protocol
+    already says.
+    """
+    tree = ast.parse(textwrap.dedent(inspect.getsource(cls)))
+    classdef = tree.body[0]
+    assert isinstance(classdef, ast.ClassDef)
+    for node in ast.walk(classdef):
+        if not isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
+            continue
+        bound = {
+            name.id
+            for sub in ast.walk(node)
+            if isinstance(sub, ast.Assign | ast.NamedExpr)
+            and isinstance(value := getattr(sub, "value", None), ast.Call)
+            and _calls(value, target)
+            for name in _bound_names(sub)
+        }
+        for sub in ast.walk(node):
+            if not isinstance(sub, ast.Raise) or sub.exc is None:
+                continue
+            if isinstance(sub.exc, ast.Name) and sub.exc.id in bound:
+                return True
+            if isinstance(sub.exc, ast.Call) and _calls(sub.exc, target):
+                return True
+    return False
+
+
+def _calls(call: ast.Call, target: str) -> bool:
+    """Whether this call names `target`, plainly or through an attribute."""
+    func = call.func
+    if isinstance(func, ast.Name):
+        return func.id == target
+    return isinstance(func, ast.Attribute) and func.attr == target
+
+
+def _bound_names(node: ast.Assign | ast.NamedExpr) -> list[ast.Name]:
+    targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+    return [t for t in targets if isinstance(t, ast.Name)]
+
+
+def test_every_store_that_promotes_raises_condition_8() -> None:
+    """A class that promotes and never *raises* what
+    `refusal_for_a_moved_baseline` returns has skipped the one condition the
+    pure function cannot carry for it. Reaching the call is not enough: it
+    returns the refusal rather than raising it."""
     missing = sorted(
         name
         for name, cls in _promoting_classes().items()
-        if not _reaches(cls, CONDITION_8)
+        if not (_reaches(cls, CONDITION_8) and _raises(cls, CONDITION_8))
     )
     assert not missing, (
-        f"{', '.join(missing)} implements promote_baseline without reaching "
-        f"{CONDITION_8}. Condition 8 — the baseline present is not the one the "
-        "run was compared against — is the one condition left to each backend, "
-        "beside its own write, and nothing else checks that it was met. Read "
-        "the baseline inside whatever makes your write atomic and pass it to "
-        f"{CONDITION_8}; see ResultStore.promote_baseline."
+        f"{', '.join(missing)} implements promote_baseline without raising what "
+        f"{CONDITION_8} returns. Condition 8 — the baseline present is not the "
+        "one the run was compared against — is the one condition left to each "
+        "backend, beside its own write.\n\n"
+        "**How much else checks it depends on which backend you are**, and both "
+        "halves matter when you are deciding how much care this needs. For "
+        "`FileResultStore`, the store this repository has, "
+        "`tests/test_promote_replacing.py` checks the behaviour too: the "
+        "mutation that drops the raise reddens five of its tests. For any "
+        "*other* backend — the production store ADR 0002 §6 plans, or one "
+        "somebody else writes — nothing else checks it at all, and this test is "
+        "the only thing that will ever reach you. It is written for the second "
+        "case, which is why it does not lean on the first.\n\n"
+        "Read the baseline inside whatever makes your write atomic, pass it to "
+        f"{CONDITION_8}, and raise what it gives you; see "
+        "ResultStore.promote_baseline."
     )
 
 
@@ -198,3 +277,62 @@ def test_a_helper_that_is_kept_and_never_called_is_not_reached() -> None:
     )
     assert _reaches(_KeepsTheHelperAndCallsIt, CONDITION_8)
     assert not _reaches(_KeepsTheHelperNeverCallsIt, CONDITION_8)
+
+
+class _CallsTheHelperAndDropsIt:
+    """The mutation `_raises` was written to catch, kept: `FileResultStore`'s
+    shape with `raise moved` replaced by `pass`. It calls condition 8 and
+    discards the refusal, so it promotes over a moved baseline — and every walk
+    that asks only whether the call was *reached* says yes."""
+
+    def promote_baseline(self) -> None:
+        self._refuse_a_moved_baseline(_ANY_RUN, None, None)
+        self._write()
+
+    def _refuse_a_moved_baseline(
+        self, run: Run, current: Run | None, expected: str | None
+    ) -> None:
+        moved = refusal_for_a_moved_baseline(
+            run, current, expected, removed_by="nowhere"
+        )
+        if moved is not None:
+            pass  # the mutation, and the whole point of this fixture
+
+    def _write(self) -> None:
+        pass
+
+
+class _CallsTheHelperAndRaisesIt:
+    """The same class with the raise in place — so the mutant's `False` is the
+    predicate's answer and not an answer it gives everything."""
+
+    def promote_baseline(self) -> None:
+        self._refuse_a_moved_baseline(_ANY_RUN, None, None)
+        self._write()
+
+    def _refuse_a_moved_baseline(
+        self, run: Run, current: Run | None, expected: str | None
+    ) -> None:
+        moved = refusal_for_a_moved_baseline(
+            run, current, expected, removed_by="nowhere"
+        )
+        if moved is not None:
+            raise moved
+
+    def _write(self) -> None:
+        pass
+
+
+def test_a_refusal_that_is_computed_and_dropped_is_not_raised() -> None:
+    """The defect this file shipped with: `_reaches` passes a class that calls
+    condition 8 and throws the answer away, because calling is all it asks.
+
+    **Both halves, or the control is half a control.** The mutant must still
+    satisfy the old predicate — otherwise `_raises` is catching something
+    `_reaches` already caught, and the new predicate is doing no work."""
+    assert _reaches(_CallsTheHelperAndDropsIt, CONDITION_8), (
+        "the mutant no longer even reaches condition 8, so it no longer "
+        "demonstrates the gap between reaching and raising"
+    )
+    assert not _raises(_CallsTheHelperAndDropsIt, CONDITION_8)
+    assert _raises(_CallsTheHelperAndRaisesIt, CONDITION_8)
