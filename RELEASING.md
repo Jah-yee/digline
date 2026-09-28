@@ -421,6 +421,27 @@ Do it in the browser you use, and in a second engine if you have one. `SameSite`
 is where engines have differed. If step 3 is refused, the release is wrong, not
 the browser, and ADR 0033 is reopened before anything ships.
 
+**Where it is recorded: the release's own changelog entry, whichever way it
+went.** The tag waits for the walkthrough, and until 0.21.1 nothing kept
+that it ran. 0.21.0's entry says so because somebody wrote it; 0.21.1's said
+nothing, although the walkthrough had run, until a dated note was added on
+2026-09-28. If the tree does not say it, nobody knows. So the release pull
+request (*the release commit is its own landing*), which dates the entry,
+also carries one of two lines:
+
+- **It ran.** Say when and which steps, and what each control did, as
+  0.21.0's *Seen working in a browser* bullet does. If the exact date is not
+  known, write the window it fell in. Do not guess a date.
+- **It was not owed.** Say so in one line, and say why: nothing in the
+  launch key, the hand-over or the promote form changed since the last
+  release that ran it. **The absence is declared, never left to be read.**
+  Without that line, *not owed* and *skipped* look the same in the entry.
+
+No test reads either line, on purpose. A check that the sentence exists would
+teach writing the sentence, which is the reason given under *These three have
+no gate, and must not be given one*. It is a record, and the person who ran
+the walkthrough is the only one who can make it true.
+
 ## Before the tag: the gates
 
 Run **exactly what CI runs**, from the repository root:
