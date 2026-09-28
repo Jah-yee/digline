@@ -895,11 +895,15 @@ A false red is the moment somebody is tempted to switch a guard off. None of the
 three is a reason to: each says what to do instead, and none of them needs the
 job removed.
 
-**On the first release after this landed** (2026-09-26, not yet exercised):
-open the `publish` run and the `docker-publish` run and confirm each has an
-`Is this commit on main?` job that ran and passed, printing `<tag> (<sha>) is
-on main.` — then delete this paragraph in the follow-up pull request. A green run
-whose job list lacks it is not the same evidence.
+**Exercised, and this line is what the check asked for.** It landed 2026-09-26
+carrying an instruction to confirm the job on the first release after it and
+then delete itself. That release was `v0.21.0`, and `v0.21.1` followed: in
+both, `publish` and `docker-publish` each carry an `Is this commit on main?`
+job that ran and passed — `publish` runs `36311430504` and `36319030686`,
+`docker-publish` run `36319030731`. Read job by job, not from a run's rollup:
+a green run whose job list lacks it is not the same evidence, which is the
+whole reason the instruction existed. Confirmed on the way to 0.21.2, two
+releases after it was owed.
 
 ### Re-doing a tag
 
