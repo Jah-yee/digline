@@ -139,7 +139,7 @@ can cost `digline view`. Nothing to migrate.
 - **`digline view --allow-promote` no longer keeps its two secrets in a
   printable form.** 0.21.1 moved the launch key and the session it is traded
   for into a small object. That object's default text form, the one an
-  exception log, a `%r` or a debugger shows, printed both of them. Nothing in
+  exception log or a `%r` shows, printed both of them. Nothing in
   digline prints it, so no release exposed either secret this way. But the
   first debug line anybody added would have. The launch key had no such
   exposure before 0.21.1, when it was a plain string: the fix for
@@ -147,7 +147,13 @@ can cost `digline view`. Nothing to migrate.
   closed a defect and opened this smaller one in the same change. Both fields
   are now left out of that form, and a test fails if either comes back. No
   advisory: it was never reachable.
-  (0.21.1 delta-pass, D-1)
+  **What this does not cover, corrected after publication:** a **debugger** was
+  named in that list and only half belongs there. It shows the repr, which no
+  longer carries them — and, when the object is expanded, the attributes, which
+  still do: `vars(launch)` returns `key` and `session` with their values, because
+  `repr=False` touches the repr and nothing else and `Launch` has no `__slots__`.
+  The fix is what its own next sentence says — *that form* — and nothing wider.
+  (0.21.1 delta-pass, D-1; the debugger clause corrected by 0.21.2's own pass)
   - **The browser walkthrough (ADR 0033 §8) was not owed for this release.**
     The launch key, the hand-over and the promote form have not changed since
     0.21.1, the last release that ran it. This fix changes only the object's
