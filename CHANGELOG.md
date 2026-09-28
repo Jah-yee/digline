@@ -76,6 +76,10 @@ Nothing to migrate.
   are now left out of that form, and a test fails if either comes back. No
   advisory: it was never reachable.
   (0.21.1 delta-pass, D-1)
+  - **The browser walkthrough (ADR 0033 §8) was not owed for this release.**
+    The launch key, the hand-over and the promote form have not changed since
+    0.21.1, the last release that ran it. This fix changes only the object's
+    `repr`. The move under *Changed* is about the run key, which is another key.
 
 ## 0.21.1 — 2026-09-27
 
