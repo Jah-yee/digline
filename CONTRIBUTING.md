@@ -97,6 +97,22 @@ Thanks for looking. A few things worth knowing before you open a pull request.
   thing, the path — and read what comes back, rather than on the phrase that
   made you notice the claim. (#140)
 
+  **And a guard can be the thing that only finds strings.** Written **one hour
+  after the paragraph above**, and found with it:
+  `tests/test_promotion_conditions.py` holds an obligation no signature can
+  state — that a store implementing `promote_baseline` reaches condition 8 —
+  and its first version asked whether
+  the class's source *contains* the name. It passed against a store that kept
+  the private method holding that call and stopped calling it, which is exactly
+  the backend the guard exists to catch. `inspect.getsource(cls)` had the name
+  in it, because a class that never calls a method still contains it. The guard
+  now parses the class and follows `self.…` calls out of `promote_baseline`.
+  **The lesson is the paragraphs above, one layer in**: a search over source
+  text is a claim about the text, and a test built on one inherits every limit
+  the sweep has — with the difference that nobody reads a test again once it is
+  green. What caught it was the mutation the bullets further up ask for: delete
+  the thing the guard is supposed to notice, and watch it fail.
+
   **Then say in the amendment which method built the list.** *"One other site"*
   is a claim about a search before it is a claim about the repository, and a
   reader who cannot tell which search you ran cannot tell whether the list is
