@@ -209,7 +209,8 @@ artifacts that today exists in none of the audited competitors.
 - **`main` is protected, and nothing bypasses it.** A ruleset on the default
   branch requires the two `gates` checks — `gates (3.12)` and `gates (3.13)` —
   to have passed **on the ref** before it can land, requires a branch to be up
-  to date with `main` before merging, and blocks force pushes and deletions.
+  to date with `main` before merging, sends every merge through a **merge
+  queue** (since 2026-09-29, below), and blocks force pushes and deletions.
   **Those two are the whole list, and `docs` is deliberately not among them:** a
   check that the documented process guarantees will be red cannot be a required
   check. The reason, and the deadlock it avoids, are in
@@ -221,9 +222,9 @@ artifacts that today exists in none of the audited competitors.
   that caused nothing — and a check that depends on another repository must not
   block this one. It is read, not required. No actor bypasses those two checks: there is no `--admin` path, and
   asking for one is not a route either. So every change has one shape —
-  **push the branch, wait for green, then merge.** A direct push to `main` is
-  refused, and that refusal is the rule working rather than an obstacle to get
-  around.
+  **push the branch, wait for green, then put it in the queue.** A direct push
+  to `main` is refused, and that refusal is the rule working rather than an
+  obstacle to get around.
   `digline.dev` has worked this way all along, and the two are now the same in
   the part that matters — neither default branch takes a direct push, and
   neither has a bypass. Both route work through a pull request with zero
@@ -276,9 +277,38 @@ artifacts that today exists in none of the audited competitors.
   starts nothing at all: the branch arrives green-looking with no checks on
   it, and a ref with no checks is a ref that cannot land. So the shape above,
   in full: push the branch, open a pull request, wait for the two gates,
-  merge. Observed on the first try: the first push of the branch that recorded
+  enqueue. Observed on the first try: the first push of the branch that recorded
   the status-check rule produced **zero check runs**, and PR #82 had to be
   opened before anything could go green.
+
+  **The merge queue, since 2026-09-29.** Enqueuing is not merging. The queue
+  builds `main` plus the pull request on a `gh-readonly-queue/main/...` ref,
+  runs the two gates **again, on that ref**, and only then moves `main` to that
+  commit. So a pull request is green twice: once on its own head, once as what
+  `main` will be. The merge method is still `merge` and the commit that lands
+  is still a merge commit. What the queue replaces is the step where a person
+  checks that `main` has not moved and merges by hand.
+  - **How to enqueue.** `gh pr merge` does not do it here. It falls to
+    auto-merge, which this repository has off, and fails with *Auto merge is
+    not allowed*. Use the web button, or the GraphQL mutation
+    `enqueuePullRequest` with the pull request's id and `expectedHeadOid` set
+    to the head you watched go green.
+  - **It depends on `merge_group` in `ci.yml`**, which is the same failure as
+    PR #82 in a new place. Without that trigger nothing starts on the queue's
+    ref, and the queue waits on checks that never report. The trigger landed
+    first (#250) and the queue was switched on only after that. It was proved
+    by the first entry through it: #251, gates green on
+    `gh-readonly-queue/main/pr-251-...`, and `main` moved to that commit
+    (eb486d5).
+  - **"Merged" now arrives later.** It comes one gate run (about three minutes)
+    after the enqueue, not at the click. Anything that waits for a merge waits
+    for the pull request's state to read `MERGED`, not for the command to
+    return. The release order in `RELEASING.md` is one of those.
+  - **The queue settings.** Up to five entries built and merged together, and
+    a group of one merged without waiting for company. `ALLGREEN`: every entry
+    in a group must pass. Checks time out at 60 minutes. The ruleset's
+    up-to-date requirement was left as it was: whether the queue makes it
+    redundant has not been ruled.
 
   The release push order is in [`RELEASING.md`](RELEASING.md) and this rule does
   not change it — it changes only how each of those pushes reaches `main`.
