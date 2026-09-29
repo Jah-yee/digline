@@ -8,6 +8,30 @@ notes under them are this file, verbatim.
 
 ## 0.22.1 — unreleased
 
+### Added — `digline view` shows a run before there is a baseline
+
+- **`/compare` with no baseline now serves the run on its own** instead of
+  answering 404 *"this suite has no baseline yet"*. The page is
+  `render_run_html` — what `digline report` has written in the same state since
+  it stopped refusing — with the view's bar in front, and nothing else: take
+  the bar away and it is byte for byte the report (`pages.run_page`, beside
+  `compare_page`). On the run list, each row before the first promotion carries
+  **`Open`** where it will later carry `Compare`.
+- **Why, and it is not the 404.** Nothing linked to that 404 from the run list;
+  the link was withheld on purpose. What the withheld link cost was the first
+  promotion: the table carries aggregates only, so on day one `Make baseline`
+  was pressed by somebody who had not seen one case. The view is where the
+  first baseline is promoted from, and now it is also where the run behind it
+  can be read.
+- **The first promotion through the view is now tested end to end**: an empty
+  store, one run, the flagged server, the row opened, and the form's own
+  `replacing=none` posted. Every other promotion test started from a baseline
+  already in place, so the one value only the first promotion sends had never
+  reached the route.
+- **What does not change:** against a baseline the page is the verdict, and
+  against another run it is the diff, exactly as before. The view still serves
+  the unredacted store.
+
 ### Fixed — an assertion could claim a refusal the driver never made
 
 - **The driver now removes its own two markers from every verdict an
@@ -31,6 +55,25 @@ notes under them are this file, verbatim.
     the driver's bookkeeping.
   - **What does not change:** runs already written keep whatever their verdicts
     carry, and a resume reuses stored results as they are.
+
+### Fixed — `report --redacted` exited 0 under a page that said a pinned file moved
+
+- **The exit code of `digline report --redacted` now comes from the comparison
+  the document is rendered from.** It used to come from a fresh `compare` over
+  the redacted run. There, the digests are gone and a pinned file reads
+  `unknown`, which ADR 0029 §8 keeps from moving the exit code. The page, by
+  contrast, is rendered after the artifact outcomes are put back
+  (`withhold_artifacts`, ADR 0029 §5). So with a pinned file that moved and a
+  suite that does not disclose artifacts, the page said *"declared not to
+  change"* while the process exited `0`. The same report without `--redacted`
+  exited `2`. Each half had a test. The two together, through the command, had
+  none, and now do.
+- **What changes for a pipeline:** in exactly that case, `report --redacted`
+  now exits `2`, like the unredacted report and like `compare`. Nothing else
+  moves. `redact` keeps every other input the exit code reads: statuses,
+  scores, canaries and calibration. A suite with `Disclosure(artifacts=True)`
+  keeps its digests, so the two comparisons were already equal. A report with
+  no baseline compares nothing, so it is unaffected.
 
 ## 0.22.0 — 2026-09-29
 

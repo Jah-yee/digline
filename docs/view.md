@@ -27,6 +27,7 @@ Every action belongs to a row; there is nothing to select first.
 | On the row | What it does |
 |---|---|
 | `Compare` | this run against the baseline — `GET /compare?run=KEY` |
+| `Open` | before the first promotion, in place of `Compare`: the run on its own, at the same address |
 | `Make baseline` | promotes it — only under `--allow-promote` |
 
 On a server started without the flag there is no `Make baseline` anywhere, and
@@ -60,6 +61,13 @@ omitted `against` means — this is a run held against an approved reference.
 That is `compare()`'s question, so the page is the verdict document: it calls
 `render_html`, the same function `digline report` writes to a file, and the
 unified diff of any file under test appears here too, above the score deltas.
+
+With **no baseline yet** there is nothing to hold the run against, so the
+page is the run on its own: `render_run_html`, which is what `digline report`
+writes in the same state, with its cases and the sentence saying there is no
+reference. It is what the first baseline is chosen from — the table above
+carries aggregates only, and a first promotion made from a row of numbers is
+made by somebody who has not seen one case.
 
 Against **any other run** — the two pickers — neither side was approved by
 anybody, so the page is the [diff report](diff.md) instead. Until ADR 0008 this
