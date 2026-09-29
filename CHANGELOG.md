@@ -71,6 +71,42 @@ store that implements it. Nothing to migrate.
   pins is still green, and the step's comment in `ci.yml` says what else it does
   not prove. Nothing a user installs changed.
 
+### Seen working in a browser — the walkthrough, owed and run
+
+- **The walkthrough in `RELEASING.md` ran on 2026-09-29, before the tag,** on
+  `3fb7233` in one browser engine. It was owed for a reason 0.21.2 missed: that
+  release rewrote how `POST /promote` reads its body and put a 30-second
+  timeout on every connection, and no browser had been through either (see
+  0.21.2's corrected line below). A first attempt crossed its steps, so the
+  store was reset and the run started again from scratch.
+  - **Which digline ran:** `digline.__file__` resolved to the release
+    checkout's `src/digline/__init__.py`, and `digline --version` said 0.22.0.
+  - **The promotion worked:** *Make baseline* moved the baseline, and
+    `git diff` showed the move. This was the first time a real browser went
+    through the new body reader.
+  - **Four refusals, each with a different cause and a different message, none
+    of which claims another's cause.**
+    - A private window with no cookie was refused with *carries no cookie from
+      this server*.
+    - After a restart, the old tab's cookie was refused as *not issued by this
+      start of digline view: it is from an earlier start*.
+    - The previous start's address, opened against the new server, was refused
+      as *carries a launch key from another start*.
+    - The new server's address, opened a second time, was refused as
+      *already been opened*. This is GHSA-cf5q-xj23-cr2q's fix seen in a
+      browser.
+
+    After each of the four the baseline did not move, and `git diff` showed
+    nothing new until a legitimate promotion from a window that had just done
+    the hand-over.
+  - **Beyond the steps:** the page was left idle for ten minutes, then *Make
+    baseline* was pressed. It worked, with nothing visible. The timeout did not
+    enter into it. The server speaks HTTP/1.0 and closes each connection after
+    its response, so nothing was left open for it to close. The press opened a
+    new connection.
+  - **Not tried:** a second browser engine, and the write side of the timeout
+    (a slow reader of a large page).
+
 ### Not republished — a package whose text moved under the same version
 
 - **`pytest-digline` 0.2.0's source moved and its version did not, and it
