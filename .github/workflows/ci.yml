@@ -181,7 +181,10 @@ jobs:
       # Two builds, chosen by the event, because the site's sync refuses a
       # digline checkout that is ahead of origin/main (digline.dev 369db4e) —
       # and a pull request is checked out as its merge commit, which is always
-      # one commit ahead. Both builds are `mkdocs build --strict`.
+      # one commit ahead. So is a merge-queue entry, `main` plus the pull
+      # request, and it takes the pull request's build: the first entry
+      # through the queue (#251) went red here on exactly that refusal.
+      # Both builds are `mkdocs build --strict`.
       #
       # A pull request gets the site's own preview, `make preview`: the sync
       # skips the published-checkout check and leaves a marker the deploy gate
@@ -206,17 +209,17 @@ jobs:
       # cannot stand behind. The dates are not what is under test here; the
       # links and the nav are.
       - name: Build the site from unreleased docs, strict (pull request)
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
         working-directory: _site
         run: make preview DIGLINE=..
 
       - name: Copy the product documentation in
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && github.event_name != 'merge_group'
         working-directory: _site
         run: tools/sync-docs.sh ..
 
       - name: Build the site, strict
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && github.event_name != 'merge_group'
         working-directory: _site
         run: uv run mkdocs build --strict
 
