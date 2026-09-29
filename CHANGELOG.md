@@ -6,7 +6,7 @@ upgrading, and what deliberately did not move. The reasoning lives in
 read the [release titles](https://github.com/digline/digline/releases) — the
 notes under them are this file, verbatim.
 
-## 0.23.0 — unreleased
+## 0.23.0 — 2026-09-29
 
 digline **0.23.0**. One exit code moves, which is why this is a minor, and
 one addition and one other fix come with it. Nothing to migrate.
@@ -89,6 +89,18 @@ one addition and one other fix come with it. Nothing to migrate.
   scores, canaries and calibration. A suite with `Disclosure(artifacts=True)`
   keeps its digests, so the two comparisons were already equal. A report with
   no baseline compares nothing, so it is unaffected.
+
+### Not owed — the browser walkthrough
+
+- **The walkthrough in `RELEASING.md` (ADR 0033 §8) was not owed for this
+  release.** Nothing in the launch key, the hand-over or the promote form
+  changed since 0.22.0, which ran it. The check was a diff between `v0.22.0` and
+  this release's tree, not a recollection. `cli/view.py` moved in two places:
+  a docstring, and the `GET /compare` branch that answered 404 without a
+  baseline. `POST /promote`, the cookie and the key are untouched, and so is
+  `store/`. On the run list, the promote form's markup is unchanged byte for
+  byte. Before the first promotion an `Open` link now sits beside it in the
+  same cell. That link is a `GET` to a page that carries no form.
 
 ## 0.22.0 — 2026-09-29
 
