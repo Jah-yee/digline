@@ -537,6 +537,10 @@ class ViewHandler(BaseHTTPRequestHandler):
         the default — this is a run held against an approved reference, which is
         `compare()`'s question, and the verdict document is the right answer.
 
+        With **no baseline yet** there is no reference to hold it against, so
+        the page is the run on its own — `digline report`'s answer to the same
+        state.
+
         Against **any other run** neither side was approved by anybody, so the
         page is the diff report. Until ADR 0008 this route rendered the verdict
         for every pair, which put two candidates under a heading asking "Did it
@@ -584,7 +588,11 @@ class ViewHandler(BaseHTTPRequestHandler):
             return
 
         if baseline is None:
-            self._error(404, "this suite has no baseline yet")
+            # The run on its own, which is what `digline report` writes in the
+            # same state — not a 404. The first baseline is promoted from this
+            # server, and a refusal here left the aggregates as the only thing
+            # to promote from.
+            self._send(200, pages.run_page(run, locale=locale, suite=self.suite.name))
             return
         self._send(
             200, pages.compare_page(run, baseline, locale=locale, suite=self.suite.name)
