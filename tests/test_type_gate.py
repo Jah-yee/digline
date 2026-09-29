@@ -97,7 +97,12 @@ def _errors(path: Path) -> list[tuple[str, str]]:
 def _planted(source: str, name: str) -> Path:
     """Written inside the checked tree, because *where* a file sits is half of
     what is under test: resolution of `digline.*` is what broke, and a file
-    outside the project resolves by different rules."""
+    outside the project resolves by different rules.
+
+    Which is why CI runs this file on its own, after the parallel run: a test
+    that lists `src/` while this file exists and reads it once it is gone
+    fails on a file nobody wrote (`FileNotFoundError` in `test_versions.py`,
+    2026-09-29)."""
     path = ROOT / "src" / "digline" / f"_type_gate_{name}.py"
     path.write_text(source, encoding="utf-8")
     return path
