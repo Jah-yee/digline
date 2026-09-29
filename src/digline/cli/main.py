@@ -930,9 +930,10 @@ def cmd_report(args: argparse.Namespace) -> int:
         Path(args.out).write_text(document, encoding="utf-8")
     else:
         emit(document)
-    return exit_code(
-        headline(compare(run, baseline), run, baseline, locale=args.locale)
-    )
+    # From the comparison the document was rendered from, never a fresh one:
+    # over a redacted run a fresh `compare` has lost the digests, reads a moved
+    # pin as `unknown`, and exits 0 under a page saying the file moved.
+    return exit_code(headline(comparison, run, baseline, locale=args.locale))
 
 
 def _report_single(run: Run, suite: Suite, args: argparse.Namespace) -> int:
