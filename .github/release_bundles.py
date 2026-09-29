@@ -28,6 +28,38 @@ which is what makes `gh release upload --clobber` safe.
 `sigstore verify github --ref refs/tags/<tag>` on every bundle against the
 served file, so a misread ref can fail the job but cannot pass one.
 
+**It waits for the index, and it keeps a third word.** This job runs right
+after the upload, and `/pypi/<name>/<version>/json` can answer 404 for a
+version that `/simple/` already serves. It did so on v0.22.0 and again on
+v0.23.0, each time within a minute of the upload. The `pypi` job's
+wait (`await_index.py`) asks `/simple/`, which is not the question asked here,
+so this script waits for its own: every page and every attestation it needs is
+read until it answers or `TIMEOUT` runs out. A read then ends in one of three
+words, never two:
+
+- **an answer**, a page or a 404 that held for the whole wait;
+- **absent**: a 404, and the last read was a 404 too;
+- **unread**: the index never answered at all (a 5xx, a timeout, no route).
+
+The last one is refused by a different sentence and a different exit code,
+because it is not a fact about PyPI. A 404 read once and believed is an
+absence of an answer taken for an answer, which is the shape that produced
+v0.22.0's and v0.23.0's red.
+
+    TIMEOUT    seconds each read may wait for an answer, default 600
+    INTERVAL   seconds between reads, default 10
+
+`TIMEOUT=0` is one read, which is the behaviour before the wait, and the
+test's control.
+
+**Every read waits, including the attestations of files at other versions.**
+A plugin this tag published sits at a version that is not the tag's, and
+its attestation is exactly as fresh as the core's. A short read there would
+skip its bundle in silence. What that costs: a file PyPI really holds no
+attestation for is skipped only after the whole wait. None does. Checked on
+2026-09-29, every file of the six versions a tag builds today answered 200
+at `/integrity/…/provenance`.
+
 It refuses — exit 1, by name — when:
 
 - **the list comes out empty.** A job that attaches nothing and passes is the
@@ -38,6 +70,10 @@ It refuses — exit 1, by name — when:
   foreign signature on one is a fault, not a skip.
 - **PyPI serves a file whose bytes do not match its own digest**, or an
   attestation that does not name this repository and `publish.yml`.
+
+And it stops — exit 2, *not judged* — when a read it needs was never answered.
+That is not a refusal of the release: nothing was learned about it, and a
+re-run is the remedy.
 
 Standard library only: like the other scripts here it runs under the runner's
 bare `python3`.
@@ -51,11 +87,18 @@ import json
 import os
 import pathlib
 import sys
+import time
 import urllib.error
 import urllib.request
-from typing import Any
+from typing import Any, Literal
 
 INDEX = os.environ.get("INDEX", "https://pypi.org").rstrip("/")
+
+#: The two words a read ends in besides an answer. `absent` is a fact about the
+#: index, and `unread` is the absence of one.
+ABSENT: Literal["absent"] = "absent"
+UNREAD: Literal["unread"] = "unread"
+Reading = bytes | Literal["absent", "unread"]
 REPOSITORY = "digline/digline"
 WORKFLOW = "publish.yml"
 
@@ -70,6 +113,10 @@ IN_TOTO = "application/vnd.in-toto+json"
 
 class Refused(Exception):
     """A reason to fail the job, worded for the log."""
+
+
+class NotJudged(Exception):
+    """A read the index never answered: nothing was learned, so nothing is refused."""
 
 
 def name_and_version(path: pathlib.Path) -> tuple[str, str]:
@@ -148,22 +195,65 @@ def serialise(bundle: dict[str, Any]) -> bytes:
     return (json.dumps(bundle, sort_keys=True, indent=2) + "\n").encode()
 
 
-def _get(url: str, accept: str | None = None) -> bytes | None:
+def _get_once(url: str, accept: str | None = None) -> Reading:
+    """One request, and which of the three words it earned."""
     request = urllib.request.Request(url, headers={"Accept": accept} if accept else {})
     try:
         with urllib.request.urlopen(request, timeout=60) as response:
             return response.read()
     except urllib.error.HTTPError as exc:
         if exc.code == 404:
-            return None
+            return ABSENT
+        if exc.code >= 500:
+            return UNREAD
         raise
+    except (urllib.error.URLError, TimeoutError, ConnectionError):
+        return UNREAD
+
+
+class Index:
+    """Reads that wait: each one is asked again until it answers or `timeout`
+    runs out, and ends in the last word it heard."""
+
+    def __init__(self, timeout: float, interval: float) -> None:
+        self.timeout = timeout
+        self.interval = interval
+
+    def read(self, url: str, accept: str | None = None) -> Reading:
+        deadline = time.monotonic() + self.timeout
+        started = time.monotonic()
+        count = 0
+        while True:
+            got = _get_once(url, accept)
+            count += 1
+            if isinstance(got, bytes):
+                if count > 1:
+                    waited = time.monotonic() - started
+                    print(f"served   {url}  (after {waited:.0f}s, read {count})")
+                return got
+            if time.monotonic() >= deadline:
+                return got
+            said = "404" if got == ABSENT else "no answer"
+            print(f"waiting  {url}  — {said}, read {count}")
+            time.sleep(self.interval)
+
+    def answer(self, url: str, accept: str | None = None) -> bytes | None:
+        """A page, or `None` for an absence that held. Never an unread."""
+        got = self.read(url, accept)
+        if got == UNREAD:
+            raise NotJudged(
+                f"{url} did not answer on any read in {self.timeout:.0f}s. That is "
+                "not a finding about this release, so nothing is refused: re-run "
+                "the job"
+            )
+        return None if got == ABSENT else got
 
 
 def attestation_for(
-    name: str, version: str, filename: str
+    index: Index, name: str, version: str, filename: str
 ) -> tuple[dict[str, Any], dict[str, Any]] | None:
     """PyPI's attestation for one file, and the publisher it names."""
-    body = _get(
+    body = index.answer(
         f"{INDEX}/integrity/{name}/{version}/{filename}/provenance",
         accept="application/vnd.pypi.integrity.v1+json",
     )
@@ -179,6 +269,12 @@ def attestation_for(
 
 
 def main(tag: str, out: pathlib.Path) -> int:
+    # Read here and not at import, like `await_index.py`: a mistyped value
+    # fails the job that uses it, by name.
+    index = Index(
+        timeout=float(os.environ.get("TIMEOUT", "600")),
+        interval=float(os.environ.get("INTERVAL", "10")),
+    )
     ref = f"refs/tags/{tag}"
     tag_version = tag.rpartition("-v")[2] if "-v" in tag else tag.removeprefix("v")
     served_dir = out / "served"
@@ -198,16 +294,17 @@ def main(tag: str, out: pathlib.Path) -> int:
 
     written: list[str] = []
     for name, version in releases:
-        page = _get(f"{INDEX}/pypi/{name}/{version}/json")
+        page = index.answer(f"{INDEX}/pypi/{name}/{version}/json")
         if page is None:
             raise Refused(
-                f"{name} {version} is in dist/ and not on {INDEX}: "
+                f"{name} {version} is in dist/ and {INDEX} answered 404 for it "
+                f"until the last read, {index.timeout:.0f}s after the first: "
                 "this runs after the upload"
             )
         ours = version == tag_version
         for file in json.loads(page)["urls"]:
             filename: str = file["filename"]
-            found = attestation_for(name, version, filename)
+            found = attestation_for(index, name, version, filename)
             if found is None:
                 if ours:
                     raise Refused(
@@ -241,7 +338,7 @@ def main(tag: str, out: pathlib.Path) -> int:
                     f"{filename}: attestation names {publisher}, "
                     f"not {REPOSITORY} {WORKFLOW}"
                 )
-            data = _get(file["url"])
+            data = index.answer(file["url"])
             if (
                 data is None
                 or hashlib.sha256(data).hexdigest() != file["digests"]["sha256"]
@@ -272,3 +369,6 @@ if __name__ == "__main__":
     except Refused as exc:
         print(f"::error title=No signatures for this release::{exc}", file=sys.stderr)
         sys.exit(1)
+    except NotJudged as exc:
+        print(f"::error title=Signatures not judged::{exc}", file=sys.stderr)
+        sys.exit(2)
