@@ -293,13 +293,53 @@ def suite_file(workdir: Path) -> str:
     return "suite.toml" if (workdir / "suite.toml").is_file() else "suite.py"
 
 
+def _answers(port: int) -> bool:
+    with socket.socket() as probe:
+        return probe.connect_ex(("127.0.0.1", port)) == 0
+
+
+def _port_held(name: str, port: int) -> str:
+    return (
+        f"{name}: port {port} is held by a process these tests did not start — "
+        f"most likely another tree's stub.py. Ours cannot bind it, and every "
+        f"test here would run against that one instead. Find who holds it "
+        f"(`lsof -nP -iTCP:{port} -sTCP:LISTEN`) and stop it only if it is "
+        f"yours, by PID and never by port (CONTRIBUTING.md)."
+    )
+
+
 @contextmanager
 def application(workdir: Path, name: str) -> Generator[None]:
-    """Run `stub.py` for as long as the block lasts, if this example needs it."""
+    """Run `stub.py` for as long as the block lasts, if this example needs it.
+
+    **Only a stub these tests started may answer.** `stub.py` listens on a
+    fixed port, and a second one started while another holds it exits at once
+    with *Address already in use* — on a stderr sent to DEVNULL, so nothing
+    would say so, and the probe below would find the other stub and the tests
+    run against it. Measured on 2026-09-29: exit 1 within a second. So the port
+    is refused if it answers before ours starts, and ours must still be alive
+    once the port answers. The first check is the one that catches the common
+    case: the probe can reach the other stub before ours has tried to bind,
+    when `poll()` still says it is running. The second catches one that took
+    the port in between.
+
+    **The longer road, measured and not taken:** a port chosen per run, so two
+    runs never meet. Keeping the example as written costs two files — `stub.py`
+    reads the port from the environment with 8730 as the default, and this
+    function rewrites `url` in the copied `suite.toml` — and its README stays
+    true. Having it in the format instead, a `suite.toml` that reads the port
+    itself, is an amendment to ADR 0007: digline reads no environment variable
+    anywhere, and `stub.py` records the trade the other way round, the URL
+    written down where a reader sees it. Not taken because a collision between
+    two runs of this suite has never been observed, and the silent failure
+    this refuses was measured.
+    """
     port = NEEDS_A_SERVICE.get(name)
     if port is None:
         yield
         return
+    if _answers(port):
+        pytest.fail(_port_held(name, port))
     process = subprocess.Popen(  # noqa: S603 - our own stub, in our own tree
         [sys.executable, "stub.py"],
         cwd=workdir,
@@ -308,12 +348,15 @@ def application(workdir: Path, name: str) -> Generator[None]:
     )
     try:
         for _ in range(100):
-            with socket.socket() as probe:
-                if probe.connect_ex(("127.0.0.1", port)) == 0:
-                    break
+            if process.poll() is not None:
+                pytest.fail(_port_held(name, port))
+            if _answers(port):
+                break
             time.sleep(0.05)
         else:  # pragma: no cover - only on a machine that cannot bind
             pytest.fail(f"{name}: stub.py never listened on {port}")
+        if process.poll() is not None:
+            pytest.fail(_port_held(name, port))
         yield
     finally:
         process.terminate()
