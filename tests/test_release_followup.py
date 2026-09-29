@@ -788,3 +788,99 @@ def test_main_treats_an_older_version_as_superseded(tmp_path: Path) -> None:
     assert json.loads(out.read_text(encoding="utf-8"))["ok"] is True
     # Without `--newest`, the same inputs are read as the present and fail.
     assert followup.main(argv) == 1
+
+
+# --------------------------------------------------------------------------- #
+# The third word: an absence of an answer is not an answer (#215)
+# --------------------------------------------------------------------------- #
+
+
+def test_an_unread_publish_run_is_not_judged_rather_than_a_gate_that_failed() -> None:
+    """#215 exactly: one `gh run list` came back empty, and the empty approvals
+    after it read as *"the gate did not hold"* about a gate that had held."""
+    finding = followup.approvals_finding(followup.UNREAD, [])
+    assert not finding.answered
+    assert not finding.ok
+    assert finding.held
+    assert "not judged" in finding.said
+    assert "did not hold" not in finding.said
+    assert finding.title == "the reviewer gate could not be read"
+
+
+def test_an_unread_kept_record_on_a_re_run_is_not_none_was_kept() -> None:
+    """Two absences kept apart: a list that answered with nothing is *none was
+    kept* (v0.21.0), a list that never answered is *not judged*."""
+    none_kept = rerun(None)
+    unread = rerun(followup.UNREAD)
+    assert none_kept.answered
+    assert "none was kept" in none_kept.said
+    assert not unread.answered
+    assert "not judged" in unread.said
+
+
+def test_an_approval_read_now_wins_over_an_unread_kept_record() -> None:
+    """The endpoint answering is an answer; an unread lookup beside it changes
+    nothing."""
+    assert rerun(followup.UNREAD, approvals=APPROVED).sound
+
+
+def test_the_control_still_bites_when_the_reading_is_unread() -> None:
+    finding = followup.approvals_finding(followup.UNREAD, APPROVED)
+    assert not finding.held
+
+
+def test_a_run_that_answered_nothing_new_leaves_the_issue_alone() -> None:
+    unread = followup.approvals_finding(followup.UNREAD, [])
+    written = followup.report([sound("a"), unread], "0.22.0")
+    assert written["ok"] is False
+    assert written["undecided"] is True
+    assert "- [?] **the reviewer gate**" in str(written["body"])
+
+
+def test_an_undone_step_beside_an_unread_one_is_still_decided() -> None:
+    """Something was answered, and it was *no*: that is worth writing down."""
+    unread = followup.approvals_finding(followup.UNREAD, [])
+    written = followup.report([unsound("the example locks"), unread], "0.22.0")
+    assert written["undecided"] is False
+    assert written["title"].startswith(
+        "Release follow-up for v0.22.0: the example locks is undone"
+    )
+
+
+def test_a_fully_answered_report_is_never_undecided() -> None:
+    assert followup.report([sound("a")], "0.22.0")["undecided"] is False
+    assert followup.report([unsound("a")], "0.22.0")["undecided"] is False
+
+
+def test_main_reads_the_unread_word_from_the_file_the_workflow_writes(
+    tmp_path: Path,
+) -> None:
+    all_locks(tmp_path, "0.22.0")
+    (tmp_path / "approvals.json").write_text('"unread"', encoding="utf-8")
+    (tmp_path / "control.json").write_text("[]", encoding="utf-8")
+    releasing = tmp_path / "RELEASING.md"
+    releasing.write_text(
+        "### Status: what each path has proven\n\n- **v0.22.0 — read.**\n\n## Next\n",
+        encoding="utf-8",
+    )
+    digests = tmp_path / "digests.json"
+    digests.write_text(
+        '{"0.22.0": "sha256:a", "0.22": "sha256:a", "latest": "sha256:a", '
+        '"0.22.0-does-not-exist": null}',
+        encoding="utf-8",
+    )
+    out = tmp_path / "report.json"
+    code = followup.main(
+        [
+            "--version", "0.22.0",
+            "--root", str(tmp_path),
+            "--releasing", str(releasing),
+            "--approvals", str(tmp_path / "approvals.json"),
+            "--approvals-control", str(tmp_path / "control.json"),
+            "--digests", str(digests),
+            "--out", str(out),
+        ]
+    )  # fmt: skip
+    written = json.loads(out.read_text(encoding="utf-8"))
+    assert code == 1
+    assert written["undecided"] is True

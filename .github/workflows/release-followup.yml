@@ -122,25 +122,70 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          run_id="$(gh run list --workflow=publish.yml --branch "v$VERSION" \
+          # **Read more than once, and keep a third word.** Every read below is
+          # of a listing GitHub answers eventually, and one read of it can come
+          # back empty for a thing that exists. On 2026-09-29 the run list did,
+          # once: the empty approvals that followed read as a gate that did not
+          # hold, and #215 said so for nine minutes about a gate that had held.
+          # The same shape met PyPI's JSON endpoint the same morning. So each
+          # read is retried before its emptiness is believed, and a read that
+          # never answers writes `"unread"`, which the script judges as *not
+          # judged* rather than as *no*. (RELEASING.md, Status, v0.22.0)
+          #
+          # `listed` retries until the command prints something, and prints
+          # nothing only if every attempt did. A failing command counts as an
+          # empty one: it is the same absence.
+          # Four reads, five seconds apart: long enough for a listing to catch
+          # up, short enough that a re-run attempt, whose approvals are always
+          # empty, costs a run fifteen seconds and not a minute.
+          listed() {
+            for try in 1 2 3 4; do
+              out="$("$@" 2>/dev/null || true)"
+              if [ -n "$out" ]; then printf '%s' "$out"; return 0; fi
+              [ "$try" -lt 4 ] && sleep 5
+            done
+            return 0
+          }
+          run_id="$(listed gh run list --workflow=publish.yml --branch "v$VERSION" \
             --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
           if [ -z "$run_id" ]; then
-            echo "[]" > approvals.json
-            echo "::warning::no publish run found for v$VERSION"
+            echo '"unread"' > approvals.json
+            echo "::warning::no publish run could be listed for v$VERSION after four reads: not judged"
           else
-            gh api "repos/${{ github.repository }}/actions/runs/$run_id/approvals" \
-              > approvals.json || echo "[]" > approvals.json
+            # An empty list is a real answer here, and the one the v0.5.0 gate
+            # failure gives, so it is believed — but only after it has been
+            # asked for more than once. A call that fails is not a list at all.
+            approvals="$(listed gh api "repos/${{ github.repository }}/actions/runs/$run_id/approvals" \
+              --jq 'if length > 0 then . else empty end')"
+            if [ -n "$approvals" ]; then
+              printf '%s' "$approvals" > approvals.json
+            elif gh api "repos/${{ github.repository }}/actions/runs/$run_id/approvals" \
+              > approvals.json 2>/dev/null; then
+              :
+            else
+              echo '"unread"' > approvals.json
+              echo "::warning::the approvals of publish run $run_id did not answer: not judged"
+            fi
             attempt="$(gh api "repos/${{ github.repository }}/actions/runs/$run_id" \
               --jq '.run_attempt' || echo 1)"
             if [ "${attempt:-1}" -ge 2 ]; then
-              artifact="$(gh api "repos/${{ github.repository }}/actions/artifacts?name=followup-approvals-$run_id&per_page=100" \
-                --jq '[.artifacts[] | select(.expired | not)] | sort_by(.created_at) | last | .id // empty' || true)"
+              # Two absences kept apart: an artifact list that answered and holds
+              # nothing is *none was kept*, the v0.21.0 case, which the script
+              # says and an issue records; a list that never answered is
+              # `"unread"`. `listed` retries the empty answer; the separate call
+              # then tells the two apart by whether it answered at all.
+              query="repos/${{ github.repository }}/actions/artifacts?name=followup-approvals-$run_id&per_page=100"
+              pick='[.artifacts[] | select(.expired | not)] | sort_by(.created_at) | last | .id // empty'
+              artifact="$(listed gh api "$query" --jq "$pick")"
               if [ -n "$artifact" ]; then
                 gh api "repos/${{ github.repository }}/actions/artifacts/$artifact/zip" > kept.zip || true
                 unzip -p kept.zip keep.json > kept.json || rm -f kept.json
                 echo "attempt $attempt: read back the approval kept as artifact $artifact"
-              else
+              elif gh api "$query" > /dev/null 2>&1; then
                 echo "::warning::publish run $run_id is on attempt $attempt and no run kept its approval"
+              else
+                echo '"unread"' > kept.json
+                echo "::warning::the kept approvals of publish run $run_id could not be listed: not judged"
               fi
             fi
           fi
@@ -271,7 +316,14 @@ jobs:
           )
           PY
           )"
-          if [ "$ok" = "True" ]; then
+          undecided="$(uv run --quiet python -c 'import json; print(json.load(open("report.json"))["undecided"])')"
+          if [ "$undecided" = "True" ]; then
+            # Nothing was answered that was not already known: leave the issue
+            # as it is. Opening, rewriting or closing it here would write down
+            # a reading nobody made. The run still goes red below.
+            echo "::warning::a check could not be read; this release's issue is left as it was"
+            echo "Not judged: a check could not be read, so the issue was left as it was." >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$ok" = "True" ]; then
             if [ -n "$mine" ]; then
               gh issue comment "$mine" --body-file body.md
               gh issue close "$mine" \
