@@ -6,6 +6,32 @@ upgrading, and what deliberately did not move. The reasoning lives in
 read the [release titles](https://github.com/digline/digline/releases) — the
 notes under them are this file, verbatim.
 
+## 0.22.1 — unreleased
+
+### Fixed — an assertion could claim a refusal the driver never made
+
+- **The driver now removes its own two markers from every verdict an
+  assertion returns.** `misnamed` says the driver refused a verdict named
+  otherwise than its assertion. `unreconciled` says a question went unanswered
+  or was answered twice. Each names somebody as at fault, and each could be
+  written by the assertion the driver is checking. On 0.22.0, an assertion that
+  declined to score under its own name and set `misnamed: True` made the
+  headline say it *"returned a verdict under a name that is not its
+  assertion's, and it was refused … The assertion is at fault"*, about a
+  misnaming that never happened. Nothing left the perimeter, and the exit code
+  and the refusal to promote were the same either way. What was wrong was the
+  blame. A marker anyone can write verifies nothing, so the barrier is now in
+  the driver: `digline.core.unmarked` removes both keys (`DRIVER_MARKERS`)
+  before the driver builds its own verdicts. The assertion's other metadata
+  stays. (0.22.0 delta-pass, D-1)
+  - **`unreconciled` is in the same repair on reading its code**, not on a
+    measurement of a forged gap. The second 0.17.0 pass (F-6) had ruled that
+    forgery harmless because it only makes a run less explicable. What that
+    ruling did not weigh is that a gap sends a reader to look for a defect in
+    the driver's bookkeeping.
+  - **What does not change:** runs already written keep whatever their verdicts
+    carry, and a resume reuses stored results as they are.
+
 ## 0.22.0 — 2026-09-29
 
 digline **0.22.0**. One refusal, which is why this is a minor: a verdict named
@@ -28,6 +54,16 @@ store that implements it. Nothing to migrate.
   before either fold can out-vote one. A mismatch errors **that one check on
   that case**, under the declared name, and the case's other checks stand. The
   run exits `2` and cannot be promoted.
+
+  **Which command exits `2`, corrected after publication (2026-09-29).** *"The
+  run exits `2`"* named the wrong command, in the sentence the summary above
+  gives as the reason this release is a minor. `digline run` exits `0` on a run
+  holding misnamed verdicts. It is **`digline compare`** that exits `2`, and
+  `digline promote` that refuses the run. Measured on 0.22.0 with an assertion
+  that renames its verdict from the answer: `run` `0`, `compare` `2`, `promote`
+  refused with `ErroredRunError`. The minor still stands, because `compare`'s
+  exit code is the one that moved. The `0` it replaced is this entry's claim
+  about 0.21.2 and was not re-measured. (0.22.0 delta-pass, D-2)
 - **The refusal is marked, so a redacted reader can see it.**
   `Score.metadata["misnamed"] = True` survives `redact()`, which the reason
   does not. Without the marker, a redacted document would show an assertion
