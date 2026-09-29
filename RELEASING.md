@@ -633,7 +633,13 @@ is here because skipping it is what v0.3.0 cost.
 git clone https://github.com/digline/digline.dev ../digline.dev   # once
 cd ../digline.dev && uv sync
 make preview DIGLINE=../digline
+uv run tools/check-glyphs.py site
 ```
+
+The second line reads the build the first one made: every character a page
+shows must be in the site's font subsets, which `mkdocs build --strict` does not
+check. It is the `glyphs` job in `ci.yml`, whose comment says what a green there
+does not cover.
 
 **When, and it is not where you would put it: after the last *docs* edit, not
 after the last *code* edit.** This check reads `docs/`, `CHANGELOG.md`,
