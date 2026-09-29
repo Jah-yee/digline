@@ -131,6 +131,61 @@ def test_releasing_tells_a_human_to_build_the_site_too() -> None:
     assert "after* PyPI" in page or "after PyPI" in page
 
 
+def job_body(name: str) -> str:
+    """One job of `ci.yml`, up to the next, read as `gate_commands` reads."""
+    text = CI.read_text(encoding="utf-8")
+    assert f"\n  {name}:\n" in text, f"ci.yml has no `{name}` job"
+    body = text.split(f"\n  {name}:\n", 1)[1]
+    return re.split(r"\n  \w[\w-]*:\n", body)[0]
+
+
+def test_the_glyph_check_is_a_job_of_its_own() -> None:
+    """Pinned for the reason it exists: where it runs is the whole fix.
+
+    Twice on 2026-09-29 an ADR carried a character the site's font subsets do
+    not hold, and the site refused it only after the merge. The site's check
+    was never run here, and where it would naturally have gone — a step of
+    `docs` — is the one job that is red by design on every pull request adding
+    an ADR. A refusal there looks exactly like the expected red. So the check
+    lives in `glyphs`, and never in `docs`.
+    """
+    glyphs = job_body("glyphs")
+    assert "tools/check-glyphs.py site" in glyphs
+    assert "tools/check-glyphs.py --selftest" in glyphs
+    assert "check-glyphs" not in job_body("docs"), (
+        "the glyph check is in the `docs` job, which is red by design on every "
+        "pull request that adds an ADR: a refusal there cannot be told apart "
+        "from the expected red"
+    )
+
+
+def test_the_glyph_job_builds_the_preview_on_every_event() -> None:
+    """Only the preview lets a page with no nav line through, and `main`
+    carries one between an ADR and its site entry. A strict build here would
+    bring `docs`' expected red into this job, which is what it is apart from.
+    """
+    glyphs = job_body("glyphs")
+    assert "run: make preview DIGLINE=.." in glyphs
+    assert "if: github.event_name" not in glyphs
+
+
+def test_the_glyph_check_cannot_pass_on_a_build_without_our_pages() -> None:
+    """The check reads the build, not this repository. A build that carried
+    none of these pages would be green having looked at nothing, so the job
+    proves the pages are there before it checks them."""
+    glyphs = job_body("glyphs")
+    assert "for f in docs/*.md docs/adr/*.md" in glyphs
+    steps = [line.strip() for line in glyphs.splitlines() if "- name:" in line]
+    names = [step.split("- name:", 1)[1].strip() for step in steps]
+    control = names.index("The build holds every page of this checkout")
+    assert control < names.index("Every character in the site's fonts"), names
+
+
+def test_releasing_runs_the_glyph_check_too() -> None:
+    """The checklist may say more than CI does, never less."""
+    assert "uv run tools/check-glyphs.py site" in RELEASING.read_text(encoding="utf-8")
+
+
 def site_reading_tests() -> dict[str, str]:
     """`{test name: file}` for every test that reads the site config.
 

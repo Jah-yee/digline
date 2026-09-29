@@ -30,7 +30,6 @@ import argparse
 import json
 import sys
 from collections.abc import Mapping, Sequence
-from dataclasses import replace
 from pathlib import Path
 
 from digline import __version__
@@ -42,8 +41,6 @@ from digline.core import (
     compare,
     diff,
     key_of,
-    redact,
-    withhold_artifacts,
 )
 from digline.host import (
     LATEST,
@@ -66,6 +63,7 @@ from digline.host import (
     read_run,
     record,
     replacing,
+    reported,
     resolve_key,
     utc_now_iso,
 )
@@ -77,12 +75,8 @@ from digline.report import (
     headline,
     judge_reading,
     log_text,
-    render_html,
-    render_run_html,
     rule_lines,
-    scale_lost,
     summary_lines,
-    unjudged_cases,
 )
 from digline.report import diff as diff_report
 from digline.run import (
@@ -882,82 +876,22 @@ def cmd_log(args: argparse.Namespace) -> int:
 
 
 def cmd_report(args: argparse.Namespace) -> int:
+    # Composed in `host.reported`; what stays is what only a front end may do:
+    # warn, print, and write the file `--out` names.
     suite, _loaded, store = _load(args)
-    run = read_run(store, suite, _resolve(store, suite, args.run))
-    baseline = store.read_baseline(suite.tenant, suite.name)
-    _warn_if_ahead(run, baseline)
-
-    if baseline is None:
-        # Not a refusal, and this is the whole point of the command existing.
-        # `need_baseline` — which `compare` still uses, rightly — says "run it,
-        # look at the result, then promote", and `report` *was* the only way to
-        # look. Naming looking as the prerequisite for looking is a dead end,
-        # and the first person to hit it is always someone on their first run.
-        #
-        # Automatic rather than a flag, for the reason `--redacted` is not a
-        # choice about what the document says: complete or redacted follows
-        # from `run.redacted`, and comparative or not follows from whether a
-        # reference exists. A flag would have to be an error when a baseline is
-        # present, and would leave the dead end intact for whoever has not yet
-        # learned the flag.
-        return _report_single(run, suite, args)
-
-    comparison = compare(run, baseline)
-
-    if args.redacted:
-        # Applied to the input, so the document can never claim to be complete:
-        # `render_html` reads `Run.redacted`, it is not told what to print.
-        #
-        # The artifact outcomes are the exception, and deliberately: they are
-        # computed *here*, where both runs are in hand, then stripped of their
-        # payload. A redacted run compared on its own reports `unknown` because
-        # it has no digest and must not guess; this caller does not have to
-        # guess, so the document can say that a file moved without saying what
-        # it was. Decision 9 on a file instead of on a reason. (ADR 0003 §5)
-        complete_artifacts = comparison.artifact_deltas
-        run = redact(run, suite.disclosure)
-        comparison = compare(run, baseline)
-        if not suite.disclosure.artifacts:
-            comparison = replace(
-                comparison,
-                artifact_deltas=withhold_artifacts(
-                    replace(comparison, artifact_deltas=complete_artifacts)
-                ).artifact_deltas,
-            )
-
-    document = render_html(comparison, run, baseline, locale=args.locale)
-    if args.out:
-        Path(args.out).write_text(document, encoding="utf-8")
-    else:
-        emit(document)
-    return exit_code(
-        headline(compare(run, baseline), run, baseline, locale=args.locale)
+    result = reported(
+        store,
+        suite,
+        _resolve(store, suite, args.run),
+        locale=args.locale,
+        redacted=args.redacted,
     )
-
-
-def _report_single(run: Run, suite: Suite, args: argparse.Namespace) -> int:
-    """The run on its own, and an exit code that claims no more than it can.
-
-    Never `EXIT_WORSE`: "worse" is a relation and there is nothing here to be
-    worse than. `EXIT_UNJUDGED` survives, because a case the suite could not
-    judge is a fact about the harness rather than about a reference — the
-    partial contract mirrors what the document itself claims.
-    """
-    if args.redacted:
-        # No artifact-outcome rescue here, unlike the comparison path: those
-        # outcomes are computed from two runs, and the reason that code exists
-        # — a redacted run compared alone reports `unknown` — cannot arise
-        # where nothing is compared.
-        run = redact(run, suite.disclosure)
-
-    document = render_run_html(run, locale=args.locale)
+    _warn_if_ahead(result.run, result.baseline)
     if args.out:
-        Path(args.out).write_text(document, encoding="utf-8")
+        Path(args.out).write_text(result.document, encoding="utf-8")
     else:
-        emit(document)
-    # And so does a lost scale: a band is declared, not referenced. (ADR 0024
-    # §4.5)
-    return EXIT_UNJUDGED if unjudged_cases(run) or scale_lost(run) else EXIT_OK
+        emit(result.document)
+    return result.exit_code
 
 
 def build_parser() -> argparse.ArgumentParser:

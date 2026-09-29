@@ -1,9 +1,14 @@
-"""Two readings, composed once for both front ends. (ADR 0020 §5, §8)
+"""Three readings, composed once for every front end. (ADR 0020 §5, §8)
 
 `cmd_explain` and the MCP `explain` tool held a run against the store's
 baseline the same way, and `digline log` and the MCP `log` tool read the same
 history. Composed twice, they are two answers waiting to happen; composed here,
 in the layer both front ends already sit on (ADR 0011 §7), they are one.
+
+`reported` is the third, and the only one that produces a document: the report
+`digline report` prints, composed here so a second front end renders it the
+same way, redaction included. Printing it, or writing it to a file, stays with
+the front end, which is the only layer allowed to do either.
 
 The window bounds are normalised here too, because this is the layer allowed
 to know what a time zone is: the fold below compares strings, and only strings
@@ -13,19 +18,22 @@ of one shape compare as instants.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from typing import Literal
 
-from digline.core import Run, compare, key_of
+from digline.core import Run, compare, key_of, redact, withhold_artifacts
 from digline.host.errors import UsageError
 from digline.host.resolve import read_run
 from digline.report import (
     Fact,
     IdentityLog,
+    Locale,
     facts,
     headline,
     identity_log,
+    render_html,
+    render_run_html,
     scale_lost,
     unjudged_cases,
 )
@@ -38,7 +46,7 @@ from digline.store import (
 )
 from digline.wire import EXIT_OK, EXIT_UNJUDGED, exit_code
 
-__all__ = ["Explained", "explained", "history", "instant"]
+__all__ = ["Explained", "Reported", "explained", "history", "instant", "reported"]
 
 _DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
@@ -79,6 +87,109 @@ def explained(store: ResultStore, suite: Suite, key: str) -> Explained:
     return Explained(
         run, baseline, facts(run, comparison), "comparison", exit_code(head)
     )
+
+
+@dataclass(frozen=True, slots=True)
+class Reported:
+    """The report, and the exit code its own contents account for.
+
+    `run` is the run as read, never the redacted copy the document was rendered
+    from, and it rides along with `baseline` for `Explained`'s reason: the front
+    end warns when either came from a newer digline.
+    """
+
+    document: str
+    exit_code: int
+    run: Run
+    baseline: Run | None
+
+
+def reported(
+    store: ResultStore, suite: Suite, key: str, *, locale: Locale, redacted: bool
+) -> Reported:
+    """The document `digline report` prints, composed where every front end can.
+
+    Both keywords are mandatory. `locale` because this is a document with a
+    recipient who did not choose English: the first locale in `host/` that
+    reaches the reader, where `explained` and the register entry build `en` for
+    a number only. `redacted` because whether a document is complete is decided
+    by the caller, never inherited from a default.
+
+    Comparative or not follows from whether a reference exists, never a flag.
+    """
+    read = read_run(store, suite, key)
+    baseline = store.read_baseline(suite.tenant, suite.name)
+
+    if baseline is None:
+        # Not a refusal, and this is the whole point of the command existing.
+        # `need_baseline` — which `compare` still uses, rightly — says "run it,
+        # look at the result, then promote", and `report` *was* the only way to
+        # look. Naming looking as the prerequisite for looking is a dead end,
+        # and the first person to hit it is always someone on their first run.
+        #
+        # Automatic rather than a flag, for the reason `--redacted` is not a
+        # choice about what the document says: complete or redacted follows
+        # from `run.redacted`, and comparative or not follows from whether a
+        # reference exists. A flag would have to be an error when a baseline is
+        # present, and would leave the dead end intact for whoever has not yet
+        # learned the flag.
+        return _reported_single(read, suite, locale=locale, redacted=redacted)
+
+    run = read
+    comparison = compare(run, baseline)
+
+    if redacted:
+        # Applied to the input, so the document can never claim to be complete:
+        # `render_html` reads `Run.redacted`, it is not told what to print.
+        #
+        # The artifact outcomes are the exception, and deliberately: they are
+        # computed *here*, where both runs are in hand, then stripped of their
+        # payload. A redacted run compared on its own reports `unknown` because
+        # it has no digest and must not guess; this caller does not have to
+        # guess, so the document can say that a file moved without saying what
+        # it was. Decision 9 on a file instead of on a reason. (ADR 0003 §5)
+        complete_artifacts = comparison.artifact_deltas
+        run = redact(run, suite.disclosure)
+        comparison = compare(run, baseline)
+        if not suite.disclosure.artifacts:
+            comparison = replace(
+                comparison,
+                artifact_deltas=withhold_artifacts(
+                    replace(comparison, artifact_deltas=complete_artifacts)
+                ).artifact_deltas,
+            )
+
+    document = render_html(comparison, run, baseline, locale=locale)
+    # From the comparison the document was rendered from, never a fresh one:
+    # over a redacted run a fresh `compare` has lost the digests, reads a moved
+    # pin as `unknown`, and exits 0 under a page saying the file moved.
+    code = exit_code(headline(comparison, run, baseline, locale=locale))
+    return Reported(document, code, read, baseline)
+
+
+def _reported_single(
+    read: Run, suite: Suite, *, locale: Locale, redacted: bool
+) -> Reported:
+    """The run on its own, and an exit code that claims no more than it can.
+
+    Never `EXIT_WORSE`: "worse" is a relation and there is nothing here to be
+    worse than. `EXIT_UNJUDGED` survives, because a case the suite could not
+    judge is a fact about the harness rather than about a reference — the
+    partial contract mirrors what the document itself claims.
+    """
+    run = read
+    if redacted:
+        # No artifact-outcome rescue here, unlike the comparison path: those
+        # outcomes are computed from two runs, and the reason that code exists
+        # — a redacted run compared alone reports `unknown` — cannot arise
+        # where nothing is compared.
+        run = redact(run, suite.disclosure)
+
+    document = render_run_html(run, locale=locale)
+    # And so does a lost scale: a band is declared, not referenced. (ADR 0024
+    # §4.5)
+    code = EXIT_UNJUDGED if unjudged_cases(run) or scale_lost(run) else EXIT_OK
+    return Reported(document, code, read, None)
 
 
 def history(
