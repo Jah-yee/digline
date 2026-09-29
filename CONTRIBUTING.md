@@ -91,6 +91,37 @@ Thanks for looking. A few things worth knowing before you open a pull request.
   `quickstart-toml`'s report (#223). Whether it stopped anybody else's is not
   known, and that is the shape: the session on the receiving end would not
   know either.
+
+  **The PID is not always there to keep, and the rule has to hold where it is
+  not.** Three cases where `$!` does not name the process that is serving:
+  - `uv run python stub.py &` gives you `uv`'s PID, not Python's, and a
+    backgrounded `uv run` outlives the step that started it (`ci.yml` records
+    why it starts the stub with `python3` for that reason).
+  - A stub started by a script, or as an agent's background task, hands you
+    the script's or the task's handle, or nothing — not the stub's PID.
+  - **A second stub on the same port dies at once.** `stub.py` listens on
+    8730, fixed. Started while another tree's stub holds it, yours exits with
+    `Address already in use` on a stderr nobody reads — measured on
+    2026-09-29, exit 1 within a second. `$!` then names a dead process,
+    `kill "$STUB"` does nothing, and your tests talk to the other session's
+    stub until it stops under them. That is this bullet's failure, reached
+    without any kill of yours.
+
+  So three rules, in order:
+  1. **Take the PID when you start it, and check it is yours that serves.**
+     `python3 stub.py & STUB=$!`, or `echo $! > .stub.pid` inside your own
+     tree when something else will do the stopping; a stub in the foreground
+     of a background task is stopped by stopping the task. Once it should be
+     listening, `kill -0 "$STUB"`: a stub that lost the port has already
+     exited, and whatever answers on it is somebody else's.
+  2. **If the PID is lost, find yours by what only yours has**: its working
+     directory, which is in your tree (`lsof -a -p <pid> -d cwd`). Confirm it
+     before the kill, not after.
+  3. **Never by port, and when in doubt, not at all.** `lsof -ti :8730 |
+     xargs kill` is a kill by pattern under another name: it stops whatever
+     holds the port, which is exactly the other tree's stub in the third case
+     above. A stub left running costs less than one stopped under somebody
+     else.
 - **If you write a permission as a condition, write what fires it.** A
   condition says *when* the answer will change, and that is worth doing: ADR
   0032 §4a let an agent run `digline migrate` "for as long as every step is
