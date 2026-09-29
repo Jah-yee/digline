@@ -649,6 +649,10 @@ TEXT: Mapping[Locale, Mapping[str, str]] = {
         ),
         "view.action.compare": "Compare",
         "view.action.compare.title": "compare this run with the baseline",
+        "view.action.open": "Open",
+        "view.action.open.title": (
+            "this run on its own: there is no baseline to compare it with yet"
+        ),
         "view.copy_snippet": "click the line to select it",
         "view.column.created": "Recorded",
         "view.column.env": "Environment",
@@ -1723,6 +1727,11 @@ TEXT: Mapping[Locale, Mapping[str, str]] = {
         ),
         "view.action.compare": "Confronta",
         "view.action.compare.title": ("confronta questa esecuzione con il riferimento"),
+        "view.action.open": "Apri",
+        "view.action.open.title": (
+            "questa esecuzione da sola: non c'è ancora un riferimento con cui "
+            "confrontarla"
+        ),
         "view.copy_snippet": "clicca la riga per selezionarla",
         "view.column.created": "Registrata",
         "view.column.env": "Ambiente",
