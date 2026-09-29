@@ -466,4 +466,4 @@ def test_unmarked_leaves_a_verdict_without_markers_as_it_was() -> None:
         plain, score=replace(plain.score, metadata={MISNAMED: True, "n": 1})
     )
     assert unmarked(marked).score.metadata == {"n": 1}
-    assert DRIVER_MARKERS == frozenset({MISNAMED, UNRECONCILED})
+    assert frozenset({MISNAMED, UNRECONCILED}) == DRIVER_MARKERS
