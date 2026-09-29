@@ -7,6 +7,17 @@
 # Everything is weekly and grouped: a bump that arrives as twelve pull requests
 # on a Monday is a bump nobody reads. `ci.yml` runs on `pull_request`, so each
 # of these arrives already gated by the same tests a human change is.
+#
+# What this file is not: it configures **version updates** only — pull requests
+# on a schedule, advisory or no advisory. Dependabot **alerts** and **security
+# updates** are repository settings, not entries here, and alerts can match only
+# what the dependency graph has parsed. On 2026-09-29 the graph was off for this
+# repository: the SBOM endpoint answered 404 where a public control repository
+# answered 200, and the graph listed zero manifests. Alerts were switched on and
+# had never raised one. So a Dependabot count of zero before that date is not
+# evidence of anything, including the one cited when this file arrived.
+# Nothing in this repository holds those settings; they can change without a
+# commit.
 version: 2
 updates:
   # The workflows. Pinned by SHA with the tag in a comment beside it —
@@ -59,8 +70,14 @@ updates:
       prefix: "Bump"
 
   # The examples that ship a lock. They are what a reader installs, so a stale
-  # one is a stale instruction — and they are also where every Python advisory
-  # against this repository has so far lived, none of it in digline itself.
+  # one is a stale instruction.
+  #
+  # This used to say every Python advisory against this repository had lived
+  # here. That had no source: nothing recorded where each advisory sat. On
+  # 2026-09-29 the one Python advisory OSV counts (GHSA-8mgp-746c-j5xp, nltk,
+  # no fixed release) comes in through `llama-index-core`. It is in
+  # `examples/llamaindex`'s lock *and* in the root lock's dev group, so "none in
+  # digline" holds for the published wheels and not for this repository.
   - package-ecosystem: uv
     directories:
       - /examples/classifier
@@ -78,11 +95,13 @@ updates:
     commit-message:
       prefix: "Bump"
 
-  # The two Java services under `examples/langchain4j`. Sixty-three of the
-  # sixty-four advisories OpenSSF counts against this repository are transitive
-  # Maven dependencies of these two demos — nothing published to PyPI, and
-  # nothing in digline. This is the entry that keeps that true without anybody
-  # remembering to look.
+  # The two Java services under `examples/langchain4j`. When this entry was
+  # written (2026-09-11), sixty-three of the sixty-four advisories OpenSSF
+  # counted against this repository were transitive Maven dependencies of these
+  # two demos — nothing published to PyPI, and nothing in digline. The entry
+  # moves what the poms *declare*. A fix in a transitive dependency arrives only
+  # when a declared parent moves to it: three jackson-databind advisories were
+  # published on 2026-09-28, hours after that week's bump had merged.
   - package-ecosystem: maven
     directories:
       - /examples/langchain4j/app-spring
