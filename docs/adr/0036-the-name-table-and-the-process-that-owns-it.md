@@ -58,7 +58,13 @@
   amendments must not be merged. This record makes only its own
 - Names, and does not amend: **ADR 0023 §6 and §7**, whose election record at
   the software house becomes a token line resting on this table (§7). The
-  rewrite belongs to ADR 0023, which is still proposed, and waits for it
+  rewrite belongs to ADR 0023, which is still proposed, and waits for it.
+  *Noted 2026-09-29: there is no rewrite of ADR 0023. The text this line
+  sends a reader to is in
+  [ADR 0037](0037-the-review-interface-and-the-election-recorded-where-the-text-is-not.md),
+  proposed, a record of its own that supersedes and amends ADR 0023 in part;
+  ADR 0023 keeps its text, with a dated note at each place that moves. 0037
+  says why it took that form, in its Context. The line is kept as written*
 - Closes: ADR 0034 §6's *"what is undesigned"*: the rules that make its
   skeleton work — the token's form, look-up-or-mint, who writes, what a
   resolver refuses. And **ADR 0035 §8's condition**, *"for as long as tokens
@@ -382,7 +388,10 @@ condition without needing an accident.
   data owner's side. **The software house records it as one line: a token, a
   date and who approved it, never a word of the text.** That is capture's
   shape as settled in discussion. It is written into ADR 0023 §6 and §7 by
-  ADR 0023's own rewrite, not here. **Whether an elected case's token is the
+  ADR 0023's own rewrite, not here. *Noted 2026-09-29: it is written in
+  [ADR 0037](0037-the-review-interface-and-the-election-recorded-where-the-text-is-not.md)
+  §5 and §8, proposed, and not in a rewrite of ADR 0023, which does not
+  exist; ADR 0023 §6 and §7 carry dated notes pointing there.* **Whether an elected case's token is the
   `case_id` kind or a kind of its own is not decided here.** Under §4 either
   works: the line resolves by token alone, without carrying a kind.
 - **The erasure** removes rows (§9).
