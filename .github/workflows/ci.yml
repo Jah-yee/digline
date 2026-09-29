@@ -4,6 +4,12 @@ on:
   push:
     branches: [main]
   pull_request:
+  # The merge queue's own ref. Without it the required `gates` never start on
+  # that ref and the queue waits on checks that were never going to report —
+  # the shape of PR #82, where a branch push produced zero check runs. It is
+  # here before the queue is switched on, so the queue can be proved to start
+  # the gates rather than assumed to.
+  merge_group:
   schedule:
     # Weekly, so the examples are checked against whatever PyPI serves today —
     # including a dependency that moved under them.
@@ -382,7 +388,9 @@ jobs:
 
       - id: check
         env:
-          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          # A queue entry carries its base as `merge_group.base_sha`; without
+          # it every entry would fall to "no base" below and build the image.
+          BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
           HEAD: ${{ github.sha }}
         run: |
           set -euo pipefail
@@ -509,7 +517,11 @@ jobs:
     # example against the source on every build; this asks the other question —
     # whether a reader who has only what is on PyPI can run them. It is the
     # question the source tree cannot answer about itself.
-    if: github.event_name != 'push' && github.event_name != 'pull_request'
+    # A queue entry is a pull request about to land, and asks what a pull
+    # request asks.
+    if: >-
+      github.event_name != 'push' && github.event_name != 'pull_request' &&
+      github.event_name != 'merge_group'
     strategy:
       fail-fast: false
       matrix:
