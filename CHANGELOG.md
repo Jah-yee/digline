@@ -6,7 +6,7 @@ upgrading, and what deliberately did not move. The reasoning lives in
 read the [release titles](https://github.com/digline/digline/releases) — the
 notes under them are this file, verbatim.
 
-## 0.22.0 — unreleased
+## 0.22.0 — 2026-09-29
 
 digline **0.22.0**. One refusal, which is why this is a minor: a verdict named
 otherwise than its assertion now errors, and a suite with such an assertion
@@ -70,6 +70,18 @@ store that implements it. Nothing to migrate.
   and runs nothing: a break between an example's code and the versions its lock
   pins is still green, and the step's comment in `ci.yml` says what else it does
   not prove. Nothing a user installs changed.
+
+### Not republished — a package whose text moved under the same version
+
+- **`pytest-digline` 0.2.0's source moved and its version did not, and it
+  rides its next real release.** `pytest_digline/plugin.py` now imports
+  `ResultStore` under `TYPE_CHECKING` and annotates one private function with
+  it where it said `FileResultStore`. The module has `from __future__ import
+  annotations`, so nothing is evaluated at runtime: the 0.2.0 that PyPI serves
+  and the 0.2.0 in this tree behave the same. The other four plugins match
+  their served wheels file for file. Their `WHEEL` metadata alone differs
+  (hatchling 1.32.3 against 1.32.4), and metadata rides a package's next
+  release rather than earning one.
 
 ## 0.21.2 — 2026-09-28
 
@@ -158,6 +170,13 @@ can cost `digline view`. Nothing to migrate.
     The launch key, the hand-over and the promote form have not changed since
     0.21.1, the last release that ran it. This fix changes only the object's
     `repr`. The move under *Changed* is about the run key, which is another key.
+    *Corrected 2026-09-29: this was incomplete.* The ruling looked at the
+    `repr` and at the run key, and not at the fix just below: that fix rewrote
+    how `POST /promote` reads its body (a 4 KiB cap, and a `400`, `413` or
+    `408` where a body used to be read unbounded), and it put a 30-second
+    timeout on every connection, including the page load and the hand-over.
+    That is the promote form's own request, so the walkthrough was owed, and
+    0.21.2 shipped without it. 0.22.0's walkthrough covers it.
 
 ### Fixed — one connection could hold a `digline view` thread for ever
 
