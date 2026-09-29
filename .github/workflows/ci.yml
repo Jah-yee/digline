@@ -287,6 +287,9 @@ jobs:
     # 4. Which repair. A refusal says a subset lacks a character, not whether
     #    to write it in words here or to cut the subsets again there; both are
     #    valid when Plex has the glyph, and the second is the site's to make.
+    #
+    # Not a required check, and deliberately: `CLAUDE.md`, beside the two
+    # `gates`, says why — item 3 above is a red this repository did not cause.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
