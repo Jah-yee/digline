@@ -47,6 +47,7 @@ from digline.core import (
     record_output,
     record_trajectory,
     trajectory_chars,
+    unmarked,
     unreconciled_verdict,
     with_noise_interval,
 )
@@ -435,9 +436,16 @@ def _judge(assertion: Assertion, inputs: EvaluatorInputs) -> Verdict:
     An assertion is supposed to return an errored verdict rather than raise, but
     a third-party one may raise anyway. Catching it here means one broken custom
     assertion errors on its own line instead of killing the whole run.
+
+    **The driver's own markers are removed from what comes back**, here and not
+    later, so every path a verdict takes from an assertion passes through it
+    before the driver builds its own. `misnamed` and `unreconciled` each state
+    something only the driver knows; an assertion that wrote one would have the
+    reading blame a misnaming or a gap that never happened. (Delta-pass over
+    0.22.0, D-1)
     """
     try:
-        return assertion(inputs)
+        return unmarked(assertion(inputs))
     except Exception as exc:  # noqa: BLE001 — a broken assertion is `error`, not `fail`
         return error_verdict(
             assertion, _clip(f"assertion raised {type(exc).__name__}: {exc}")
