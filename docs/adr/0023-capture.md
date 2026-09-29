@@ -42,19 +42,35 @@
   at moved, which is the whole reason an ordinal is the wrong handle — the same
   correction ADR 0002 §8 made about its own conditions, and about its own
   number.*
+- Superseded in part, **if accepted**: by
+  [ADR 0037](0037-the-review-interface-and-the-election-recorded-where-the-text-is-not.md),
+  proposed 2026-09-29, **wherever an election is made at a served page at the
+  data owner's side, and nowhere else.** It supersedes two clauses of §1,
+  a sentence of §2, §4's mechanism and not its reason, two sentences of §5,
+  two of §7, items 2 and 5 of §11, and a clause each of *Touches* and *Turns
+  into surface* below; it amends §6 and §8. Each of those places carries a
+  dated note saying which words. **The text is kept as written**: it is true of
+  one person electing from their own log, and 0037 says so. 0037 cannot be
+  accepted before this record is
 - Closes: ADR 0015's deferred *traffic-to-case ADR*; ADR 0019 §10's and
   ADR 0021's deferred *label loop's distillation*, by ruling what it is (§10)
   and deferring only its reader
 - Turns into surface: `digline capture`; `Suite.capture`; the operator's
   pending count; `AGENTS.md` §1 and the `operating-digline` skill (an agent
-  does not elect an exemplar, for the reason it does not promote)
+  does not elect an exemplar, for the reason it does not promote).
+  *Noted 2026-09-29: ADR 0037 (proposed) adds a served page at the data
+  owner's side, where a person elects*
 - Touches: nothing in `CLAUDE.md`'s *fixed* section, and §8 says why the
   closest call is not one. Decision 2 is upheld — the draft is a file in the
   user's repository; decision 3 — a captured case's expected is a human's,
   so it can fail; decision 5 — the regime is declared, never looked up;
   decision 9 — capture writes inside the perimeter and nothing it writes
   reaches the wire. `CLAUDE.md`'s *Structure* line for `bridge/` says
-  "mandatory anonymization" and follows §8 when this record lands
+  "mandatory anonymization" and follows §8 when this record lands.
+  *Noted 2026-09-29: at a served page, ADR 0037 (proposed) supersedes "nothing
+  it writes reaches the wire". An election there produces a line at the
+  software house — a token, a date and an approver — and 0037 says which part
+  of decision 9 that touches, and that the approver is not yet classified*
 - Requires: no `SCHEMA_VERSION`, no migration, no baseline re-promoted. One new
   command, one optional suite field outside `config_hash`, one additive
   `--json` shape under `OUTPUT_VERSION` 1
@@ -133,6 +149,15 @@ the third gesture of that family, and it is kept apart from both — electing an
 exemplar is not approving a reference, and a case file that grew is a promotion
 *owed*, not one made (§7).
 
+*Noted 2026-09-29 — superseded in part if
+[ADR 0037](0037-the-review-interface-and-the-election-recorded-where-the-text-is-not.md),
+proposed, is accepted, and only where an election is made at a served page at
+the data owner's side.* Two clauses give way there: *"capture asks no question
+and has no UI"* (0037 §2) and *"the diff is the review"* (0037 §7, where the
+review splits into *that* a case entered and *what* it says). *The operator
+says when* and *no agent makes it* stand. The sentence above is kept as
+written: it is true of one person electing from their own log.
+
 ### 2. What a label is, and which ones are capturable
 
 A label is capturable when it is **an explicit act**: the person did something
@@ -186,6 +211,13 @@ made it ambiguous. And a person stays free to write that case by hand, as world
 1 of ADR 0002 §5 — their test data, chosen by them — and to answer for it in
 the commit. **Capture cannot do automatically what a person may do
 deliberately.**
+
+*Noted 2026-09-29 — superseded in part if ADR 0037, proposed, is accepted, at
+a served page only.* *"Split in the application, not in digline"* gives way:
+at a served page digline asks, and an expected written at review can become a
+case, of a kind of its own (0037 §2, §3). The rule on historical ambiguous
+labels stands — capture never reads one as either answer — and so does *what a
+person may do deliberately, capture may not do automatically*.
 
 ### 3. The source is declared, and it is code
 
@@ -264,6 +296,16 @@ No `--all`, no `--pattern`, no threshold under which capture elects on its own.
 There is no flag that makes the person optional, because a flag that could is
 the flag that would be used.
 
+*Noted 2026-09-29 — superseded in part if ADR 0037, proposed, is accepted, at
+a served page only: **the mechanism, not the reason.*** *"It is two
+invocations and not a dialogue on purpose"*, with the clause of ruling 6 it
+rests on, gives way: at a served page there is a dialogue. **Everything else
+in this section is required of the page, word for word** (0037 §6): nothing
+ranked, scored, starred or pre-selected; grouped by direction of error;
+`max_per_pattern` refused by name; no *elect all*, no *elect this pattern*,
+no threshold under which it elects on its own. A page built from *"§4's
+mechanism is superseded"* alone, without this paragraph, would rank.
+
 ### 5. The expected is the label, verbatim
 
 Capture writes `expected` as the suite's `explicit` mapping gives it for the
@@ -283,6 +325,13 @@ one in digline.
 source declares it the same way — a total mapping from explicit values — and
 is otherwise left out, which the suite then refuses by its existing rule. It
 is not derived from `expected` by capture.
+
+*Noted 2026-09-29 — superseded in part if ADR 0037, proposed, is accepted, at
+a served page only.* *"Capture asks nothing"* and *"the remedy for a missing
+label is a question in the app, never one in digline"* give way: an expected
+written at review can become a case, and it is kept in the gate and out of the
+aggregate accuracy (0037 §2, §3). Whether the review writes it through the
+mapping above is not decided there.
 
 ### 6. The generated id comes from the input — ADR 0002 §5, amended
 
@@ -333,6 +382,14 @@ The amendment note in ADR 0002 §5 is one dated paragraph and changes nothing
 about world 1: a developer still chooses their own ids, and cases already
 committed keep theirs.
 
+*Noted 2026-09-29 — amended if ADR 0037, proposed, is accepted, at a served
+page only.* The recipe above stays the id minted inside the perimeter, and
+**it never leaves**: *"a hash of public text"* was about public threads, and an
+end company's `vars` are not public. The id that leaves is a random token from
+the name table of [ADR 0036](0036-the-name-table-and-the-process-that-owns-it.md),
+also proposed, and the idempotence across branches argued above is kept at
+the software house by the table's state rather than by the hash (0037 §8).
+
 ### 7. Capture's own case file is the draft, and the commit is the signature
 
 **No staging area, no review screen, no file nobody loads.** Capture appends the
@@ -376,6 +433,15 @@ exactly where their owner put them.
 operator watching the suite escalates on the case file having grown. That is
 correct and it is not capture's to silence. Run, compare, promote: three more
 human gestures, on the day the person chooses.
+
+*Noted 2026-09-29 — superseded in part if ADR 0037, proposed, is accepted, at
+a served page only.* *"No review screen"* gives way: the page is where the
+text is read. *"The diff is the review, the commit is the signature"* splits
+in two: the review of **what** a case says is the page, at the data owner's
+side; the committed diff at the software house reviews only **that** a case
+entered, and its commit records an approval already made (0037 §5, §7). The
+`-dirty` stamp has no replacement there yet, and 0037 says so. The rest of
+this section stands.
 
 ### 8. The payload: a declared regime
 
@@ -498,6 +564,15 @@ it did not.
 
    On both, the question is open and is not answered here. The character
    ceiling's refusal above stands on reasons residency does not touch.
+
+*Noted 2026-09-29 — amended if ADR 0037, proposed, is accepted.* *"Whether an
+election reaches the software house's repository at all"* is ruled there: it
+does, as one line per elected case — a token, a date and who approved it — and
+as nothing else. Consequence 3's second path therefore has no instance, **for
+as long as that line carries no text** (0037 §5, §9). Consequence 2 is not
+settled: 0037 §4 allows a software house's person to **elect** inside the
+owner's perimeter, which leaves this section's unruled sentence about a case
+written **by hand** in open tension with it, and this section owes the answer.
 
 ### 9. Cadence: the operator says when, and a person launches
 
@@ -696,6 +771,14 @@ The list is closed.
 6. **Rewrites a committed case**, including one it wrote (§7).
 7. **Writes third-party text under `"public"`** (§8).
 8. **Learns the regime from the network** (§8).
+
+*Noted 2026-09-29 — reopened in part if ADR 0037, proposed, is accepted, at a
+served page only.* The list above calls itself closed, and 0037 §10 reopens it
+in two items, declared. **Item 2** gives way: the label may be written at
+review. **Item 5** gives way: an election also mints a row in the name table
+at the data owner's side and produces a line at the software house; nothing
+else outside the draft is touched, and still no commit is made where there is
+no git. The other six items stand.
 
 ## Consequences
 
