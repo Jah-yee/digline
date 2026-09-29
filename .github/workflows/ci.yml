@@ -246,6 +246,95 @@ jobs:
           fi
           echo "control failed as required, and named the variable"
 
+  glyphs:
+    name: The site's fonts set every character of these docs
+    # Twice on 2026-09-29, five hours apart, an ADR carried a character the
+    # site's fonts do not set — `⁹` in ADR 0035, `⁻` in ADR 0036, both a
+    # superscript in a power of ten. Every gate here was green both times, and
+    # digline.dev's Build refused the page only after the merge, on the pull
+    # request that adds the site's entries; each cost a second pull request
+    # here to write the figure in words.
+    #
+    # The site serves IBM Plex as subsets, cut from the characters its pages
+    # already use, so what is allowed is what today's subsets hold — not what
+    # Plex can draw, and not a list anybody could keep here. So this is the
+    # site's own check, `tools/check-glyphs.py`, called rather than copied, on
+    # the preview the site builds from this checkout. The build and the check
+    # are seconds each.
+    #
+    # **A job of its own, and never a step of `docs`.** `docs` is red by design
+    # on every pull request that adds an ADR, until the site's nav line lands
+    # after the merge. A glyph failure inside it would sit in that expected red
+    # and look exactly like it — which is how both of the above went unseen.
+    #
+    # `make preview` on every event, not only on a pull request: the ordinary
+    # build refuses a page with no nav line, which `main` carries between an
+    # ADR and its site entry, and that red would be this job's too. A red in
+    # the build step is therefore a broken build, which `docs` also reports,
+    # and not a glyph finding; a glyph finding is a red in the last step.
+    #
+    # **What a green here does NOT cover:**
+    #
+    # 1. Text written in the site's own pull request — the nav title in
+    #    `mkdocs.yml`, the descriptions in `seo.py` and `llms.py`. It does not
+    #    exist until after the merge here, and only the site's Build sees it.
+    # 2. Translated pages. A character a translation introduces is born on the
+    #    site's side, from text that is not in this repository.
+    # 3. A change on the site's side. If the site cuts its subsets again and
+    #    drops a character `main` here already uses, this goes red on a pull
+    #    request that did not cause it, or on the weekly run — it is not caught
+    #    before the site's change lands.
+    # 4. Which repair. A refusal says a subset lacks a character, not whether
+    #    to write it in words here or to cut the subsets again there; both are
+    #    valid when Plex has the glyph, and the second is the site's to make.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Check out digline/digline.dev
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: digline/digline.dev
+          path: _site
+          # Whole, for the reason the `docs` job gives: translated pages date
+          # themselves from their original's commit.
+          fetch-depth: 0
+
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+
+      - name: Build the site's preview from these docs
+        working-directory: _site
+        run: make preview DIGLINE=..
+
+      # The check reads the build, so a build that did not carry this
+      # checkout's pages would pass having looked at nothing. Every page of
+      # docs/ and docs/adr/ must be there — the two places both refusals came
+      # from — or this step fails before the check can be green.
+      - name: The build holds every page of this checkout
+        run: |
+          missing=0
+          for f in docs/*.md docs/adr/*.md; do
+            rel=${f#docs/}
+            page="_site/site/product/${rel%.md}/index.html"
+            if [ ! -f "$page" ]; then
+              echo "::error::$f has no page in the build, at $page"
+              missing=1
+            fi
+          done
+          [ "$missing" = 0 ]
+          echo "every page of docs/ and docs/adr/ is in the build"
+
+      # --selftest first, on its own four-page site: a clean page of each kind
+      # passes, a planted ✱ is refused in every face. A check that cannot fail
+      # has verified nothing.
+      - name: Every character in the site's fonts
+        working-directory: _site
+        run: |
+          uv run tools/check-glyphs.py --selftest
+          uv run tools/check-glyphs.py site
+
   image-touched:
     name: Does this change the image?
     # The docker job below is gated on this rather than on `on: paths:`, which
