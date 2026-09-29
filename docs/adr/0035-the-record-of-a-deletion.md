@@ -301,9 +301,9 @@ digests.** Identities are 64-bit digests and nobody enumerates those. The loop
 enumerates candidate suites, and a hit confirms the whole guess.
 *The loop was run from a working note and is not in this repository. The
 table gives its three cases and its grid so that it can be rebuilt. An
-unknown price multiplies the space, to about 2·10⁹ candidates for ±20% to the
-cent on two rates. That figure is computed, not run. An unknown template is
-beyond this loop, and it is not shown to be safe.*
+unknown price multiplies the space, to about two billion candidates for ±20%
+to the cent on two rates. That figure is computed, not run. An unknown
+template is beyond this loop, and it is not shown to be safe.*
 
 **So a removed run is named by `created_at` alone.** It is a timestamp, and it
 digests nothing. **It is a weaker name, taken against a measured leak.** It
