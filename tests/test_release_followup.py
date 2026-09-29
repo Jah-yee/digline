@@ -884,3 +884,28 @@ def test_main_reads_the_unread_word_from_the_file_the_workflow_writes(
     written = json.loads(out.read_text(encoding="utf-8"))
     assert code == 1
     assert written["undecided"] is True
+
+
+def test_the_issue_step_asks_again_before_it_opens_an_issue() -> None:
+    """The open issues are a listing too. Read once and empty, they opened a
+    duplicate of the issue the listing failed to show; a failed call was an
+    empty list. Simulated with a stub `gh` whose listing shows the issue on the
+    third read: the step as it stood created a second issue after one read, and
+    this one rewrites the first after three. The shell is not run here, so this
+    holds the shape the simulation checked: a failed listing stops the step,
+    and `gh issue create` is reached only through the loop that lists again."""
+    workflow = (ROOT / ".github" / "workflows" / "release-followup.yml").read_text(
+        encoding="utf-8"
+    )
+    step = workflow[
+        workflow.index("name: Open, rewrite or close this release's issue") :
+    ]
+    step = step[: step.index("# Said whichever way this run went")]
+    assert "if ! read_issues; then" in step
+    assert "> open.json\n" not in step.replace(" \\\n", " ").split("read_issues() {")[0]
+    loop = step.index("for try in 1 2 3; do")
+    assert (
+        step.index('mine="$(find_mine)"\n              [ -n "$mine" ] && break') > loop
+    )
+    assert step.index("gh issue create") > loop
+    assert step.count("gh issue create") == 1
