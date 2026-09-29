@@ -300,7 +300,8 @@ client's names as another's becomes a refused mistake, not a silent one.
 
 **Never minted twice, and the condition it rests on.** A random token is
 minted twice only by a collision. At 128 bits the chance of any collision
-among a billion tokens is about 1.5·10⁻²¹, computed and not measured.
+among a billion tokens is about one and a half in a thousand billion billion,
+computed and not measured.
 **Nothing handles a collision, and nothing needs to.** Written as the
 condition it rests on: *"never minted twice"* holds **for as long as the token
 space is large enough that a collision is not a case anyone has to handle** —
