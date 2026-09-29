@@ -363,7 +363,22 @@ def application(workdir: Path, name: str) -> Generator[None]:
         process.wait(timeout=10)
 
 
-@pytest.fixture(params=STANDALONE)
+#: An example that needs a service needs its port, and CI runs this file across
+#: four workers (`-n 4`). Two tests take this fixture, so without a group both
+#: copies of `stub.py` can start at once on different workers, and the second is
+#: refused by `application`. Measured on 2026-09-29, with that refusal in the
+#: tree: one error in seven parallel runs, on `quickstart-toml`. The group keeps
+#: every test holding one port on one worker, which runs them one after the
+#: other, and `--dist loadgroup` is what makes xdist read it.
+STANDALONE_PARAMS = [
+    pytest.param(name, marks=pytest.mark.xdist_group(f"port-{NEEDS_A_SERVICE[name]}"))
+    if name in NEEDS_A_SERVICE
+    else name
+    for name in STANDALONE
+]
+
+
+@pytest.fixture(params=STANDALONE_PARAMS)
 def standalone(request: pytest.FixtureRequest, tmp_path: Path) -> Iterator[Path]:
     """A copy, without its baseline: the cycle has to work from nothing."""
     name = str(request.param)

@@ -49,6 +49,9 @@ digline = "digline.cli.main:main"
 [dependency-groups]
 dev = [
     "pytest>=8.0",
+    # For `-n 4` in the CI gate, and nowhere else: a bare `pytest` stays serial,
+    # so a local run is still the run every other document names.
+    "pytest-xdist>=3.6",
     "ruff>=0.6",
     "pyright>=1.1.380",
     # For `tools/home_capture.py`, which evaluates the markers on digline's own
