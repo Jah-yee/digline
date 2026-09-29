@@ -1597,6 +1597,34 @@ is the one a quiet log cannot supply.
   read before the re-run (`approved`, environment `pypi`), because the
   approvals endpoint forgets it afterwards.
 
+  **The same family, one floor up: a GitHub listing, read once.** At 09:20,
+  `release-followup` run `36548467393` asked `gh run list
+  --workflow=publish.yml --branch v0.22.0 --limit 1` and got nothing, although
+  the run had existed since 08:25. Four runs either side of it (08:51, 09:01,
+  09:12, 09:29) found it. The script wrote `[]` for the approvals, and the
+  check said *"records no approved: either the gate did not hold"*, about a
+  gate that had held and whose approval `release-followup` had already read
+  and kept (artifact `11020349819`, 08:30). #215 said so from 09:20 to 09:29.
+  The run list was not the only read of that kind in the step: the approvals
+  endpoint (`|| echo "[]"`) and the artifact list (`|| true`) turned a failure
+  into an empty answer the same way, and had not yet been caught doing it.
+
+  **So three instances in one morning, and one shape: an absence of an
+  answer read as an answer.** The 404 on `/pypi/…/json`, the empty run list,
+  and the artifact list that could have. The remedy has two halves, and the
+  second is the one that was missing everywhere:
+  - **read more than once** before believing an empty listing;
+  - **keep a third word.** Beside *yes* and *no* there has to be *could not be
+    read*, and a check that meets it says *not judged* instead of either.
+
+  `release-followup` now has both. Each of its three reads goes through
+  `listed`, which asks up to four times, five seconds apart. A read that never
+  answers writes `"unread"`, which `approvals_finding` reports as *not
+  judged*, and a run whose only open findings are unread leaves the release's
+  issue as it found it. It still goes red for whoever is watching.
+  **`release_bundles.py` has neither half yet**: it makes one request, takes a
+  404 as an absence, and refuses on the spot.
+
   **Elsewhere, and this one was not the index.** The first
   `uv lock --upgrade-package digline` pass left `classifier` at 0.21.2 while the
   other five moved. That pass ran **without** `--refresh-package digline`,
@@ -1608,7 +1636,10 @@ is the one a quiet log cannot supply.
   **The next tag must show** the pair for every pin again, and whether
   `github-release` meets the JSON endpoint behind `/simple/` a second time. A
   second 404 there would make it a consumer that needs its own wait, not a
-  one-off.
+  one-off. It must also show whether `listed`'s `::warning` lines ever fire.
+  If they fire and a later read answers, the retry is paying for itself. If
+  they fire and every read stays empty, *not judged* is the true reading, and
+  somebody should look at why.
 
 - **v0.21.2 — the divergence appeared again, the wait held again, and the
   second observation falsifies the per-server hypothesis rather than
