@@ -40,7 +40,14 @@ from digline.host.measure import (
     prepare,
     seed_observed,
 )
-from digline.host.reading import Explained, explained, history, instant
+from digline.host.reading import (
+    Explained,
+    Reported,
+    explained,
+    history,
+    instant,
+    reported,
+)
 from digline.host.refusals import NOT_REFUSALS, REFUSALS
 from digline.host.register import entry_for, record
 from digline.host.resolve import (
@@ -61,6 +68,7 @@ __all__ = [
     "NOT_REFUSALS",
     "NO_BASELINE",
     "REFUSALS",
+    "Reported",
     "Resolved",
     "SUITE_ATTR",
     "SUITE_SUFFIX",
@@ -86,6 +94,7 @@ __all__ = [
     "read_run",
     "record",
     "replacing",
+    "reported",
     "resolve_key",
     "seed_observed",
     "utc_now_iso",
