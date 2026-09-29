@@ -207,7 +207,11 @@ artifacts that today exists in none of the audited competitors.
   check. The reason, and the deadlock it avoids, are in
   [`RELEASING.md`](RELEASING.md) and stay there; a red `docs` on `main` between
   an ADR and its site entry is that decision working, not a protection anybody
-  lifted. No actor bypasses those two checks: there is no `--admin` path, and
+  lifted. **`glyphs` is not among them either, for a reason of its own:** it
+  checks this repository's pages against another repository's font subsets, so
+  a subset cut again on the site's side would turn it red on a pull request here
+  that caused nothing — and a check that depends on another repository must not
+  block this one. It is read, not required. No actor bypasses those two checks: there is no `--admin` path, and
   asking for one is not a route either. So every change has one shape —
   **push the branch, wait for green, then merge.** A direct push to `main` is
   refused, and that refusal is the rule working rather than an obstacle to get
