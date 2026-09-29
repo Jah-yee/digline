@@ -803,6 +803,56 @@ def test_the_withheld_report_gives_the_pin_a_count_and_never_a_path() -> None:
     )
 
 
+def test_report_redacted_exits_on_the_drift_its_document_reports(
+    project: Path,
+) -> None:
+    """The two halves above, run together through the command a person runs.
+
+    Each half was pinned alone: `redact(moved)` exits 0, and the withheld
+    document says the pinned file moved. `report --redacted` composes both, and
+    until this test it took its exit code from a fresh `compare` over the
+    redacted run — where the digest is gone and the pin reads `unknown` — while
+    the page came from the comparison the artifact outcomes were restored to. So
+    the page said a file declared not to change had moved, and the process
+    exited 0. The exit code an archived document carries has to be the one its
+    own contents account for. (ADR 0029 §5, §6)
+    """
+    (project / "suite.py").write_text(
+        (SUITE % {"disclosure": ""}).replace(
+            'artifacts=[Path("prompt.md")],',
+            'artifacts=[Path("prompt.md")],\n    pinned=[Path("prompt.md")],',
+        ),
+        encoding="utf-8",
+    )
+    (project / "prompt.md").write_text(PROMPT_V1, encoding="utf-8")
+    run_once(project)
+    cli(
+        project,
+        "promote",
+        "--replacing",
+        baseline_in(project),
+        "--suite",
+        "suite.py",
+        "--run",
+        "latest",
+    )
+    (project / "prompt.md").write_text(PROMPT_V2, encoding="utf-8")
+    run_once(project)
+
+    report = ("report", "--suite", "suite.py", "--run", "latest", "--locale", "en")
+    complete = cli(project, *report, "--out", str(project / "complete.html"))
+    assert complete.returncode == 2, complete.stderr
+    out = project / "redacted.html"
+    hidden = cli(project, *report, "--redacted", "--out", str(out))
+
+    assert "declared not to change" in out.read_text(encoding="utf-8")
+    assert hidden.returncode == complete.returncode, (
+        "the redacted report says a pinned file moved and exits "
+        f"{hidden.returncode}: the exit code was computed from a comparison "
+        "the document was not rendered from"
+    )
+
+
 def test_a_pinning_suite_refuses_a_launch_that_hands_down_no_pin_set() -> None:
     """The invariant that would have caught 0.19.0's inert feature.
 
