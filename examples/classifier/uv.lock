@@ -38,7 +38,7 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "digline", specifier = ">=0.20,<0.22" }]
+requires-dist = [{ name = "digline", specifier = ">=0.20,<0.23" }]
 
 [package.metadata.requires-dev]
 dev = [
