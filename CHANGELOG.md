@@ -6,7 +6,7 @@ upgrading, and what deliberately did not move. The reasoning lives in
 read the [release titles](https://github.com/digline/digline/releases) — the
 notes under them are this file, verbatim.
 
-## 0.22.0 — unreleased
+## 0.22.0 — 2026-09-29
 
 digline **0.22.0**. One refusal, which is why this is a minor: a verdict named
 otherwise than its assertion now errors, and a suite with such an assertion
@@ -70,6 +70,54 @@ store that implements it. Nothing to migrate.
   and runs nothing: a break between an example's code and the versions its lock
   pins is still green, and the step's comment in `ci.yml` says what else it does
   not prove. Nothing a user installs changed.
+
+### Seen working in a browser — the walkthrough, owed and run
+
+- **The walkthrough in `RELEASING.md` ran on 2026-09-29, before the tag,** on
+  `3fb7233` in one browser engine. It was owed for a reason 0.21.2 missed: that
+  release rewrote how `POST /promote` reads its body and put a 30-second
+  timeout on every connection, and no browser had been through either (see
+  0.21.2's corrected line below). A first attempt crossed its steps, so the
+  store was reset and the run started again from scratch.
+  - **Which digline ran:** `digline.__file__` resolved to the release
+    checkout's `src/digline/__init__.py`, and `digline --version` said 0.22.0.
+  - **The promotion worked:** *Make baseline* moved the baseline, and
+    `git diff` showed the move. This was the first time a real browser went
+    through the new body reader.
+  - **Four refusals, each with a different cause and a different message, none
+    of which claims another's cause.**
+    - A private window with no cookie was refused with *carries no cookie from
+      this server*.
+    - After a restart, the old tab's cookie was refused as *not issued by this
+      start of digline view: it is from an earlier start*.
+    - The previous start's address, opened against the new server, was refused
+      as *carries a launch key from another start*.
+    - The new server's address, opened a second time, was refused as
+      *already been opened*. This is GHSA-cf5q-xj23-cr2q's fix seen in a
+      browser.
+
+    After each of the four the baseline did not move, and `git diff` showed
+    nothing new until a legitimate promotion from a window that had just done
+    the hand-over.
+  - **Beyond the steps:** the page was left idle for ten minutes, then *Make
+    baseline* was pressed. It worked, with nothing visible. The timeout did not
+    enter into it. The server speaks HTTP/1.0 and closes each connection after
+    its response, so nothing was left open for it to close. The press opened a
+    new connection.
+  - **Not tried:** a second browser engine, and the write side of the timeout
+    (a slow reader of a large page).
+
+### Not republished — a package whose text moved under the same version
+
+- **`pytest-digline` 0.2.0's source moved and its version did not, and it
+  rides its next real release.** `pytest_digline/plugin.py` now imports
+  `ResultStore` under `TYPE_CHECKING` and annotates one private function with
+  it where it said `FileResultStore`. The module has `from __future__ import
+  annotations`, so nothing is evaluated at runtime: the 0.2.0 that PyPI serves
+  and the 0.2.0 in this tree behave the same. The other four plugins match
+  their served wheels file for file. Their `WHEEL` metadata alone differs
+  (hatchling 1.32.3 against 1.32.4), and metadata rides a package's next
+  release rather than earning one.
 
 ## 0.21.2 — 2026-09-28
 
@@ -158,6 +206,13 @@ can cost `digline view`. Nothing to migrate.
     The launch key, the hand-over and the promote form have not changed since
     0.21.1, the last release that ran it. This fix changes only the object's
     `repr`. The move under *Changed* is about the run key, which is another key.
+    *Corrected 2026-09-29: this was incomplete.* The ruling looked at the
+    `repr` and at the run key, and not at the fix just below: that fix rewrote
+    how `POST /promote` reads its body (a 4 KiB cap, and a `400`, `413` or
+    `408` where a body used to be read unbounded), and it put a 30-second
+    timeout on every connection, including the page load and the hand-over.
+    That is the promote form's own request, so the walkthrough was owed, and
+    0.21.2 shipped without it. 0.22.0's walkthrough covers it.
 
 ### Fixed — one connection could hold a `digline view` thread for ever
 
