@@ -32,7 +32,7 @@ from collections.abc import Generator
 from contextlib import contextmanager
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from threading import Thread
+from threading import Lock, Thread
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / ".github" / "release_bundles.py"
@@ -52,16 +52,34 @@ def index(
     attestations: dict[str, bytes],
     *,
     corrupt: frozenset[str] = frozenset(),
+    lag: dict[str, int] | None = None,
+    down: frozenset[str] = frozenset(),
 ) -> Generator[str]:
     """An index serving `releases` — (name, version) to filenames — and their
     attestations by filename. A file in `corrupt` is served with bytes that do
-    not match the digest its JSON page states."""
+    not match the digest its JSON page states.
+
+    `lag` is PyPI after an upload: a path starting with one of its keys answers
+    404 to that many requests before it answers at all, which is what
+    `/pypi/digline/0.23.0/json` did for 36 seconds on v0.23.0. A path starting
+    with one of `down` answers 503 every time: an index that does not answer."""
+    pending = dict(lag or {})
+    lock = Lock()
 
     def body(filename: str) -> bytes:
         return f"stand-in for {filename}".encode()
 
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self) -> None:  # noqa: N802 - BaseHTTPRequestHandler's name
+            if any(self.path.startswith(prefix) for prefix in down):
+                self.send_error(503)
+                return
+            with lock:
+                prefix = next((p for p in pending if self.path.startswith(p)), None)
+                if prefix is not None and pending[prefix] > 0:
+                    pending[prefix] -= 1
+                    self.send_error(404)
+                    return
             parts = self.path.strip("/").split("/")
             if parts[0] == "pypi" and (parts[1], parts[2]) in releases:
                 urls = [
@@ -101,16 +119,26 @@ def index(
 
 
 def run(
-    tmp_path: Path, url: str, tag: str, dist: list[str], out: str = "out"
+    tmp_path: Path,
+    url: str,
+    tag: str,
+    dist: list[str],
+    out: str = "out",
+    *,
+    timeout: str = "1",
 ) -> subprocess.CompletedProcess[str]:
-    """The script as the workflow runs it: from a checkout with `dist/` in it."""
+    """The script as the workflow runs it: from a checkout with `dist/` in it.
+
+    The wait is a second here and not the workflow's ten minutes, with reads
+    a hundredth of a second apart; `timeout="0"` is one read, the script as it
+    was before it waited."""
     (tmp_path / "dist").mkdir(exist_ok=True)
     for filename in dist:
         (tmp_path / "dist" / filename).write_bytes(b"built here, never read")
     return subprocess.run(
         [sys.executable, str(SCRIPT), tag, out],
         cwd=tmp_path,
-        env={"INDEX": url, "PATH": ""},
+        env={"INDEX": url, "PATH": "", "TIMEOUT": timeout, "INTERVAL": "0.01"},
         capture_output=True,
         text=True,
         timeout=60,
@@ -213,3 +241,74 @@ def test_bytes_that_do_not_match_the_index_s_own_digest_are_refused(
     assert result.returncode == 1
     assert f"{CORE}: the bytes PyPI serves do not match" in result.stderr
     assert not (tmp_path / "out" / f"{CORE}.sigstore.json").exists()
+
+
+CORE_PAGE = "/pypi/digline/0.19.1/json"
+CORE_PROVENANCE = f"/integrity/digline/0.19.1/{CORE}/provenance"
+
+
+def test_a_page_that_404s_after_the_upload_is_waited_for(tmp_path: Path) -> None:
+    """v0.22.0 and v0.23.0: `/simple/` served the version, and the JSON page
+    this script asks for answered 404 for another half a minute. Read again,
+    it answers, and the release gets its signatures on the first attempt."""
+    with index(BOTH, BOTH_SIGNED, lag={CORE_PAGE: 3}) as url:
+        result = run(tmp_path, url, "v0.19.1", [CORE, PLUGIN])
+
+    assert result.returncode == 0, result.stderr
+    assert f"served   {url}{CORE_PAGE}" in result.stdout
+    assert "read 4" in result.stdout
+    assert (tmp_path / "out" / f"{CORE}.sigstore.json").exists()
+
+
+def test_the_same_lag_read_once_is_refused(tmp_path: Path) -> None:
+    """The control for the test above, and the one that must fail: the same
+    index, read once, as the script read it before it waited. If this passed,
+    the lag in the fixture would not be what the wait is being credited with."""
+    with index(BOTH, BOTH_SIGNED, lag={CORE_PAGE: 3}) as url:
+        result = run(tmp_path, url, "v0.19.1", [CORE, PLUGIN], timeout="0")
+
+    assert result.returncode == 1
+    assert "digline 0.19.1 is in dist/ and" in result.stderr
+    assert "answered 404" in result.stderr
+
+
+def test_an_attestation_that_lags_its_file_is_waited_for(tmp_path: Path) -> None:
+    """The second read the job makes has the same race as the first, and a
+    404 there is refused at the tag's own version and skipped at any other,
+    which for a plugin this tag published would lose its bundle in silence."""
+    with index(BOTH, BOTH_SIGNED, lag={CORE_PROVENANCE: 2}) as url:
+        result = run(tmp_path, url, "v0.19.1", [CORE, PLUGIN])
+
+    assert result.returncode == 0, result.stderr
+    assert (tmp_path / "out" / f"{CORE}.sigstore.json").exists()
+
+
+def test_a_404_that_holds_for_the_whole_wait_is_still_refused(
+    tmp_path: Path,
+) -> None:
+    """Waiting does not turn a real absence into a pass: a version the index
+    never serves is refused, after the wait and by the same name."""
+    with index(BOTH, BOTH_SIGNED, lag={CORE_PAGE: 10_000}) as url:
+        result = run(tmp_path, url, "v0.19.1", [CORE, PLUGIN], timeout="0.3")
+
+    assert result.returncode == 1
+    assert "No signatures for this release" in result.stderr
+    assert "answered 404 for it until the last read" in result.stderr
+
+
+def test_an_index_that_never_answers_is_not_judged_rather_than_refused(
+    tmp_path: Path,
+) -> None:
+    """The third word. A 503 on every read says nothing about the release, so
+    it must not come out as *not on PyPI* or as *no attestation*: exit 2, and
+    a title that says nothing was judged."""
+    with index(BOTH, BOTH_SIGNED, down=frozenset({CORE_PAGE})) as url:
+        page = run(tmp_path, url, "v0.19.1", [CORE, PLUGIN], timeout="0.3")
+    with index(BOTH, BOTH_SIGNED, down=frozenset({CORE_PROVENANCE})) as url:
+        provenance = run(tmp_path, url, "v0.19.1", [CORE, PLUGIN], timeout="0.3")
+
+    for result in (page, provenance):
+        assert result.returncode == 2, result.stderr
+        assert "Signatures not judged" in result.stderr
+        assert "No signatures for this release" not in result.stderr
+        assert "re-run the job" in result.stderr
