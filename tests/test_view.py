@@ -39,12 +39,16 @@ from tests._helpers import baseline_in, cli, hand_over, run_key, write_suite
 
 from digline.core import (
     Artifact,
+    CalibrationBand,
     CaseResult,
+    RecordedResponse,
     Run,
     Score,
+    SystemConfig,
     Verdict,
     artifacts_sha,
     compare,
+    key_of,
 )
 from digline.report import (
     VIEW_CSS,
@@ -59,6 +63,8 @@ from digline.report import (
     suspend_page,
     suspension_snippet,
 )
+from digline.report import escape as report_escape
+from digline.store import FileResultStore
 
 AGREES = "agrees_with_mark"
 
@@ -491,6 +497,131 @@ def test_before_the_first_promotion_compare_shows_the_run(repo: Path) -> None:
     assert "No reference to compare against" in body
     assert "capital-it" in body
     assert "Did it get worse?" not in body
+
+
+def test_escaping_is_the_only_barrier_on_the_page_that_shares_the_promote_origin(
+    repo: Path,
+) -> None:
+    """Before the first promotion `/compare` serves `render_run_html`, which
+    until 0.23.0 was only ever a file opened from disk. Now it is served on the
+    same origin as `POST /promote` and the cookie `--allow-promote` hands over,
+    and `view` sends no `Content-Security-Policy`. So escaping is the only
+    thing between a value in a run document and script on the one origin that
+    can move a baseline.
+
+    Every field the single-run page renders carries markup, a bidi override and
+    control characters, each tagged with its own name. The run is written
+    through the store and read back through the server, so the page under test
+    is the one a browser gets. Each tag must reach the page, escaped: a field
+    that stopped being rendered would otherwise pass this test having checked
+    nothing. And no tag and no raw control character may survive anywhere.
+
+    Two kinds are in the run and not in `fields`, because the page does not
+    render them today: an assertion's metadata and the run's own metadata. If
+    either starts being rendered, the page-wide checks at the end already hold
+    it, and it belongs in `fields`.
+    (0.23.0 delta-pass, the one gap it recorded)
+    """
+
+    def hostile(field: str) -> str:
+        return f"<img src=x onerror=alert('{field}')>‮\x1b[2K\x9b{field}"
+
+    fields = (
+        "environment",
+        "git_commit",
+        "case_id",
+        "verdict_name",
+        "reason",
+        "error_name",
+        "error_reason",
+        "model",
+        "provider",
+        "judge_model",
+        "judge_provider",
+        "input",
+        "output",
+        "artifact_path",
+        "artifact_text",
+        "calibration_check",
+        "calibration_case",
+    )
+    case = CaseResult(
+        hostile("case_id"),
+        (
+            Verdict(
+                score=Score(
+                    name=hostile("verdict_name"),
+                    score=0.1,
+                    metadata={"note": hostile("metadata")},
+                ),
+                threshold=0.7,
+                status="fail",
+                reason=hostile("reason"),
+            ),
+            Verdict(
+                score=Score(name=hostile("error_name"), score=None),
+                threshold=0.7,
+                status="error",
+                reason=hostile("error_reason"),
+            ),
+        ),
+        responses=(
+            RecordedResponse(
+                output=hostile("output"), kind="text", input=hostile("input")
+            ),
+        ),
+    )
+    calibrated = CaseResult(
+        hostile("calibration_case"),
+        (
+            Verdict(
+                score=Score(name=hostile("calibration_check"), score=0.1),
+                threshold=0.7,
+                status="fail",
+                reason="outside",
+            ),
+        ),
+        calibration=CalibrationBand(
+            check=hostile("calibration_check"),
+            low=0.8,
+            high=0.95,
+            assertion_id=hostile("calibration_check"),
+        ),
+    )
+    run = Run(
+        tenant="acme-bank",
+        environment=hostile("environment"),
+        suite="qa",
+        config_hash="cfg-hostile",
+        created_at="2026-09-29T14:00:00+00:00",
+        git_commit=hostile("git_commit"),
+        results=(case, calibrated),
+        metadata={hostile("run_metadata_key"): hostile("run_metadata_value")},
+        artifacts={
+            hostile("artifact_path"): Artifact(
+                sha="0" * 64, text=hostile("artifact_text")
+            )
+        },
+        target_config=SystemConfig(
+            {"model": hostile("model"), "provider": hostile("provider")}
+        ),
+        judge_config=SystemConfig(
+            {"model": hostile("judge_model"), "provider": hostile("judge_provider")}
+        ),
+    )
+    FileResultStore(repo).write_run(run)
+    key = key_of(run.created_at, run.config_hash)
+
+    with server(repo, "--allow-promote") as (base, _line):
+        status, body = get(f"{base}compare?run={urllib.parse.quote(key)}")
+
+    assert status == 200, body
+    assert "No reference to compare against" in body
+    missing = [field for field in fields if report_escape(hostile(field)) not in body]
+    assert not missing, f"not rendered, so not checked: {missing}"
+    assert "<img" not in body
+    for raw in ("‮", "\x1b", "\x9b"):
+        assert raw not in body, f"{raw!r} reached the page raw"
 
 
 def test_the_locale_switch_is_a_link_not_a_preference(served: tuple[str, str]) -> None:
