@@ -669,6 +669,44 @@ def plant(repo: Path, key: str, name: str, **changes: object) -> None:
     )
 
 
+def test_the_first_day_one_run_opened_then_promoted_through_the_view(
+    repo: Path,
+) -> None:
+    """The path nothing else walks: an empty store, one run, the flagged
+    server. Every other promotion test starts from `promoted(repo)`, so the
+    form's `replacing=none` — the value only the first promotion sends — never
+    reached the route. The form is read off the page rather than written here,
+    so what is posted is what a browser would post."""
+    key = run_key(repo)
+    assert baseline_in(repo) == "none"
+
+    with server(repo, "--allow-promote") as (base, line):
+        cookie = hand_over(port_of(base), launch_of(line))
+        request = urllib.request.Request(base, headers={"Cookie": cookie})
+        with urllib.request.urlopen(request, timeout=10) as response:
+            listing = response.read().decode("utf-8")
+
+        # The row opens its run before anything is promoted.
+        opened = re.search(r'<a class="action" href="(/compare\?run=[^"]+)"', listing)
+        assert opened is not None, listing
+        status, body = get(base + unescape(opened.group(1)).lstrip("/"))
+        assert status == 200 and "capital-it" in body
+
+        form = re.search(
+            r'<form method="post" action="/promote">(.*?)</form>', listing, re.S
+        )
+        assert form is not None, listing
+        fields = dict(re.findall(r'name="(\w+)" value="([^"]*)"', form.group(1)))
+        assert fields["run"] == key
+        assert fields["replacing"] == "none"
+
+        status, page = post_page(base, urllib.parse.urlencode(fields), cookie=cookie)
+
+    assert status == 200, page
+    assert f"Baseline set to {key}." in page
+    assert baseline_in(repo) == key
+
+
 def test_a_promotion_that_happened_says_so_when_the_list_cannot_be_drawn(
     repo: Path, served_promoting: tuple[str, str, str]
 ) -> None:

@@ -23,6 +23,11 @@ notes under them are this file, verbatim.
   was pressed by somebody who had not seen one case. The view is where the
   first baseline is promoted from, and now it is also where the run behind it
   can be read.
+- **The first promotion through the view is now tested end to end**: an empty
+  store, one run, the flagged server, the row opened, and the form's own
+  `replacing=none` posted. Every other promotion test started from a baseline
+  already in place, so the one value only the first promotion sends had never
+  reached the route.
 - **What does not change:** against a baseline the page is the verdict, and
   against another run it is the diff, exactly as before. The view still serves
   the unredacted store.
