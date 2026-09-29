@@ -1912,9 +1912,36 @@ def test_every_example_admits_the_versions_this_workspace_declares() -> None:
                 f"examples/{example}/pyproject.toml pins `{specifier}`, which "
                 f"excludes {package} {'.'.join(str(p) for p in version)} — the "
                 f"version {package} declares in this workspace. Raise the cap "
-                f"with the release, as RELEASING.md says, or the example is "
-                f"tested against the release before this one."
+                f"with the release, as {CAP_STEP}, or the example is tested "
+                f"against the release before this one."
             )
+
+
+#: Where the ritual that raises the caps is written. The message above cites it
+#: by name rather than as "RELEASING.md says", which it did for a step the file
+#: did not contain until 0.22.0.
+CAP_STEP = (
+    "RELEASING.md's *Before the tag: moving the number*, step 5 says "
+    "(*On a minor, raise the example caps and relock the examples that carry "
+    "a lock*)"
+)
+
+
+def test_the_step_the_cap_message_cites_exists() -> None:
+    """The step the cap failure points at is in RELEASING.md, under that name.
+
+    A message that cites a step nobody wrote sends the reader looking for
+    nothing, which is what the previous wording did. If the step is renamed or
+    removed, this fails before the message can lie again.
+    """
+    # Folded, because prose here wraps at 79 columns and a phrase can break
+    # anywhere in it.
+    text = " ".join((ROOT / "RELEASING.md").read_text(encoding="utf-8").split())
+    assert "## Before the tag: moving the number" in text
+    assert (
+        "**5. On a minor, raise the example caps and relock the examples that "
+        "carry a lock.**"
+    ) in text
 
 
 def test_the_front_page_lists_every_example_and_only_those() -> None:

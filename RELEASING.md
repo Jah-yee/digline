@@ -85,7 +85,8 @@ step you are about to perform, not the step that failed last time.
 
 ## Before the tag: moving the number
 
-`version` in `pyproject.toml` is one line and **four edits**. Nothing here is
+`version` in `pyproject.toml` is one line and **four edits**, plus a fifth on a
+minor. Nothing here is
 optional and nothing is subtle; what it is, is unwritten — until 0.15.2 this
 section did not exist, and the six red tests below were the only instructions
 anybody got. They are good instructions. They are also a quarter of an hour
@@ -140,6 +141,30 @@ names versions for a living.
 `"<new version>": <SCHEMA_VERSION>`, the schema this tree writes. A patch that
 moves no schema still gets a row; the row is what lets the example caps be
 checked against a release rather than against a number in the air.
+
+**5. On a minor, raise the example caps and relock the examples that carry a
+lock.** Every `examples/*/pyproject.toml` pins digline under the next minor —
+`digline>=0.20,<0.22` while the tree is on 0.21 — so a bump to `0.22.0` is
+excluded by all of them, and
+`test_examples.py::test_every_example_admits_the_versions_this_workspace_declares`
+says so, naming the first. Raise the bound by one minor in every pyproject and
+in any README that quotes it (`examples/langchain4j/README.md` does), then run
+`uv lock` in each example that carries a `uv.lock`. Only the specifier line of
+each lock should move; the version it resolves stays the newest the index
+serves, because the new one is not served until the tag. Moving the locks to the
+new version is still *After the tag* work.
+
+**This step became mandatory on 2026-09-28, and the gate changed the ritual
+without telling it.** On 0.21.0 the caps moved in the bump (`4785a9e`) and the
+locks followed after the release (`c6d0fc5`, *Lock every example to digline
+0.21.0*): a lock whose `requires-dist` still read `<0.22` against a pyproject
+reading `<0.23` bothered nothing, because nothing installed it before the
+post-release check. Since #196, `gates` runs `uv sync --locked` in every example
+with a lock, and `--locked` refuses a lock that does not match its pyproject. So
+the caps and the six locks now move in the same pull request, or the bump
+cannot go green. Found on the way to 0.22.0, where the step had never been
+written: the test's own message cited this file for a rule this file did not
+contain.
 
 **Then one more, which no test reddens: say which decisions this release
 ships.** Every record in `docs/adr/` carries `- Shipped:`, a core version or
@@ -263,7 +288,9 @@ nothing else*):
 2. **Regenerate the home capture**, which becomes due at exactly that moment and
    not before — see the rule above for why the two answers differ.
 3. **Expect the image job to *skip* on this commit, and do not read the skip as
-   a check that went missing.** `image-touched` builds only when the diff
+   a check that went missing.** That holds because the bump is **not** in
+   this pull request: see *The bump and the release are two pull requests*
+   below. `image-touched` builds only when the diff
    touches `docker/` or `ci.yml`/`docker-publish.yml`, and a release commit that
    dates the changelog and regenerates the capture touches none of them. On
    v0.21.2 it skipped, and that was correct.
@@ -279,6 +306,38 @@ nothing else*):
    reading the step.** The short post-tag red it was describing is real and
    heals when `publish` finishes; it simply arrives somewhere else. This is not
    the days-long window red described above either.
+
+### The bump and the release are two pull requests, by construction
+
+The version moves **at the cut**, not when the `— unreleased` section opens: a
+bump made early makes every pull request in between declare a version the
+index does not serve (ruled 2026-09-28, before 0.22.0). That can tempt you to
+fold the bump into the release commit, and doing so breaks step 3 above. The
+bump edits `docker/Dockerfile` and `docker/README.md`, so `image-touched`
+builds. The release commit dates the heading, which switches `image_pins.py`'s
+substitution off, so the build waits for a version the index does not serve yet
+and fails. One pull request would put that red on the release pull request and
+on the merge commit about to be tagged: a red that blocks nothing (the image job
+is not required) and is guaranteed every time, which is the kind people learn
+to stop reading.
+
+So cut in two, back to back:
+
+1. **The bump pull request**: *Before the tag: moving the number*, steps 1 to 5
+   and the `Shipped:` sweep, with the heading still `— unreleased`. The image job builds and is **green**,
+   because the substitution is still on: on 0.22.0's bump (#204) the job
+   printed `digline==0.21.2   (the Dockerfile says 0.22.0)` and a note that
+   0.22.0 *is declared unreleased … and the index does not serve it*, then
+   waited for 0.21.2 and got it at once. Merge it as soon as `gates` is green.
+2. **The release pull request**, branched from that merge: date the headings,
+   regenerate the home capture, write the walkthrough line. The image job
+   **skips**, and the tag goes on this pull request's merge commit.
+
+**The window between them is minutes, and it is the only one.** For those
+minutes `main` declares a version the index does not serve. That is the same
+state the early bump held for days, and it is harmless for the same reason: the
+heading says `— unreleased`. Nothing is tagged in between, and nothing should
+be.
 
 The reason this needs writing down at all is that the feature commit is *tempting*:
 it is green, it is the change everyone was working on, and nothing about it
