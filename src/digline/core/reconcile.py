@@ -154,11 +154,17 @@ def unreconciled(run: Run) -> tuple[tuple[str, str], ...]:
     identity, so `1`, `"true"`, `[]` and a nested mapping all fail to claim a
     gap, in either direction.
 
-    What a suite's own code can therefore do is claim a gap that did not happen.
-    It buys nothing: the run reads as unreconciled, exits 2 and cannot be
-    promoted, so the forgery is self-inflicted and in the direction of *less*
-    explicable. It is stated here because the sentence above it read as a
-    guarantee. (F-6, the second 0.17.0 delta-pass)
+    So a suite's own code *could* claim a gap that did not happen, and until
+    the delta-pass over 0.22.0 that was ruled harmless: the run reads as
+    unreconciled, exits 2 and cannot be promoted, so the forgery is
+    self-inflicted. (F-6, the second 0.17.0 delta-pass.) **What that ruling
+    missed is the blame.** A gap names the driver's bookkeeping as at fault, and
+    a forged one sends a reader looking there for a defect the assertion made
+    up. So the driver now removes this key, with `misnamed`, from every verdict
+    an assertion returns (`digline.core.naming.unmarked`), and this function
+    still cannot tell who wrote it: the barrier is in the driver, not here.
+    Joined to `misnamed`'s repair on reading this code, not on a measurement of
+    a forged gap. (Delta-pass over 0.22.0, D-1)
     """
     return tuple(
         (case.case_id, verdict.score.name)
