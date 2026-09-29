@@ -8,6 +8,30 @@ notes under them are this file, verbatim.
 
 ## 0.22.1 — unreleased
 
+### Added — `digline view` shows a run before there is a baseline
+
+- **`/compare` with no baseline now serves the run on its own** instead of
+  answering 404 *"this suite has no baseline yet"*. The page is
+  `render_run_html` — what `digline report` has written in the same state since
+  it stopped refusing — with the view's bar in front, and nothing else: take
+  the bar away and it is byte for byte the report (`pages.run_page`, beside
+  `compare_page`). On the run list, each row before the first promotion carries
+  **`Open`** where it will later carry `Compare`.
+- **Why, and it is not the 404.** Nothing linked to that 404 from the run list;
+  the link was withheld on purpose. What the withheld link cost was the first
+  promotion: the table carries aggregates only, so on day one `Make baseline`
+  was pressed by somebody who had not seen one case. The view is where the
+  first baseline is promoted from, and now it is also where the run behind it
+  can be read.
+- **The first promotion through the view is now tested end to end**: an empty
+  store, one run, the flagged server, the row opened, and the form's own
+  `replacing=none` posted. Every other promotion test started from a baseline
+  already in place, so the one value only the first promotion sends had never
+  reached the route.
+- **What does not change:** against a baseline the page is the verdict, and
+  against another run it is the diff, exactly as before. The view still serves
+  the unredacted store.
+
 ### Fixed — an assertion could claim a refusal the driver never made
 
 - **The driver now removes its own two markers from every verdict an
