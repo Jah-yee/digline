@@ -102,7 +102,13 @@ def test_the_description_names_the_absence_and_the_interruption() -> None:
 def test_the_skill_is_the_same_file_as_the_repository_skill() -> None:
     """Two copies, byte for byte. `test_agents.py` holds one of them against
     `AGENTS.md`; this holds the other against it, so the plugin cannot ship a
-    playbook one rule short."""
+    playbook one rule short.
+
+    The repository's copy is also the one skills.sh ships: `npx skills add
+    digline/digline` reads `.claude/skills/operating-digline/SKILL.md` from
+    `main`, not the plugin's, as the `skillPath` of its `skills-lock.json`
+    records. Moving or deleting `.claude/skills/` changes what those users
+    receive, which nothing in the path suggests."""
     ours = ROOT / ".claude" / "skills" / "operating-digline" / "SKILL.md"
     shipped = PLUGIN / "skills" / "operating-digline" / "SKILL.md"
     assert shipped.read_bytes() == ours.read_bytes(), (
