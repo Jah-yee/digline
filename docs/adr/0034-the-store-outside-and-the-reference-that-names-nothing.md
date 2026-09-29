@@ -56,6 +56,16 @@
   with it. The condition that would restore the clause is written beside the
   correction, and it would restore the clause for the channel, not for this
   record
+- Amended: 2026-09-29, by [ADR 0036](0036-the-name-table-and-the-process-that-owns-it.md)
+  at its acceptance — **§6 in three places, and §3 narrowed**, each with a
+  dated note beside the text it amends, which is kept as written. The table is
+  **not behind an optional protocol of the store**: digline is handed two
+  callables and never opens it (0036 §2). **A row is found by its token
+  alone**, and the kind is a check (0036 §3). **The run key joins nothing in
+  the table**: tokens are stable per (tenant, suite), and the paragraph's
+  reasoning belongs to the link, not to the rows (0036 §4). **The projection
+  is produced inside the process that owns the table** (0036 §7), which is
+  narrower than where the whole value and the table are
 - Opens: **nothing on landing.** No `SCHEMA_VERSION`, no `OUTPUT_VERSION`, no
   `REGISTER_VERSION`, no `JOURNAL_VERSION`, no migration — nothing is
   implemented. At implementation §8 is a field in the run document and
@@ -420,6 +430,14 @@ substitution needs the table, the table is the end company's text, and
 redaction is a function of the whole value rather than of a serialized form of
 it.
 
+*Amended 2026-09-29 by [ADR 0036](0036-the-name-table-and-the-process-that-owns-it.md)
+§7; the paragraph above is kept as written.* **Narrowed: the projection is
+produced inside the process that owns the table.** Being where the whole value
+and the table are is not enough. The projection mints tokens, and look-up-or-mint
+is atomic only because one process owns the table and nothing outside it
+writes (0036 §6). A projection run anywhere else at the data owner's side
+would be the outside writer that condition excludes.
+
 **The software house commits it and puts the key beside it.** A document
 produced where there is no git makes no claim about which commit it belongs to,
 because that side does not know. The link is the software house's, and it
@@ -571,11 +589,35 @@ because an erasure needs a writer that removes a row, and it is **never
 committed**: ADR 0021 §6 says a committed file's retention is git, and a table
 whose retention is git is a table nobody can shorten.
 
+*Amended 2026-09-29 by [ADR 0036](0036-the-name-table-and-the-process-that-owns-it.md)
+§2 and §3; the paragraph above is kept as written.* Two clauses are struck.
+**"Behind its own optional protocol — the `SupportsRegister` precedent, so a
+store without one keeps working" is reversed**: the table is not a capability
+of the store. digline's code reaches it only through two callables it is handed,
+one that returns the token for a (kind, text), minting if there is none, and
+one that returns the row a token names, and it never opens the table. A store
+that could not hold the table could neither project nor resolve, so *optional*
+would have been optional in type and mandatory in fact. **"(kind, token) ↔
+text" becomes: a row is found by its token alone.** A token has no scope, so
+the kind adds nothing to the key. It stays in the row, because minting is keyed
+by (kind, text), and at resolution it is a check. What stands: one table per
+(tenant, suite), at the data owner's side, rewritable row by row, never
+committed.
+
 **The join key is the run key, which sees no case.** `key_of(created_at,
 config_hash)` is the address today, and `config_hash`'s own docstring settles
 what it carries: *"It does not cover the test data… Nothing here ever sees a
 case."* So the key already exists, already carries nothing, and already
 survives a case being erased.
+
+*Amended 2026-09-29 by [ADR 0036](0036-the-name-table-and-the-process-that-owns-it.md)
+§4; the paragraph above is kept as written.* **The run key joins nothing in the
+table.** A token is stable for the life of its row, across every document of
+its suite, because `compare()` pairs two documents by `case_id` and by group,
+and tokens minted per run would read every comparison as everything new and
+everything missing, and pass. The reasoning above holds, and it is true of
+**the link** the software house commits beside a projection (§1). It was never
+a property of the table's rows. A run's removal therefore removes no row.
 
 **The table is a new artifact with its own costs, and they are named rather
 than discounted:** its own retention, its own erasure obligation, its own place

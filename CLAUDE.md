@@ -23,6 +23,14 @@ correct its structural mistakes and are not negotiable.
    then commits the key and a **projection** of the reference. The reason above
    is unchanged: still no DB in the home directory and no global state. What
    moves is which perimeter the directory sits in.
+   *Added to the list 2026-09-29 (ADR 0036 §2).* The same directory also holds
+   the **name table**, under a reserved name. It is the one entry in the layout
+   that is **not behind the `ResultStore` protocol** and not written by digline:
+   the process that owns the table writes it, in a format of its own, and
+   digline reserves the name, writes nothing under it, and reaches the table
+   only through two callables it is handed. The table is never committed. The
+   reason above is unchanged: the table is addressed by the tenant, not kept in
+   a home directory or as global state.
 3. **No vacuously green assertion.** Every assertion has a mandatory threshold
    or a default that can fail. A default of 0 that always passes is a bug.
 4. **Cost and latency are budgets, not metrics.** A declared ceiling fails the

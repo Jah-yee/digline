@@ -387,7 +387,7 @@ page only.* The recipe above stays the id minted inside the perimeter, and
 **it never leaves**: *"a hash of public text"* was about public threads, and an
 end company's `vars` are not public. The id that leaves is a random token from
 the name table of [ADR 0036](0036-the-name-table-and-the-process-that-owns-it.md),
-also proposed, and the idempotence across branches argued above is kept at
+accepted 2026-09-29, and the idempotence across branches argued above is kept at
 the software house by the table's state rather than by the hash (0037 §8).
 
 ### 7. Capture's own case file is the draft, and the commit is the signature

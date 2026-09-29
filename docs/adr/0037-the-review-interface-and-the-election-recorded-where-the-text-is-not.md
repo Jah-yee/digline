@@ -7,11 +7,12 @@
   in it is implemented. **What it states was ruled before it was written**, in
   discussion, on 2026-09-28, as three questions in an order: where the label is
   given (§2), who elects and signs (§4), and the shape (§5). It is recorded
-  here as ruled. **Its acceptance waits on two records that are themselves
+  here as ruled. **Its acceptance waits on a record that is itself
   proposed**: [ADR 0023](0023-capture.md), whose sections it supersedes and
-  amends and which cannot be superseded in part before it is in force; and
-  ADR 0036, the name table, without which the shape in §5 has nothing to
-  resolve against
+  amends and which cannot be superseded in part before it is in force. It
+  also waited on ADR 0036, the name table, without which the shape in §5 has
+  nothing to resolve against; ADR 0036 was accepted on 2026-09-29, and is not
+  built
 - Shipped: unreleased
 - Date: 2026-09-29
 - Opens: **nothing on landing.** No `SCHEMA_VERSION`, no `OUTPUT_VERSION`, no
@@ -24,7 +25,7 @@
   `Matrix`'s list of exclusions, carried through every counting site the way
   ADR 0016 §2's canary was (§3). **A line at the software house** per elected
   case, which nothing writes today (§5). **The name table** of ADR 0036, which
-  is proposed and unbuilt (§5). **Deliberately not read off ADR 0023's
+  is accepted and unbuilt (§5). **Deliberately not read off ADR 0023's
   *Requires* line**, which prices world 1's command and not this — the same
   refusal ADR 0034's *Requires* makes
 - Assumes: [ADR 0002](0002-three-worlds-and-where-the-data-lives.md) §1 (the
@@ -39,7 +40,7 @@
   there, as a condition; one approval, which the software house's commit
   records rather than signs again), §4 (an unclassified field is refused) and
   §12 (*nobody in particular*, because no reader of a digest lacks its inputs);
-  [ADR 0036](0036-the-name-table-and-the-process-that-owns-it.md), **proposed**,
+  [ADR 0036](0036-the-name-table-and-the-process-that-owns-it.md), accepted 2026-09-29,
   §4 (a token is stable across every document of its suite), §5 (random, not
   derived), §6 (look-up-or-mint is atomic because one process owns the table)
   and §7 (the election is one of the table's three writers)
@@ -320,7 +321,7 @@ something at the data owner's side resolves it, and a token is idempotent
 across the software house's branches only by keeping state: two branches that
 record the same election must record one token, and ADR 0036 §4 and §6 give
 that — stable per suite, minted by look-up-or-mint inside one process. **ADR
-0036 is proposed**, and until it is accepted and built, this shape has nothing
+0036 is accepted and not built**, and until it is built, this shape has nothing
 under it. A shape where nothing crosses would have needed no table. That is
 the cost, and it was accepted on purpose.
 
@@ -522,7 +523,7 @@ and lists, and a person names what is written.
 ## What this record does not claim
 
 - **That the page exists.** Nothing here is built, and the table it rests on is
-  proposed.
+  accepted and unbuilt.
 - **That a case written at review is as good as one observed.** §3 is the
   opposite claim: it is kept out of the sum because it is not.
 - **That the line identifies nobody.** It carries identifiers and no text. What
