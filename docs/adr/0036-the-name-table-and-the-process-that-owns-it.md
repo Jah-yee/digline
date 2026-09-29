@@ -1,14 +1,26 @@
 # ADR 0036 — The name table, and the process that owns it
 
-- Status: proposed 2026-09-29 — the text first, checkpointed before any code,
-  the way [ADR 0034](0034-the-store-outside-and-the-reference-that-names-nothing.md)
-  and [ADR 0035](0035-the-record-of-a-deletion.md) were. Nothing in it is
-  implemented. **Most of what it states was settled before it was written**, in
-  discussion, and is recorded here as settled. The rest are **decisions this
-  record takes itself**. They are marked *decided here* where they are made, so
-  that acceptance can rule on them one by one. **One of them overturns a
-  sentence of an accepted record**: ADR 0034 §6 puts the table behind an
-  optional protocol of the store, and §2 below refuses that
+- Status: accepted 2026-09-29, by Alessandro Prandini — the text first,
+  checkpointed before any code, the way
+  [ADR 0034](0034-the-store-outside-and-the-reference-that-names-nothing.md)
+  and [ADR 0035](0035-the-record-of-a-deletion.md) were. It landed on `main`
+  as proposed earlier the same day; nothing in it is implemented. **Most of
+  what it states was settled before it was written**, in discussion, and is
+  recorded here as settled. The rest are **decisions this record takes
+  itself**, marked *decided here* where they are made so that acceptance could
+  rule on them one by one. **Acceptance ruled all four as written**: the table
+  outside the store, reached through two callables (§2); its place, a reserved
+  name in the tenant's directory (§2); the token as the key and the kind as a
+  check (§3); tokens per (tenant, suite), with the run key joining nothing in
+  the table (§4). **One of them overturns a sentence of an accepted record**:
+  ADR 0034 §6 puts the table behind an optional protocol of the store, and §2
+  below refuses that. Before acceptance, the same day, **§6's condition gained
+  one table per (tenant, suite)**, and **§9 stopped saying it added nothing to
+  ADR 0035**, since whose code writes a row's ledger entry is open. Both are
+  dated in their sections. The status named no condition of acceptance, and
+  none was added: the conditions the design rests on are written where they
+  are made (§5, §6, §9). **What it amends is made in the change that accepts
+  it**, as ADR 0034's acceptance found it should have been
 - Shipped: unreleased
 - Date: 2026-09-29
 - Opens: **nothing on landing.** No `SCHEMA_VERSION`, no `OUTPUT_VERSION`, no
@@ -45,7 +57,8 @@
   [ADR 0035](0035-the-record-of-a-deletion.md) §4 (an entry names a removed
   row by its token), §8 (an expired token is not reused, for as long as tokens
   are not derived) and §10 (the ledger is off every read path)
-- Amends, **at acceptance**: [ADR 0034](0034-the-store-outside-and-the-reference-that-names-nothing.md)
+- Amends, **at acceptance** — made on 2026-09-29, in the change that accepted
+  this record: [ADR 0034](0034-the-store-outside-and-the-reference-that-names-nothing.md)
   §6, in three places — *"behind its own optional protocol — the
   `SupportsRegister` precedent"* (§2 below), *"(kind, token) ↔ text"* as the
   key (§3), and *"The join key is the run key"* (§4). And ADR 0034 §3's
@@ -201,7 +214,8 @@ cost.** Four costs, and they accumulate:
 
 - **ADR 0034 §6 is wrong as written, and an accepted record is amended.** The
   clause is struck at acceptance, with a dated note in 0034 beside it, the way
-  every earlier correction to 0034 was made.
+  every earlier correction to 0034 was made. *Made 2026-09-29, in the change
+  that accepted this record.*
 - **ADR 0034 §14's delete does not reach the table by construction.** It would
   have, as a sixth item behind the store. §4 says why that is right rather
   than a loss: a run's removal must not remove rows. But it means nothing in
@@ -403,7 +417,8 @@ condition without needing an accident.
 - **The projection** mints the tokens of a reference. ADR 0034 §3 places it
   *"where the whole value and the name table are, which is the data owner's
   side"*. That is no longer enough: it runs **inside the process that owns the
-  table**. The amendment to §3 is made at acceptance.
+  table**. The amendment to §3 is made at acceptance. *Made 2026-09-29, in
+  the change that accepted this record.*
 - **The election** mints the token of a case elected at a served page at the
   data owner's side. **The software house records it as one line: a token, a
   date and who approved it, never a word of the text.** That is capture's
