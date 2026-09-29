@@ -293,9 +293,20 @@ jobs:
             --description "A step of RELEASING.md after the tag is still undone" \
             --force > /dev/null 2>&1 || true
           scope="$(uv run --quiet python -c 'import json; print(json.load(open("report.json"))["scope"])')"
-          gh issue list --label release-followup --state open --limit 50 \
-            --json number,title > open.json
-          mine="$(uv run --quiet python - "$scope" <<'PY'
+          # The open issues are a listing too, and the same two halves apply
+          # to it as to the reads in the approvals step. A call that fails is
+          # not an empty list: nothing is opened, rewritten or closed, and the
+          # step goes red. An empty list is a real answer, usually the true
+          # one, so it is believed at once, except in the one place an absence
+          # makes this step *write*: before opening an issue, the list is asked
+          # again, because an empty answer there opens a duplicate of the issue
+          # it failed to show. (RELEASING.md, Status, v0.22.0)
+          read_issues() {
+            gh issue list --label release-followup --state open --limit 50 \
+              --json number,title > open.json
+          }
+          find_mine() {
+            uv run --quiet python - "$scope" <<'PY'
           import json, sys
           scope = sys.argv[1]
           for issue in json.load(open("open.json")):
@@ -303,7 +314,12 @@ jobs:
                   print(issue["number"])
                   break
           PY
-          )"
+          }
+          if ! read_issues; then
+            echo "::error::the open release-followup issues could not be listed; nothing was opened, rewritten or closed"
+            exit 1
+          fi
+          mine="$(find_mine)"
           others="$(uv run --quiet python - "$scope" <<'PY'
           import json, sys
           scope = sys.argv[1]
@@ -336,8 +352,22 @@ jobs:
             gh issue edit "$mine" --title "$title" --body-file body.md
             echo "rewrote #$mine"
           else
-            gh issue create --label release-followup --title "$title" --body-file body.md
-            echo "opened an issue"
+            for try in 1 2 3; do
+              sleep 5
+              if ! read_issues; then
+                echo "::error::the open release-followup issues could not be listed a second time; no issue was opened"
+                exit 1
+              fi
+              mine="$(find_mine)"
+              [ -n "$mine" ] && break
+            done
+            if [ -n "$mine" ]; then
+              gh issue edit "$mine" --title "$title" --body-file body.md
+              echo "rewrote #$mine, which the first listing did not show"
+            else
+              gh issue create --label release-followup --title "$title" --body-file body.md
+              echo "opened an issue, after four listings showed none for this release"
+            fi
           fi
           # Said whichever way this run went: an open issue about another
           # release is a follow-up nobody finished, and a run that quietly
