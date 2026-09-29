@@ -296,6 +296,14 @@ RECORDED: dict[str, dict[str, str]] = {
         "the lesson; moving the number would claim a later pass audited it",
     },
     "RELEASING.md": {
+        "0.21.2": (
+            "the release commit whose image job skipped, the release on the way "
+            "to which the on-main job was confirmed, its index-race status (the "
+            "waits and the in-build install), the nine reports re-rendered "
+            "against it and the rebase that paid for step 5, and the checks run "
+            "on it rather than recalled. Every one is a fact about a release "
+            "that shipped"
+        ),
         "0.21.1": (
             "the release whose walkthrough step 6 is dated by it (the address "
             "works once since 0.21.1) and whose Status paragraph quotes the "
