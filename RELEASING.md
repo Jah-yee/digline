@@ -161,7 +161,7 @@ locks followed after the release (`c6d0fc5`, *Lock every example to digline
 reading `<0.23` bothered nothing, because nothing installed it before the
 post-release check. Since #196, `gates` runs `uv sync --locked` in every example
 with a lock, and `--locked` refuses a lock that does not match its pyproject. So
-the caps and the six locks now move in the same pull request, or the bump
+the caps and the locks now move in the same pull request, or the bump
 cannot go green. Found on the way to 0.22.0, where the step had never been
 written: the test's own message cited this file for a rule this file did not
 contain.
@@ -2543,7 +2543,7 @@ names.
      for a faked run exactly as it is for a live one.
 
    **The trap, and it is the step immediately before this one: `uv sync` writes
-   a `uv.lock` into the five examples that deliberately keep none.** That lock
+   a `uv.lock` into the examples that deliberately keep none.** That lock
    is untracked, so the tree is dirty, and a report rendered from a dirty tree
    is stamped `-dirty` — *the exact marker the rule above reads as "leave this
    alone"*. Run the step as written and you curate, by accident, the reports it

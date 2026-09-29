@@ -107,3 +107,62 @@ The application being started from outside the suite is not a workaround for
 the format. It is what is true: the thing under test is another process, owned
 by another team, deployed on a schedule you do not control. That is why the
 weekly cron is there — the run nobody triggered is the one that notices.
+
+## What this example shows, and what it does not
+
+It is a **demonstration, not a specification**: what it shows is what runs, on
+every release, against the published package. What it leaves out is not ruled
+out. It is simply not proven here, and for those parts the documentation is the
+contract, not this directory.
+
+Exercised here, end to end:
+
+| | |
+|---|---|
+| `[target.body]` with `case.` references | **exercised** |
+| `output_path`, `cost_path`, `latency_from_response` | **exercised** |
+| `config_path` | **exercised**, and the headline's last sentence reads it |
+| a suspended case | **exercised**: `refund-status` in `cases.json` |
+
+Not shown, so do not read this directory as evidence for any of it:
+
+- **A real model.** `stub.py` answers fixed text, so every run is identical.
+  Your service will not be, and a first comparison against it is where the
+  tolerances earn or lose their keep.
+- **An endpoint behind authentication.** No `headers` here, and nothing about
+  where a token would come from.
+- **`usage_path`, `tools_path` and `tool_calls_path`.** The stub reports no
+  token counts and calls no tools. `examples/langchain4j/` exercises
+  `usage_path`. No example exercises the other two, and langchain4j's README
+  says so.
+- **A judge.** Every check here is deterministic. A judge has rules of its own,
+  and that is a `suite.py` (see above).
+
+## Which check covers what
+
+Two checks in this repository touch this example, and they answer different
+questions. Anybody adding or changing an example should know which is which:
+
+- **The example-locks gate** (`tools/example_locks.py`, in `gates` on every pull
+  request) runs `uv sync --locked` here into a throwaway environment. A green
+  means *it installs as the lock pins it, on Linux, on 3.12 and 3.13*. It
+  imports nothing and runs nothing: it does not start the stub, it does not run
+  the suite, and it does not notice a lock that is out of date, only one that no
+  longer matches `pyproject.toml`.
+- **`examples-from-pypi`** (in `ci.yml`: after a release, weekly, and by
+  dispatch) installs from the index, starts the stub and runs the cycle a reader would
+  run. That is the check that says the example *works*, and it does not run on
+  a pull request. A change that breaks this example goes green on its pull
+  request and red after the release.
+
+The full statement of what the first one does not prove is beside its step in
+`ci.yml`.
+
+**What the lock costs, stated so nobody has to discover it.** `uv.lock` is here
+so that the first check covers this example. The price is that it pins an exact
+digline version. After every release it still names the previous one until
+somebody regenerates it, and until then `uv sync` installs that previous
+version. It is the same post-release step every example with a lock waits on:
+*After the tag* in `RELEASING.md`, which finds the locks by `ls
+examples/*/uv.lock`. And a minor bump moves this lock in the same pull request
+as the caps, or `--locked` refuses it.
