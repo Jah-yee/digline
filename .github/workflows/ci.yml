@@ -66,7 +66,33 @@ jobs:
       - name: Tests
         # Never `live`. It needs a key and it spends money, and CI has neither
         # a reason nor a budget to talk to a provider.
-        run: uv run --python ${{ matrix.python }} pytest -q -m "not live"
+        #
+        # `-n 4`: the runner has four vCPUs, and this step was 91% of the job
+        # — a median of 356s over 24 gate jobs on 2026-09-29, and three times
+        # what it was three weeks earlier. Measured locally before it went in,
+        # two collisions that a serial run cannot have, each caught once:
+        #
+        # - two tests that start `stub.py` on one fixed port, on two workers at
+        #   once. `--dist loadgroup` puts them on one worker; the group and its
+        #   reason are on `STANDALONE_PARAMS` in `tests/test_examples.py`.
+        # - `tests/test_type_gate.py` writes a file into `src/digline/` and
+        #   deletes it, and `tests/test_versions.py` listed it in between and
+        #   then could not read it. That file runs in the next step, alone.
+        #
+        # The rule that came with it. `tests/test_await_index.py` (a two-second
+        # deadline, polled every 0.4s) and `tests/test_view_limits.py` (a
+        # half-second server timeout) wait on the clock, and this runner is
+        # slower than the machine they were measured on. If either goes
+        # intermittent here even once, they leave the parallel run the same
+        # day: `--ignore` them in this step and run them serially in a step of
+        # their own. Not a retry and not a longer timeout — a red that is not
+        # true teaches everyone to ignore reds.
+        run: uv run --python ${{ matrix.python }} pytest -q -m "not live" -n 4 --dist loadgroup --ignore=tests/test_type_gate.py
+
+      - name: Tests that write into the source tree, serially
+        # Its planted files are only safe when nothing else is reading `src/`.
+        # Anything else that writes inside the checkout joins it here.
+        run: uv run --python ${{ matrix.python }} pytest -q -m "not live" tests/test_type_gate.py
 
       - name: Format
         run: uv run --python ${{ matrix.python }} ruff format --check .
