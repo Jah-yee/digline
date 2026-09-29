@@ -77,6 +77,20 @@ Thanks for looking. A few things worth knowing before you open a pull request.
   while writing this bullet: the note went to two sessions, one of them was not
   the one, and it said so in a minute. The noise is the price of the gap, spent
   deliberately rather than discovered.
+- **A process stopped by name is stopped in every tree.** This is the bullet
+  above one level down: worktrees separate files, not processes. `pkill -f
+  'python3 stub.py'` stops the stub you started, and it also stops the one
+  another session started for `quickstart-toml` in its own worktree. Whoever
+  it hits sees a test fail against a service that was up a second earlier,
+  and nothing in that failure points at you.
+
+  The remedy is the same one: **narrow it to what you started.** Stop the
+  process by the PID you know, not by the pattern: `python3 stub.py &
+  STUB=$!`, and later `kill "$STUB"`. The instance that prompted this bullet
+  is a pattern kill used on 2026-09-29 to stop the stub after re-rendering
+  `quickstart-toml`'s report (#223). Whether it stopped anybody else's is not
+  known, and that is the shape: the session on the receiving end would not
+  know either.
 - **If you write a permission as a condition, write what fires it.** A
   condition says *when* the answer will change, and that is worth doing: ADR
   0032 §4a let an agent run `digline migrate` "for as long as every step is
