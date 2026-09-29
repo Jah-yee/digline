@@ -738,7 +738,10 @@ after.** Not the other way round, however much "never push digline alone"
 sounds like it. The two repositories are not symmetrical:
 
 Since 2026-09-23 "land" means the same thing in both: **push the branch, open a
-pull request, wait for green, then merge.** `main` here is protected by a
+pull request, wait for green, then merge.** Here, since 2026-09-29, "merge"
+means enqueue. The queue runs the gates once more and lands the commit about
+three minutes later, so "digline has landed" is the pull request reading
+`MERGED`, not the enqueue returning. `main` here is protected by a
 ruleset nothing bypasses — a pull request (zero approvals), the two `gates`
 checks on the ref, and the branch up to date before merging — so a direct push
 is refused and `git push origin main` is not a step in this file. The ruleset
