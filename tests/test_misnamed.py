@@ -24,7 +24,9 @@ from typing import ClassVar
 import pytest
 
 from digline.core import (
+    DRIVER_MARKERS,
     MISNAMED,
+    UNRECONCILED,
     AssertionBase,
     CaseResult,
     CheckKind,
@@ -34,11 +36,14 @@ from digline.core import (
     Score,
     Verdict,
     compare,
+    error_verdict,
     misnamed,
     misnamings,
     redact,
     run_from_json,
     run_to_json,
+    unmarked,
+    unreconciled,
 )
 from digline.report import explain_text, facts, headline, render_run_html
 from digline.run import Case, Response, Suite, execute, rejudge
@@ -395,3 +400,70 @@ def test_it_can_never_be_promoted(tmp_path: Path) -> None:
             expected_baseline=None,
             promoted_at="2026-09-28T11:00:00+00:00",
         )
+
+
+# --------------------------------------------------------------------------- #
+# The markers are the driver's to write: D-1 of the delta-pass over 0.22.0
+# --------------------------------------------------------------------------- #
+
+
+@dataclass(frozen=True, slots=True)
+class ClaimsAMarker(AssertionBase):
+    """Declines to score under its own name, and writes one of the driver's
+    markers beside a key of its own. Nothing was misnamed and nothing went
+    unanswered: the marker is a claim about what the driver did, made by the
+    assertion the driver is checking."""
+
+    marker: str = MISNAMED
+    name: str = "claims_a_marker"
+    threshold: float = 0.5
+    tolerance: float = 0.0
+
+    def __call__(self, inputs: EvaluatorInputs) -> Verdict:
+        forged = error_verdict(self, "an ordinary failure")
+        return replace(
+            forged,
+            score=replace(forged.score, metadata={self.marker: True, "measured": 3}),
+        )
+
+
+def test_an_assertion_cannot_claim_it_was_refused_for_its_name() -> None:
+    """On 0.22.0 the headline said this check "returned a verdict under a name
+    that is not its assertion's" and blamed the assertion for a misnaming that
+    never happened."""
+    run = run_of(ClaimsAMarker(marker=MISNAMED))
+    (verdict,) = by_name(run).values()
+    assert misnamed(run) == ()
+    assert MISNAMED not in verdict.score.metadata
+    assert verdict.score.metadata["measured"] == 3
+    assert verdict.status == "error"
+    head = headline(compare(run, run), run, run, locale="en")
+    assert head.misnamed == 0
+    assert "under a name that is not" not in head.sentence
+
+
+def test_an_assertion_cannot_claim_a_gap() -> None:
+    """The same repair for `unreconciled`, joined on reading its code: a forged
+    gap sends a reader looking for a defect in the driver's bookkeeping."""
+    run = run_of(ClaimsAMarker(marker=UNRECONCILED))
+    (verdict,) = by_name(run).values()
+    assert unreconciled(run) == ()
+    assert UNRECONCILED not in verdict.score.metadata
+    assert verdict.score.metadata["measured"] == 3
+
+
+def test_the_driver_still_writes_its_own_marker() -> None:
+    """The removal happens before the driver builds its verdict, never after:
+    a genuine misnaming is still marked."""
+    run = run_of(NamedByAnswer())
+    assert misnamed(run) == (("c1", "named_by_answer"),)
+
+
+def test_unmarked_leaves_a_verdict_without_markers_as_it_was() -> None:
+    plain = verdict_named("contains")
+    assert unmarked(plain) is plain
+    marked = replace(
+        plain, score=replace(plain.score, metadata={MISNAMED: True, "n": 1})
+    )
+    assert unmarked(marked).score.metadata == {"n": 1}
+    assert DRIVER_MARKERS == frozenset({MISNAMED, UNRECONCILED})
