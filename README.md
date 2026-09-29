@@ -92,6 +92,10 @@ launched it, and it can be another project's install at another version.
 What it installs, and what its hook does and does not guarantee:
 [`plugins/digline/README.md`](plugins/digline/README.md).
 
+In another agent, the skill alone installs through [skills.sh](https://skills.sh):
+`npx skills add digline/digline --skill operating-digline`. That is the skill
+without the MCP server or the hook, taken from `main` rather than a release.
+
 `suite.py` — complete and runnable, no API key:
 
 ```python
