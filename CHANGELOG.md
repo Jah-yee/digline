@@ -6,7 +6,22 @@ upgrading, and what deliberately did not move. The reasoning lives in
 read the [release titles](https://github.com/digline/digline/releases) — the
 notes under them are this file, verbatim.
 
-## 0.22.1 — unreleased
+## 0.23.0 — unreleased
+
+digline **0.23.0**. One exit code moves, which is why this is a minor, and
+one addition and one other fix come with it. Nothing to migrate.
+
+- **The exit code is a minor although the new value is the right one.**
+  `digline report --redacted` now exits `2` in the one case where its own
+  document already said a pinned file moved. That is what the same report
+  without `--redacted`, and `compare`, already gave for the same runs. Because
+  the new value is correct, a pipeline that passed on 0.22.0 turns red on this
+  release, and a build that passed going red is the reason the rule makes an
+  exit-code change a minor.
+- **The addition is new function, not a repair.** `digline view` now shows a
+  run on its own before there is a baseline, where it answered 404. It
+  replaces a refusal with content: nothing that worked on 0.22.0 stops working
+  or changes meaning, and it adds one public name, `digline.report.run_page`.
 
 ### Added — `digline view` shows a run before there is a baseline
 
