@@ -442,6 +442,14 @@ chosen.
 the rule as worded. Whether a projection can carry no token is not checked
 here.
 
+*Ruled 2026-09-29; the paragraph above is kept as written.* **A document with
+no token at all is read, not refused.** Zero tokens is not the wrong table: it
+is an empty document, and there is nothing in it that another tenant's table
+could resolve. The refusal is for a document that carries tokens of which none
+resolves, and only for that one. Whether a projection can carry no token is
+still not checked; it no longer needs to be, because the answer changes
+nothing the resolver does.
+
 ### 9. Erasure is assisted: the surface shows the cases, with every row beside them
 
 > **Erasure is an assisted act, not an automatic one.** digline knows cases,
@@ -477,6 +485,11 @@ possible. **No size is set here, and nothing counts toward one.**
 **What an erasure records.** The removal of a row is recorded in the ledger by
 the row's token, removal first and entry after (ADR 0035 §4, §6). This record
 adds nothing to that.
+
+*Ruled 2026-09-29.* **Removing a token that has no row is refused, not read as
+done.** Otherwise two removals of one row at once would both read as a
+success, and nothing would tell the one that removed it from the one that found
+it already gone.
 
 ## Consequences
 
@@ -555,7 +568,9 @@ adds nothing to that.
 - **What the approver in capture's election line is.** If it names a person on
   the data owner's side, it is a string to classify, and the line's one
   guarantee — it never carries text — has not been checked against it.
-- **A document with no token at all** (§8).
+- **A document with no token at all** (§8). *Ruled 2026-09-29, in §8: it is
+  read, not refused. The bullet is kept as written, and the question is no
+  longer open.*
 
 ## What this record does not claim
 
