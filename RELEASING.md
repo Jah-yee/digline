@@ -1333,6 +1333,25 @@ uploads, not free:** it moves `publish` to a new attempt, and the approvals
 endpoint forgets attempt 1. `release-followup` keeps its reading for exactly this
 case; see *After the tag*, the reviewer gate.
 
+**It waits for PyPI itself, because no other wait asks its question.** The
+`pypi` job's wait (`await_index.py`) asks `/simple/`, which is what `pip`
+resolves from. This script asks `/pypi/<name>/<version>/json` and then
+`/integrity/…/provenance`, and the JSON page answered 404 behind `/simple/`
+twice. On v0.22.0 that was 43 seconds after the upload, and on v0.23.0 it was
+36. Each time a single read took the 404 for an absence and refused, and the
+re-run was what attached the signatures. So every read now asks again until it
+answers or `TIMEOUT` (600 seconds in `publish.yml`) runs out, and it ends in
+one of three words:
+- **an answer**;
+- **absent**, a 404 that held to the last read, which is refused as before;
+- **unread**, an index that never answered, which exits **2** under *Signatures
+  not judged*.
+
+A re-run is the remedy for the third, and it is not a refusal, because nothing
+was learned about the release. `tests/test_release_bundles.py` holds the wait
+with a control: the same lagging index read once (`TIMEOUT=0`) is refused, and
+the tests written for the wait fail against the script before it.
+
 **Rehearsed by hand on `v0.19.1`, 2026-09-24,** before CI depended on it: two
 bundles (the core's wheel and sdist), ten plugin files skipped by the tag that
 published each (`v0.17.0`, `v0.15.0`, `v0.19.0`), both verified against the
@@ -1586,7 +1605,10 @@ is the one a quiet log cannot supply.
   one-off. It is that now. The change it names, with both halves (read more
   than once, and a third word for *could not be read*), is **owed and not
   made**. Until it is, `github-release` fails on attempt 1 as a matter of
-  course, and the re-run is part of every release.
+  course, and the re-run is part of every release. *Made the same day, after
+  this entry was written:* the script now waits for its own reads and keeps a
+  third word (*Signatures on the GitHub release*, above). The next tag is the
+  first to run it.
   - `gh run rerun --failed` attached both bundles on attempt 2.
   - Before the re-run, the attempt-1 approval had already been read and kept.
     `release-followup` run 36582483933 kept it, and #243 ticks the gate from
