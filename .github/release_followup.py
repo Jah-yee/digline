@@ -90,6 +90,16 @@ STATUS_HEADING = "### Status: what each path has proven"
 #: negative halves are measured against.
 IMPOSSIBLE = "0.0.0"
 
+#: What the workflow writes in place of a reading it could not get: the publish
+#: run was not listed, or an endpoint did not answer, after every retry. **An
+#: absence of an answer is not an answer.** Read as an empty list it would be
+#: one, and a wrong one: on 2026-09-29 a single `gh run list` came back empty,
+#: the empty approvals that followed read as *"records no approved: either the
+#: gate did not hold"*, and an issue said so for nine minutes about a gate that
+#: had held and been read (#215). So this is the third word beside *yes* and
+#: *no*, and a check that meets it says *not judged* instead of either.
+UNREAD = "unread"
+
 
 @dataclass(frozen=True, slots=True)
 class Finding:
@@ -126,6 +136,14 @@ class Finding:
     #: without making the current tree wrong, so no run could close it, and a
     #: red label open for ever is the signal people learn to ignore.
     applicable: bool = True
+
+    #: Whether the check got an answer to judge at all. `False` is the third
+    #: word: not *done*, not *undone*, but *could not be read this time*. Such a
+    #: finding is never ticked, and it never claims the step was skipped either.
+    #: A run whose only unsound findings are unanswered leaves this release's
+    #: issue exactly as it was: it may not open one, rewrite one or close one on
+    #: the strength of a question nobody answered. See `UNREAD`.
+    answered: bool = True
 
     @property
     def sound(self) -> bool:
@@ -275,6 +293,34 @@ def approvals_finding(
     """
     approved = _approved(approvals)
     control_approved = _approved(control)
+    control_said = (
+        "and a run with no gated environment records none"
+        if not control_approved
+        else "but a run with no gated environment also reads as approved, "
+        "so this is not reading approvals"
+    )
+    unread = (
+        "the publish run's approvals could not be read"
+        if approvals == UNREAD
+        else "the approval an earlier run kept could not be looked up"
+        if not approved and attempt >= 2 and kept == UNREAD
+        else None
+    )
+    if unread is not None:
+        return Finding(
+            step="the reviewer gate",
+            ok=False,
+            held=not control_approved,
+            answered=False,
+            said=(
+                f"{unread} after every retry — not judged. An absence of an answer "
+                "is not an answer: it is not evidence the gate failed, and not "
+                "evidence it held. If it persists, check the publish run started "
+                "for this tag at all"
+            ),
+            control_said=control_said,
+            title="the reviewer gate could not be read",
+        )
     carried = None if approved else _kept_by(kept, publish_run, attempt)
     if approved:
         said = "the publish run records an approved"
@@ -302,12 +348,7 @@ def approvals_finding(
         ok=approved or carried is not None,
         held=not control_approved,
         said=said,
-        control_said=(
-            "and a run with no gated environment records none"
-            if not control_approved
-            else "but a run with no gated environment also reads as approved, "
-            "so this is not reading approvals"
-        ),
+        control_said=control_said,
         title=(
             "the reviewer gate's approval is not readable after a re-run"
             if attempt >= 2 and not approved
@@ -489,7 +530,7 @@ def report(findings: Sequence[Finding], version: str) -> dict[str, object]:
         if not finding.applicable:
             lines.append(f"- [~] **{finding.step}** — {finding.said}.")
             continue
-        mark = "x" if finding.sound else " "
+        mark = "x" if finding.sound else " " if finding.answered else "?"
         lines.append(
             f"- [{mark}] **{finding.step}** — {finding.said}; {finding.control_said}."
         )
@@ -516,6 +557,10 @@ def report(findings: Sequence[Finding], version: str) -> dict[str, object]:
 
     return {
         "ok": not unsound,
+        # Every unsound finding is one nobody answered, so this run knows
+        # nothing it may write down: the workflow leaves this release's issue
+        # as it found it, and the run still goes red for whoever is watching.
+        "undecided": bool(unsound) and all(not f.answered for f in unsound),
         # The prefix every title for this release carries, and the only thing
         # that decides which open issue this run may touch. Owned here, where
         # the title is built, so the workflow greps for a string it was given
@@ -610,7 +655,7 @@ def main(argv: list[str]) -> int:
         if not finding.applicable:
             print(f"n/a  {finding.step}: {finding.said}")
             continue
-        mark = "ok  " if finding.sound else "FAIL"
+        mark = "ok  " if finding.sound else "FAIL" if finding.answered else "????"
         print(f"{mark} {finding.step}: {finding.said}; {finding.control_said}")
     return 0 if written["ok"] and all(f.held for f in findings if f.applicable) else 1
 
