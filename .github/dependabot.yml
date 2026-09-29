@@ -72,6 +72,11 @@ updates:
   # The examples that ship a lock. They are what a reader installs, so a stale
   # one is a stale instruction.
   #
+  # Written by hand, while the other readers of those locks
+  # (`tools/example_locks.py`, `.github/release_followup.py`) find them with
+  # `examples/*/uv.lock`. A new lock has to be added here as well, and nothing
+  # fails if it is not.
+  #
   # This used to say every Python advisory against this repository had lived
   # here. That had no source: nothing recorded where each advisory sat. On
   # 2026-09-29 the one Python advisory OSV counts (GHSA-8mgp-746c-j5xp, nltk,
@@ -85,6 +90,7 @@ updates:
       - /examples/llamaindex
       - /examples/mcp-tools
       - /examples/prompt-first
+      - /examples/quickstart-toml
       - /examples/rag
     schedule:
       interval: weekly
