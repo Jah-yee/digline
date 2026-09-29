@@ -83,6 +83,7 @@ updates:
       - /examples/classifier
       - /examples/langchain
       - /examples/llamaindex
+      - /examples/mcp-tools
       - /examples/prompt-first
       - /examples/rag
     schedule:
@@ -102,6 +103,13 @@ updates:
   # moves what the poms *declare*. A fix in a transitive dependency arrives only
   # when a declared parent moves to it: three jackson-databind advisories were
   # published on 2026-09-28, hours after that week's bump had merged.
+  #
+  # And no alert will ever say so. The dependency graph reads these poms'
+  # direct dependencies only — measured 2026-09-29: seven Maven packages, three
+  # of them with no version, because the parent or the BOM manages it, and no
+  # transitive at all. So a Maven advisory reaches this repository only through
+  # Scorecard, which rewrites its one `Vulnerabilities` alert and never opens a
+  # new one. That is a lasting gap, not a lag.
   - package-ecosystem: maven
     directories:
       - /examples/langchain4j/app-spring
