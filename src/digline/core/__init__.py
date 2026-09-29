@@ -83,7 +83,14 @@ from digline.core.diff import (
     Favours,
     diff,
 )
-from digline.core.naming import MISNAMED, misnamed, misnamed_verdict, misnamings
+from digline.core.naming import (
+    DRIVER_MARKERS,
+    MISNAMED,
+    misnamed,
+    misnamed_verdict,
+    misnamings,
+    unmarked,
+)
 from digline.core.pii import (
     ITALIAN_PII,
     PiiPattern,
@@ -330,6 +337,8 @@ __all__ = [
     "misnamed_verdict",
     "misnamings",
     "MISNAMED",
+    "unmarked",
+    "DRIVER_MARKERS",
     "Gap",
     "GapKind",
     "meets",
