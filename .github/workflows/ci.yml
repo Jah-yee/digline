@@ -6,9 +6,9 @@ on:
   pull_request:
   # The merge queue's own ref. Without it the required `gates` never start on
   # that ref and the queue waits on checks that were never going to report —
-  # the shape of PR #82, where a branch push produced zero check runs. It is
-  # here before the queue is switched on, so the queue can be proved to start
-  # the gates rather than assumed to.
+  # the shape of PR #82, where a branch push produced zero check runs. The
+  # sign it has gone missing: a queue entry whose `gh-readonly-queue/main/...`
+  # ref shows no `gates` at all, rather than red ones.
   merge_group:
   schedule:
     # Weekly, so the examples are checked against whatever PyPI serves today —
