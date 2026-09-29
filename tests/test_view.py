@@ -53,6 +53,8 @@ from digline.report import (
     compare_page,
     human_time,
     render_html,
+    render_run_html,
+    run_page,
     runs_page,
     suspend_page,
     suspension_snippet,
@@ -233,6 +235,27 @@ def test_the_comparison_keeps_the_document_rules() -> None:
 def test_the_comparison_page_honours_the_locale() -> None:
     assert "È peggiorato?" in compare_page(RUN_B, RUN_A, locale="it", suite="brief")
     assert "Did it get worse?" in compare_page(RUN_B, RUN_A, locale="en", suite="brief")
+
+
+def test_the_single_run_page_is_the_report_plus_a_bar() -> None:
+    """Before the first promotion `/compare` serves the run on its own, and it
+    is held to the comparison page's rule: take the bar and its rules away and
+    what is left is byte for byte what `digline report` writes in the same
+    state."""
+    page = run_page(RUN_A, locale="en", suite="brief")
+    document = render_run_html(RUN_A, locale="en")
+
+    start = page.index('<nav class="bar">')
+    end = page.index("</nav>\n") + len("</nav>\n")
+    stripped = (page[:start] + page[end:]).replace(VIEW_CSS, "", 1)
+    assert stripped == document
+
+
+def test_the_single_run_page_honours_the_locale() -> None:
+    assert "Esecuzioni" in run_page(RUN_A, locale="it", suite="brief")
+    assert "No reference to compare against" in run_page(
+        RUN_A, locale="en", suite="brief"
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -453,6 +476,21 @@ def test_the_four_routes_answer(served: tuple[str, str]) -> None:
     status, body = get(f"{base}suspend/capital-it?reason=flaky+provider")
     assert status == 200
     assert 'Case(id="capital-it", suspended="flaky provider")' in unescape(body)
+
+
+def test_before_the_first_promotion_compare_shows_the_run(repo: Path) -> None:
+    """It answered 404 "this suite has no baseline yet", which left the first
+    promotion to be chosen from aggregates. Now the route serves what `digline
+    report` writes in the same state: the run, its cases, and the sentence
+    saying there is no reference."""
+    key = run_key(repo)
+    with server(repo) as (base, _line):
+        status, body = get(f"{base}compare?run={key}")
+
+    assert status == 200, body
+    assert "No reference to compare against" in body
+    assert "capital-it" in body
+    assert "Did it get worse?" not in body
 
 
 def test_the_locale_switch_is_a_link_not_a_preference(served: tuple[str, str]) -> None:
@@ -1338,9 +1376,11 @@ def test_the_baseline_keeps_its_own_marker_under_a_changed_configuration() -> No
     assert "is-baseline stale" not in html
 
 
-def test_before_there_is_a_baseline_no_row_offers_to_compare_with_one() -> None:
-    """The link would answer 404. An action that cannot be carried out is not
-    an action."""
+def test_before_there_is_a_baseline_every_row_opens_its_run() -> None:
+    """The first baseline is chosen from this table, and the table carries
+    aggregates only: without a link to the run, a promotion was made by
+    somebody who had not seen one case. The link says *Open*, not *Compare* —
+    there is nothing yet to compare with, and the page behind it says so."""
     html = runs_page(
         [("key-a", RUN_A), ("key-b", RUN_B)],
         baseline_key=None,
@@ -1349,7 +1389,10 @@ def test_before_there_is_a_baseline_no_row_offers_to_compare_with_one() -> None:
         suite="brief",
         allow_promote=True,
     )
-    assert "/compare?run=" not in html
+    assert '<a class="action" href="/compare?run=key-a&amp;locale=en"' in html
+    assert '<a class="action" href="/compare?run=key-b&amp;locale=en"' in html
+    assert ">Open</a>" in html
+    assert ">Compare</a>" not in html
     assert html.count('action="/promote"') == 2
 
 

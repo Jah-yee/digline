@@ -6,9 +6,10 @@ socket, and no screen can depend on being served.
 
 The comparison screen does not render a comparison of its own — it calls
 `render_html`, the same function `digline report` writes to a file, and adds
-a navigation bar. If the page and the exported document ever disagreed about a
-run, that would be a defect rather than a difference of medium, so there is only
-one function that can be wrong.
+a navigation bar; before the first promotion it calls `render_run_html`, which
+is what `digline report` writes then. If the page and the exported document ever
+disagreed about a run, that would be a defect rather than a difference of
+medium, so there is only one function that can be wrong.
 
 The look is the report's: the same palette, the same type, the same table. Two
 deliberate departures, both because a screen is not a document:
@@ -39,7 +40,7 @@ from digline.core import (
 from digline.core import diff as core_diff
 from digline.report import diff as diff_report
 from digline.report.history import CaseEntry, CaseHistory
-from digline.report.render import CSS, escape, render_html
+from digline.report.render import CSS, escape, render_html, render_run_html
 from digline.report.text import LOCALES, MONTHS, Locale, phrase
 
 __all__ = [
@@ -52,6 +53,7 @@ __all__ = [
     "locale_of",
     "nav",
     "phrase",
+    "run_page",
     "runs_page",
     "suspend_page",
     "suspension_snippet",
@@ -633,13 +635,18 @@ def _actions_cell(
     """
     parts: list[str] = []
     # No link on the baseline's own row — a run compared with itself has
-    # nothing to report — and none at all before there is a baseline, rather
-    # than a link whose only possible answer is a 404.
-    if baseline_key is not None and not is_baseline:
+    # nothing to report. Before there is a baseline the same route shows the
+    # run on its own, and the link says that rather than "Compare": the first
+    # promotion is chosen from this table, and the cases behind a row are one
+    # click away or nowhere.
+    if not is_baseline:
+        action = (
+            "view.action.compare" if baseline_key is not None else "view.action.open"
+        )
         parts.append(
             f'<a class="action" href="/compare?run={escape(key)}&amp;locale={locale}"'
-            f' title="{escape(phrase(locale, "view.action.compare.title"))}">'
-            f"{escape(phrase(locale, 'view.action.compare'))}</a>"
+            f' title="{escape(phrase(locale, f"{action}.title"))}">'
+            f"{escape(phrase(locale, action))}</a>"
         )
 
     if is_baseline:
@@ -743,6 +750,23 @@ def compare_page(run: Run, against: Run, *, locale: Locale, suite: str) -> str:
     bar = nav(locale, here="compare", suite=suite)
     # The view's stylesheet has to reach the bar, and the report's `<style>` is
     # the only one in the document.
+    document = document.replace("</style>\n", f"{VIEW_CSS}</style>\n", 1)
+    return document.replace("<body>\n", f"<body>\n{bar}", 1)
+
+
+def run_page(run: Run, *, locale: Locale, suite: str) -> str:
+    """One run on its own, because the suite has no baseline yet.
+
+    What `/compare` serves before the first promotion, and the reason is not
+    the 404 it replaces: it is that the run list shows aggregates and nothing
+    else, so without this page the first baseline was chosen from a row of
+    numbers by somebody who had not seen one case. `render_run_html` is the
+    document `digline report` writes in the same situation, called and not
+    reimplemented, with the bar in front of it — `compare_page`'s rule, and
+    its byte-for-byte test, for the single-run document.
+    """
+    document = render_run_html(run, locale=locale)
+    bar = nav(locale, here="compare", suite=suite)
     document = document.replace("</style>\n", f"{VIEW_CSS}</style>\n", 1)
     return document.replace("<body>\n", f"<body>\n{bar}", 1)
 
