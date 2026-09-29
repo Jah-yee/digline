@@ -1548,6 +1548,65 @@ tag* updates it on every tag, and step 6 is what puts the capture's reading in
 it — including the sentence that says the capture ran and found nothing, which
 is the one a quiet log cannot supply.
 
+- **v0.23.0 — the wait held on both legs again, and the JSON endpoint 404'd
+  a second time, so `release_bundles.py` is now a consumer owed its own
+  wait.** `docker-publish` passed on attempt 1. All three tags resolve to one
+  digest,
+  `sha256:9b8baabbd1344c71fc68ee6287940df02a890d85f903f68f55c0cab115f30db8`.
+  `publish` needed an attempt 2, for the same reason as v0.22.0.
+
+  **Runner level.** `every version is served (after 211s)`, and most of that
+  was the approval: the wait started at 14:18:18 and the upload landed at
+  14:20:50. It read `serial=41586071` (the serial v0.22.0 ended on) via
+  `cache-iad-khef600052-IAD` seven times, the last at 14:21:18, 28 seconds
+  after the upload. At 14:21:48 it read `41598687` via
+  `cache-iad-khef600024-IAD`.
+
+  **Inside the builds, the pair agreed on both legs.** In the smoke build (`#9`,
+  amd64), `side=wait` and `side=pip` both read `41598687` via `khef600024`,
+  and the wait printed `after 0s`. In the multi-arch build (`#15`, arm64), the
+  wait read the stale `41586071` via `khef600052` at 14:24:10. That was three
+  minutes and twenty seconds after the upload, the same lag v0.22.0 measured.
+  At 14:24:26 it read `41598687` via `khef600024` (`served digline==0.23.0
+  (after 16s)`), and only then did `pip` ask, on the same serial. Both legs
+  printed `Successfully installed` with `digline-0.23.0`,
+  `digline-anthropic-0.5.3`, `digline-openai-0.5.2` and
+  `digline-bedrock-0.5.1`. The multi-arch amd64 layers `#10` to `#13` were
+  `CACHED` from the smoke build, so they proved nothing of their own. The
+  capture ran, and the pair was present for every pin. The stale server this
+  time was `khef600052`, the fresh one on v0.22.0. That is the same reading
+  v0.21.2 made: which server lags is luck.
+
+  **The JSON endpoint, a second time.** `publish`'s `pypi` job printed
+  `served digline==0.23.0 (after 10s)` on `/simple/` at 14:21:04. At 14:21:28,
+  36 seconds after the upload and 24 after `/simple/` answered,
+  `release_bundles.py` got a 404 from `/pypi/digline/0.23.0/json`: *digline
+  0.23.0 is in dist/ and not on https://pypi.org*. The v0.22.0 entry said a
+  second 404 would make this a consumer that needs its own wait rather than a
+  one-off. It is that now. The change it names, with both halves (read more
+  than once, and a third word for *could not be read*), is **owed and not
+  made**. Until it is, `github-release` fails on attempt 1 as a matter of
+  course, and the re-run is part of every release.
+  - `gh run rerun --failed` attached both bundles on attempt 2.
+  - Before the re-run, the attempt-1 approval had already been read and kept.
+    `release-followup` run 36582483933 kept it, and #243 ticks the gate from
+    that artifact.
+  - Checked from outside the run: `sigstore verify github --ref
+    refs/tags/v0.23.0` passed on the wheel and on the sdist, each downloaded
+    from PyPI. With `--ref refs/tags/v0.22.0`, both were refused.
+
+  **`listed` never warned.** None of the three `release-followup` runs after
+  the tag printed a `::warning`, so no read needed a retry this time. That
+  says nothing either way about whether the retry pays for itself.
+
+  **Elsewhere.** `uv lock --upgrade-package digline` moved all seven example
+  locks to 0.23.0 on the first pass, without `--refresh-package`. The versions
+  were read back from the seven files before committing.
+
+  **The next tag must show** the pair for every pin again. It must also show
+  whether `github-release` still needs its re-run: yes, unless the owed wait
+  lands first. And once more whether `listed`'s `::warning` lines ever fire.
+
 - **v0.22.0 — the wait held on both legs, and the race reached an endpoint
   that nothing waits for.** `docker-publish` passed on attempt 1. All three
   tags resolve to one digest,
