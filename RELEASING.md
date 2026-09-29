@@ -1622,8 +1622,15 @@ is the one a quiet log cannot supply.
   answers writes `"unread"`, which `approvals_finding` reports as *not
   judged*, and a run whose only open findings are unread leaves the release's
   issue as it found it. It still goes red for whoever is watching.
-  **`release_bundles.py` has neither half yet**: it makes one request, takes a
-  404 as an absence, and refuses on the spot.
+  The open-issue listing in the same workflow had the defect too: a failed
+  `gh issue list` was an error, but an empty one was believed on one read, and
+  in front of `gh issue create` that opens a duplicate of the issue the listing
+  failed to show. Simulated with a stub `gh` whose listing shows the issue on
+  the third read, the step as it stood created a second issue. It now stops on
+  a failed listing, and lists again up to three more times before opening
+  anything. **`release_bundles.py` has neither half yet**: it makes one
+  request, takes a 404 as an absence, and refuses on the spot. It is left for
+  a change of its own, which needs both halves, not only the retry.
 
   **Elsewhere, and this one was not the index.** The first
   `uv lock --upgrade-package digline` pass left `classifier` at 0.21.2 while the
