@@ -1,14 +1,26 @@
 # ADR 0036 — The name table, and the process that owns it
 
-- Status: proposed 2026-09-29 — the text first, checkpointed before any code,
-  the way [ADR 0034](0034-the-store-outside-and-the-reference-that-names-nothing.md)
-  and [ADR 0035](0035-the-record-of-a-deletion.md) were. Nothing in it is
-  implemented. **Most of what it states was settled before it was written**, in
-  discussion, and is recorded here as settled. The rest are **decisions this
-  record takes itself**. They are marked *decided here* where they are made, so
-  that acceptance can rule on them one by one. **One of them overturns a
-  sentence of an accepted record**: ADR 0034 §6 puts the table behind an
-  optional protocol of the store, and §2 below refuses that
+- Status: accepted 2026-09-29, by Alessandro Prandini — the text first,
+  checkpointed before any code, the way
+  [ADR 0034](0034-the-store-outside-and-the-reference-that-names-nothing.md)
+  and [ADR 0035](0035-the-record-of-a-deletion.md) were. It landed on `main`
+  as proposed earlier the same day; nothing in it is implemented. **Most of
+  what it states was settled before it was written**, in discussion, and is
+  recorded here as settled. The rest are **decisions this record takes
+  itself**, marked *decided here* where they are made so that acceptance could
+  rule on them one by one. **Acceptance ruled all four as written**: the table
+  outside the store, reached through two callables (§2); its place, a reserved
+  name in the tenant's directory (§2); the token as the key and the kind as a
+  check (§3); tokens per (tenant, suite), with the run key joining nothing in
+  the table (§4). **One of them overturns a sentence of an accepted record**:
+  ADR 0034 §6 puts the table behind an optional protocol of the store, and §2
+  below refuses that. Before acceptance, the same day, **§6's condition gained
+  one table per (tenant, suite)**, and **§9 stopped saying it added nothing to
+  ADR 0035**, since whose code writes a row's ledger entry is open. Both are
+  dated in their sections. The status named no condition of acceptance, and
+  none was added: the conditions the design rests on are written where they
+  are made (§5, §6, §9). **What it amends is made in the change that accepts
+  it**, as ADR 0034's acceptance found it should have been
 - Shipped: unreleased
 - Date: 2026-09-29
 - Opens: **nothing on landing.** No `SCHEMA_VERSION`, no `OUTPUT_VERSION`, no
@@ -45,7 +57,8 @@
   [ADR 0035](0035-the-record-of-a-deletion.md) §4 (an entry names a removed
   row by its token), §8 (an expired token is not reused, for as long as tokens
   are not derived) and §10 (the ledger is off every read path)
-- Amends, **at acceptance**: [ADR 0034](0034-the-store-outside-and-the-reference-that-names-nothing.md)
+- Amends, **at acceptance** — made on 2026-09-29, in the change that accepted
+  this record: [ADR 0034](0034-the-store-outside-and-the-reference-that-names-nothing.md)
   §6, in three places — *"behind its own optional protocol — the
   `SupportsRegister` precedent"* (§2 below), *"(kind, token) ↔ text"* as the
   key (§3), and *"The join key is the run key"* (§4). And ADR 0034 §3's
@@ -201,7 +214,8 @@ cost.** Four costs, and they accumulate:
 
 - **ADR 0034 §6 is wrong as written, and an accepted record is amended.** The
   clause is struck at acceptance, with a dated note in 0034 beside it, the way
-  every earlier correction to 0034 was made.
+  every earlier correction to 0034 was made. *Made 2026-09-29, in the change
+  that accepted this record.*
 - **ADR 0034 §14's delete does not reach the table by construction.** It would
   have, as a sixth item behind the store. §4 says why that is right rather
   than a loss: a run's removal must not remove rows. But it means nothing in
@@ -344,8 +358,8 @@ table's design that keeps it so"*. This is that design.
 
 > **Minting is one act: look the (kind, text) up, and mint only if it is
 > absent.** It is keyed by (kind, text), not by text. **It is atomic because
-> one process owns the table**, and an in-process lock closes the window
-> between the look-up and the mint.
+> one process owns the table, and holds one table per (tenant, suite)**, and
+> an in-process lock closes the window between the look-up and the mint.
 
 **Why (kind, text).** Keyed by the text alone, one string used as a group
 label and as a configuration value would get one token, and a projection would
@@ -361,19 +375,32 @@ collision, and §5 makes it unhandleable.
 
 **Why one process is the answer, and nothing is added.** The process that owns
 the table is one process per data owner, never one for several. With one
-process there are never two writers at once, and an in-process lock closes the
-window completely. The process's shape removes a named hole instead of adding
+process holding one table per (tenant, suite), there are never two writers at
+once, and an in-process lock closes the window completely. The process's shape removes a named hole instead of adding
 work, as it would for ADR 0031's check-then-rename window, which 0031 leaves
 open in its own words: *"Closing that needs a lock."* A single owning process
 holds that lock for free.
 
 **Written as the condition it rests on:** the lock is sufficient **for as long
-as nothing outside the owning process writes the table**. Two processes on one
-store, or any outside program touching the file, and the lock guards nothing.
-**Nothing detects a second writer today**, and this record provides no
-detection. A lease on the table, the obvious detector, is the stale lock ADR
-0031 refuses — a lease left by a killed process blocks everything behind it —
-and what clears one is not decided here.
+as nothing outside the owning process writes the table, and the process holds
+one table per (tenant, suite)**. Two processes on one store, or any outside
+program touching the file, and the lock guards nothing.
+**Nothing detects a second writer outside the process today**, and this record
+provides no detection. A lease on the table, the obvious detector, is the stale
+lock ADR 0031 refuses — a lease left by a killed process blocks everything
+behind it — and what clears one is not decided here.
+
+*Ruled 2026-09-29.* **Inside the process, a second table for a (tenant, suite)
+it already holds is refused.** The first half of the condition does not cover
+it. Two tables for one (tenant, suite) in the owning process are two locks,
+each sufficient for its own table and neither for the other. The same (kind,
+text) gets one token from each, and the two pair as `new` plus `missing`, exit
+0 — the hazard this section closes. It is not a race and not an outside
+writer. Once the table is on disk it becomes a second writer inside the
+process, with the first half of the condition still met. **The section already
+assumed one table; the condition now says so, and the refusal enforces it.**
+The refusal is the owning process's, not digline's: digline never holds a
+table (§2), so `host.REFUSALS` does not carry it.
 
 ### 7. Three writers, and all three run inside the owning process
 
@@ -390,7 +417,8 @@ condition without needing an accident.
 - **The projection** mints the tokens of a reference. ADR 0034 §3 places it
   *"where the whole value and the name table are, which is the data owner's
   side"*. That is no longer enough: it runs **inside the process that owns the
-  table**. The amendment to §3 is made at acceptance.
+  table**. The amendment to §3 is made at acceptance. *Made 2026-09-29, in
+  the change that accepted this record.*
 - **The election** mints the token of a case elected at a served page at the
   data owner's side. **The software house records it as one line: a token, a
   date and who approved it, never a word of the text.** That is capture's
@@ -483,8 +511,11 @@ possible. **No size is set here, and nothing counts toward one.**
 **The surface runs where the eraser runs: inside the owning process** (§7).
 
 **What an erasure records.** The removal of a row is recorded in the ledger by
-the row's token, removal first and entry after (ADR 0035 §4, §6). This record
-adds nothing to that.
+the row's token, removal first and entry after (ADR 0035 §4, §6). **The process
+that performs that removal, and so appends that entry, is the owning process,
+which is not digline's** (§7). ADR 0035 describes its writer as digline's: its
+configuration, its format, its notices and its refusal in `host.REFUSALS`.
+**Whose code appends the entry for a row's removal is not decided here.**
 
 *Ruled 2026-09-29.* **Removing a token that has no row is refused, not read as
 done.** Otherwise two removals of one row at once would both read as a
@@ -506,11 +537,13 @@ it already gone.
 - **A run's removal never removes a row** (§4). Only an erasure does, and only
   inside the owning process.
 - **Two refusals**: a document in which no token resolves, and a row of the
-  wrong kind (§3, §8).
+  wrong kind (§3, §8). And one refusal that is the owning process's, not
+  digline's: a second table for a (tenant, suite) it already holds (§6).
 - **Three conditions this design rests on**, each written where it is made:
   the token space is too large for a collision to be handled (§5); nothing
-  outside the owning process writes the table (§6); a suite can be read in
-  full by the person erasing (§9).
+  outside the owning process writes the table, and the process holds one
+  table per (tenant, suite) (§6); a suite can be read in full by the person
+  erasing (§9).
 
 ## Alternatives considered
 
@@ -565,6 +598,13 @@ it already gone.
   It changes what every case that carried it is grouped by.
 - **How a person is expected to recognise a row as personal** (§9). The
   assisted erasure assumes it and does not provide it.
+- **Whose code appends the ledger entry for a row's removal** (§9). The
+  writer is the owning process, which is not digline's. The code it uses may
+  be digline's, published and called the way the resolver is, or the owning
+  process's own. If it is the owning process's own, ADR 0035's format, notices
+  and refusal do not reach it. Also open: **whether a run's removal and a
+  row's removal append to one ledger**. If they do, that is two writers on one
+  path, the case ADR 0035 §6's condition excludes.
 - **What the approver in capture's election line is.** If it names a person on
   the data owner's side, it is a string to classify, and the line's one
   guarantee — it never carries text — has not been checked against it.
