@@ -98,6 +98,13 @@ elected case — a token, a date, and who approved it, never a word of the text.
 **That line resolves through the same table**, so capture now waits on it as
 the projection does.
 
+*Noted 2026-09-29: "not yet written into it" is still true to the letter, and
+it will stay true — the election is not written into ADR 0023 and will not be.
+It is written in
+[ADR 0037](0037-the-review-interface-and-the-election-recorded-where-the-text-is-not.md)
+§5 and §8, proposed, a record of its own; ADR 0023 carries dated notes
+pointing there. The sentence above is kept as written.*
+
 **ADR 0034 §6 gives the table a skeleton, and every rule that makes it work is
 missing.** The skeleton: one table per (tenant, suite), at the data owner's
 side, behind its own optional protocol of the store, holding
