@@ -345,8 +345,16 @@ jobs:
         # needs no `id-token`. Why the packages stay off the release is in
         # RELEASING.md, *Signatures on the GitHub release*; the refusals are in
         # the script's docstring, and an empty list is one of them.
+        #
+        # It waits for its own reads, because the `pypi` job's wait asks
+        # `/simple/` and this asks `/pypi/…/json` and `/integrity/…`, which
+        # answered 404 behind `/simple/` on v0.22.0 and v0.23.0. Ten minutes,
+        # like that wait: a CDN catching up. Exit 2 is *not judged*, an index
+        # that never answered, and the remedy is a re-run.
         env:
           GH_TOKEN: ${{ github.token }}
+          TIMEOUT: "600"
+          INTERVAL: "10"
         run: |
           python .github/release_bundles.py "$GITHUB_REF_NAME" /tmp/bundles
           # The script chose the files by the ref its certificate names; this
