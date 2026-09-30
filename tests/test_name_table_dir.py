@@ -57,6 +57,7 @@ def a_run(suite: str = "test-suite") -> Run:
                         tolerance=0.0,
                         status="pass",
                         reason="found",
+                        assertion_id="contains",
                     ),
                 ),
             ),

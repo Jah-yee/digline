@@ -69,6 +69,7 @@ def test_a_case_result_cannot_be_both_suspended_and_judged() -> None:
                     threshold=1.0,
                     status="pass",
                     reason="r",
+                    assertion_id="x",
                 ),
             ),
             suspended=WHY,

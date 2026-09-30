@@ -219,6 +219,19 @@ rules are applied to.
    baseline, because that is where `compare()` has to find it again. The default is the
    score's name, which is correct whenever a case carries a single assertion per name.
 
+   *Amended 2026-09-30 (#263, check 4); the sentence above is kept as written.* **There
+   is no default any more.** `assertion_id` is keyword-only with no default, and an empty
+   one is refused with `UnidentifiedVerdictError`. The default fired only where a verdict
+   was built with `""`, and on both routes that reach it, it was wrong:
+   - **A document carrying `""`** was read by deriving the identity from the name, which
+     is the silent fallback the paragraph on `SCHEMA_VERSION` below says must be refused.
+     On a projected document (ADR 0034) it copied a verdict name's token into
+     `assertion_id`, a field that crosses in clear.
+   - **An assertion that did not pass one** had its verdict filed under its name, not
+     under its identity, and the driver recorded the result as an unreconciled gap rather
+     than naming the assertion. Now the refusal is raised inside the assertion's call, so
+     it is that assertion's errored verdict, and the reason names the class.
+
    The occurrence survives as a tie-breaker between verdicts that share an identity — the
    same assertion, identically configured, applied twice to the same case. There, position
    is the only thing left, and it is correct precisely because the two are

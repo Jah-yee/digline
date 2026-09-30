@@ -1676,10 +1676,14 @@ these arrived without one. Each delta carries `within_noise`, `noise_min`,
 
 ## Verdicts and comparison
 
-`Verdict(score, threshold, status, reason, tolerance, assertion_id)` with
+`Verdict(score, threshold, status, reason, tolerance, *, assertion_id)` with
 `status` in `"pass" | "fail" | "error"`. `passed` is derived. It is not possible
 to build one that contradicts itself: a `status` disagreeing with
-`score >= threshold` is refused.
+`score >= threshold` is refused. `assertion_id` is keyword-only and has no
+default. An empty one is refused with `UnidentifiedVerdictError`, which is in
+`REFUSALS`: it is what `compare()` pairs on, and one derived from the name would
+pair verdicts that were never the same check. An assertion built on
+`AssertionBase` passes its `identity` and never meets it.
 
 `compare(run, baseline) -> Comparison` returns one `AssertionDelta` per verdict,
 with outcome `regressed`, `improved`, `unchanged`, `new`, `missing`, `errored`,
