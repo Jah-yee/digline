@@ -40,6 +40,7 @@ from digline.host.measure import (
     prepare,
     seed_observed,
 )
+from digline.host.promotion import pricing_for, promote, promote_priced
 from digline.host.reading import (
     Explained,
     Reported,
@@ -88,6 +89,9 @@ __all__ = [
     "load_toml_suite",
     "measure",
     "prepare",
+    "pricing_for",
+    "promote",
+    "promote_priced",
     "need_baseline",
     "read_artifacts",
     "read_pinned",
