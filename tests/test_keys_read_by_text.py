@@ -18,6 +18,12 @@ is on the list below with a reason somebody wrote beside it. It does not mean
 the reason is right. Scope: `digline.core` only, which is where the checks a
 document meets at construction live. The same keys are read by text in
 `targets`, `host`, `report` and `wire`, and none of those is watched here.
+
+One instance outside that scope is known and left as it is, because it is ADR
+0034 §15's question (what a reader at the software house loses) and not this
+one. On a comparison of two projections, a first-party `resolved_model` arrives
+as a token, so `report.render` misses it in `OBSERVED_FIELDS` and says "not
+sent for the reference" where the same delta in clear says "not reported". (#275)
 """
 
 from __future__ import annotations
