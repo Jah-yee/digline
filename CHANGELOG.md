@@ -6,7 +6,7 @@ upgrading, and what deliberately did not move. The reasoning lives in
 read the [release titles](https://github.com/digline/digline/releases) — the
 notes under them are this file, verbatim.
 
-## 0.24.0 — unreleased
+## 0.24.0 — 2026-09-30
 
 digline **0.24.0**. One exit code moves, which is why this is a minor, and
 one addition comes with it. Nothing to migrate.
@@ -49,6 +49,18 @@ one addition comes with it. Nothing to migrate.
 - **Only an import.** Any other exception raised by a suite's own code is still
   the unexpected exception it was, because dressing a bug as a sentence hides
   it (ADR 0011 §10).
+
+### Not owed — the browser walkthrough
+
+- **The walkthrough in `RELEASING.md` (ADR 0033 §8) was not owed for this
+  release.** Nothing in the launch key, the hand-over or the promote form
+  changed since 0.22.0, which ran it, and 0.23.0 declared the same. The check
+  was a diff between `v0.23.0` and this release's tree, not a recollection.
+  Nothing under `cli/`, `report/` or `wire/` moved. In `store/`, the file store
+  gained `name_table_dir`, its constant and one `.gitignore` line, and
+  `promote_baseline` is untouched. In `host/`, only `loader.py` moved. It
+  guards the suite's `exec` for a missing import, which fails before a server
+  starts.
 
 ## 0.23.0 — 2026-09-29
 
