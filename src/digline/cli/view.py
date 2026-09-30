@@ -71,7 +71,7 @@ from pathlib import Path
 
 from digline.cli.output import say
 from digline.core import key_of
-from digline.host import REFUSALS, replacing
+from digline.host import REFUSALS, promote_priced
 from digline.report import Locale, case_history, escape, pages
 from digline.run import Suite
 from digline.store import ResultStore, RunRef, utc_now_iso
@@ -673,12 +673,17 @@ class ViewHandler(BaseHTTPRequestHandler):
             self._error(400, "promote needs the baseline it replaces")
             return
 
-        ref = RunRef(tenant=self.suite.tenant, suite=self.suite.name, key=key)
         try:
-            self.store.promote_baseline(
-                ref,
-                self.suite.config_hash(pricing=self.pricing),
-                expected_baseline=replacing(expected),
+            # The pricing was computed once, at launch, by the function
+            # `digline.host.promote` uses: resolving the target on every
+            # request would import the user's target module per promotion.
+            promote_priced(
+                self.store,
+                self.suite,
+                self.pricing,
+                key,
+                # What the page was drawn against. (ADR 0031 §1)
+                replacing=expected,
                 promoted_at=utc_now_iso(),
             )
         except REFUSALS as exc:
