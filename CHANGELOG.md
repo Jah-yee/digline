@@ -6,7 +6,7 @@ upgrading, and what deliberately did not move. The reasoning lives in
 read the [release titles](https://github.com/digline/digline/releases) — the
 notes under them are this file, verbatim.
 
-## 0.24.1 — unreleased
+## 0.24.1 — 2026-09-30
 
 digline **0.24.1**. New surface for a program that drives digline, and one
 function added to `digline.host`. Nothing that worked on 0.24.0 stops working,
@@ -33,6 +33,36 @@ refusals by the classification (#232). `docs/api.md` now names, in
   before it had a name on the page.
 - **`REFUSALS`**, as a tuple to catch and not to extend. A class leaves it only
   with a changelog entry. `NOT_REFUSALS` stays internal.
+
+### Seen working in a browser — the walkthrough, owed and run
+
+- **The walkthrough in `RELEASING.md` ran on 2026-09-30, before the tag,** on
+  `c001f5c`, in one browser engine. It was owed because `POST /promote` now
+  promotes through `promote_priced`, where it used to call `promote_baseline`
+  directly. The hash and the `replacing` it passes are the same ones. The
+  origin check, the cookie, the launch key and the form did not change.
+  - **Which digline ran:** `digline.__file__` resolved to the release
+    checkout's `src/digline/`, at 0.24.1.
+  - **The promotion worked:** *Make baseline*, pressed on the row that was not
+    the baseline, moved the baseline to it. This was the first time a real
+    browser went through `host.promote`.
+  - **Four refusals, each with a different cause and a different message.**
+    - A private window with no cookie was refused with *carries no cookie from
+      this server*.
+    - After a restart, the old tab's cookie was refused as *not issued by this
+      start … from an earlier start*.
+    - The previous start's address, opened against the new server, was refused
+      as *a launch key from another start*.
+    - The new server's address, opened a second time, was refused as
+      *already been opened*.
+
+    The baseline did not move after any of the four.
+  - **Read off the page, not off `git diff`.** The scratch store's `.digline/`
+    was never committed, so `git status` showed it as `??` and the check step 3
+    describes could not be run there. The setup in `RELEASING.md` now commits
+    the baseline before step 3.
+  - **Not tried:** a second browser engine, and the new refusal for `latest`,
+    which the page never sends.
 
 ## 0.24.0 — 2026-09-30
 
