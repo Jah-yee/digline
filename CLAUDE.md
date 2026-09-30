@@ -293,6 +293,17 @@ artifacts that today exists in none of the audited competitors.
     not allowed*. Use the web button, or the GraphQL mutation
     `enqueuePullRequest` with the pull request's id and `expectedHeadOid` set
     to the head you watched go green.
+  - **Whoever merges closes the issues by hand.** Do it once the pull
+    request's state reads `MERGED`, not when the enqueue returns: the enqueue
+    returns at once and the merge comes one gate run later. Close each issue
+    with a comment that names the pull request and its merge commit, then
+    check that each one reads `CLOSED`.
+    *Observed 2026-09-30, twice.* Through the queue, `Closes #N` in a pull
+    request's description no longer links the issue and no longer closes it:
+    the pull request's `closingIssuesReferences` came back empty. #253 left
+    #234 open, and #259 left #256 and #232 open. Keep writing `Closes #N`
+    anyway, because it still tells a reader which issues the pull request
+    answers.
   - **It depends on `merge_group` in `ci.yml`**, which is the same failure as
     PR #82 in a new place. Without that trigger nothing starts on the queue's
     ref, and the queue waits on checks that never report. The trigger landed
