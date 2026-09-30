@@ -69,6 +69,11 @@
   reasoning belongs to the link, not to the rows (0036 §4). **The projection
   is produced inside the process that owns the table** (0036 §7), which is
   narrower than where the whole value and the table are
+- Amended: 2026-09-30 — **§9 gains a note beside its text**: `compare()`
+  refuses a pair whose `projected` differs, because across the regime every
+  case paired as `new` plus `missing` and a regression exited 0. The same
+  failure between two projections from different tables stays open, as ADR
+  0036's question
 - Opens: **nothing on landing.** No `SCHEMA_VERSION`, no `OUTPUT_VERSION`, no
   `REGISTER_VERSION`, no `JOURNAL_VERSION`, no migration — nothing is
   implemented. At implementation §8 is a field in the run document and
@@ -780,6 +785,18 @@ metadata emptied, and `reasons_available` false in every report. **A regime
 that is declared is a fact; a reference that quietly cannot answer is the
 defect ADR 0029 gave exit 2 to avoid.** This record takes the declared regime,
 and §16 is the test that the undeclared case is refused.
+
+*Added 2026-09-30, from the delta-pass over 0.25.0 (F-1); the paragraphs above
+are kept as written.* **A declared regime has a consequence this section did
+not draw: a comparison across it.** `compare()` read no regime. A clear run
+compared with a projected reference paired every case as `new` plus
+`missing`, and a real regression exited 0 with *Nothing got worse*. So
+`compare()` now refuses a pair whose `projected` differs, as
+`DifferentRegimesError`, beside the tenant's refusal. **It does not close the
+same failure between two projections minted from different tables**, which
+both declare the regime. Nothing in a projected document says which table
+minted it, and that is [ADR 0036](0036-the-name-table-and-the-process-that-owns-it.md)'s
+question, open.
 
 ### 10. ADR 0007 §7's premise, ruled here
 

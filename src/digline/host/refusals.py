@@ -24,6 +24,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
+from digline.core.compare import DifferentRegimesError
 from digline.core.diff import DifferentJudgesError, DifferentSuitesError
 from digline.core.projection import ProjectionRefusedError
 from digline.core.resolution import (
@@ -64,6 +65,7 @@ REFUSALS: tuple[type[Exception], ...] = (
     # core
     DifferentSuitesError,
     DifferentJudgesError,
+    DifferentRegimesError,
     DocumentRefusedError,
     ProjectionRefusedError,
     NotProjectedError,

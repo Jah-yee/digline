@@ -6,6 +6,25 @@ upgrading, and what deliberately did not move. The reasoning lives in
 read the [release titles](https://github.com/digline/digline/releases) — the
 notes under them are this file, verbatim.
 
+## 0.25.1 — unreleased
+
+### Fixed — a comparison across the projection hid a regression (delta-pass over 0.25.0)
+
+- **`compare()` refuses a pair in which one run is projected and the other is
+  not**, as **`DifferentRegimesError`**, new in `digline.core` and in
+  `host.REFUSALS`. The CLI exits 64 on it, as on two tenants. Across the
+  regime, one side names its cases by token and the other by text, so every
+  case read as `new` plus `missing`. A clear run with a real regression,
+  compared with a projected reference, exited **0** with *Nothing got worse*.
+  The same run against the clear reference exits 1, and still does. The store
+  reached it too: nothing refuses promoting a projection (ADR 0034 §9 is not
+  built), and a clear run then compared green against it.
+- **Not closed: two projections minted from different tables.** Both declare
+  `projected`, and nothing in a document says which table minted it, so a
+  rebuilt table still turns a regression into `new` plus `missing`. That is an
+  open question of ADR 0036, and a test holds it as an expected failure that
+  turns red the day it is answered.
+
 ## 0.25.0 — 2026-09-30
 
 digline **0.25.0**. The projection: the reference a software house commits

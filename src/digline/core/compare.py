@@ -28,6 +28,7 @@ __all__ = [
     "ConfigDelta",
     "Denominator",
     "ConfigOutcome",
+    "DifferentRegimesError",
     "Direction",
     "Expansion",
     "Noise",
@@ -84,6 +85,21 @@ type Expansion = Literal["new_group", "now_grouped", ""]
 #: an assertion and not a parameter: it is the one member of `config_hash` no
 #: document holds, and the row exists to say exactly that. (ADR 0028 §5)
 AGREEMENT_FIELD = "min_agreement"
+
+
+class DifferentRegimesError(ValueError):
+    """Raised when one of the two runs is projected and the other is not.
+
+    A `ValueError`, like `DifferentSuitesError`, so the CLI's handler maps it to
+    `EXIT_USAGE`; and a class of its own, in `host.REFUSALS`, so a front end
+    that translates refusals by name translates this one. (Delta-pass over
+    0.25.0, F-1)
+    """
+
+
+def _regime(run: Run) -> str:
+    return "projected" if run.projected else "not projected"
+
 
 type _Key = tuple[Scope, str, str, int]
 
@@ -932,6 +948,15 @@ def compare(run: Run, baseline: Run) -> Comparison:
     scale, so the mistake is arithmetically valid and factually nonsense — one
     end customer's results read as another's history.
 
+    Comparing a projected document with one that is not raises too, as
+    `DifferentRegimesError`. One side names its cases by token and the other by
+    text, so every case would pair as `new` plus `missing`, which exits 0: a
+    regression read against the projected reference disappeared. **It does not
+    close the other shape of the same failure**: two projections minted from
+    different tables both declare `projected`, and nothing in a document says
+    which table minted it. That is ADR 0036's question, and it is open.
+    (Delta-pass over 0.25.0, F-1)
+
     Comparing across *environments* does not raise, and must not: running the
     staging suite against the production baseline is the pre-release check the
     whole product exists for. Both environments are reported on the
@@ -946,6 +971,14 @@ def compare(run: Run, baseline: Run) -> Comparison:
         raise ValueError(
             f"cannot compare across tenants: run is {run.tenant!r}, "
             f"baseline is {baseline.tenant!r}"
+        )
+    if run.projected != baseline.projected:
+        raise DifferentRegimesError(
+            "cannot compare a projected document with one that is not: "
+            f"the run is {_regime(run)} and the baseline is {_regime(baseline)}. "
+            "One names its cases by token and the other by text, so no case "
+            "would meet its counterpart, and a regression would read as new "
+            "plus missing"
         )
     current, previous = index_verdicts(run), index_verdicts(baseline)
     # Which cases watch the model, as **this run** declares it. The baseline is
