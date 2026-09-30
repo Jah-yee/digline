@@ -9,7 +9,7 @@ notes under them are this file, verbatim.
 ## 0.24.0 — unreleased
 
 digline **0.24.0**. One exit code moves, which is why this is a minor, and
-one addition comes with it. Nothing to migrate.
+two additions come with it. Nothing to migrate.
 
 - **The exit code.** A suite file whose import cannot be satisfied used to
   crash with a traceback, and Python's exit status for that is `1` — the value
@@ -17,9 +17,10 @@ one addition comes with it. Nothing to migrate.
   the module, and exits `64`, like every other usage error. The new value is
   the right one, and a pipeline that read `1` there reads something else now,
   which is what the rule makes a minor.
-- **The addition is new surface, and on its own it would be a patch.**
+- **The additions are new surface, and on their own they would be a patch.**
   `FileResultStore.name_table_dir` and `NAME_TABLE_DIRNAME`, and a reserved
-  `name-table/` directory in the tenant's layout. Nothing that worked on 0.23.0
+  `name-table/` directory in the tenant's layout; and a documented way for a
+  program to read, promote and catch refusals. Nothing that worked on 0.23.0
   stops working.
 
 ### Added — the name table's directory
@@ -35,6 +36,28 @@ one addition comes with it. Nothing to migrate.
 - **The generated `.gitignore` gains `*/name-table/`**, because the table is
   never committed. A `.gitignore` digline generated earlier is not rewritten:
   add the line by hand before the table is written.
+
+### Added — reading and promoting from a program
+
+A program that drives digline could build a store and could not read from it
+or promote through it by any documented name (#256), nor catch digline's
+refusals by the classification (#232). `docs/api.md` now names, in
+*Reading and promoting from a program*:
+
+- **`FileResultStore.read_run` and `read_baseline`**, with the refusals each
+  raises. `scan_runs` stays internal: `resolve_key` already gives the newest
+  run.
+- **`digline.host.promote(store, loaded, key, *, target, replacing,
+  promoted_at)`**, new. It computes the configuration hash from the suite and
+  the target measured. `promote_baseline` took that hash as an argument, and
+  the value in reach was the run's own, which passes every time. `promote` is
+  what `digline promote` now calls. It refuses `latest`: resolve it with
+  `resolve_key` first.
+- **`Loaded`**, as an opaque value: what `load_suite` returns, passed back to
+  `load_target` and `promote`. Its fields stay internal. `load_target` took it
+  before it had a name on the page.
+- **`REFUSALS`**, as a tuple to catch and not to extend. A class leaves it only
+  with a changelog entry. `NOT_REFUSALS` stays internal.
 
 ### Fixed — a suite with a missing import reached an agent as five words
 
