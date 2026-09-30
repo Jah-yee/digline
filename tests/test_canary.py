@@ -197,6 +197,7 @@ def test_a_canary_does_not_delete_the_runs_noise_interval() -> None:
             threshold=0.7,
             status="pass",
             reason="judged",
+            assertion_id="contains",
         ),
     )
     odd = CaseOutcome(
@@ -213,6 +214,7 @@ def test_a_canary_does_not_delete_the_runs_noise_interval() -> None:
             threshold=0.7,
             status="pass",
             reason="judged",
+            assertion_id="contains",
         ),
         canary=True,
     )

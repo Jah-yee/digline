@@ -110,6 +110,7 @@ def a_run(created_at: str, *, score: float = 1.0) -> Run:
                         tolerance=0.0,
                         status="pass" if score >= 1.0 else "fail",
                         reason="found" if score >= 1.0 else "missing",
+                        assertion_id="contains",
                     ),
                 ),
             ),

@@ -33,7 +33,12 @@ def verdict(
 ) -> Verdict:
     """`status` is derived, never passed in: `Verdict.__post_init__` now refuses
     a status that contradicts score-against-threshold, so there is nothing left
-    for a caller to override."""
+    for a caller to override.
+
+    `assertion_id` falls back to the name here, in the helper, because
+    `Verdict` refuses an empty one (#263): one assertion per name per case is
+    what these tests build."""
+    assertion_id = assertion_id or name
     if score is None:
         return Verdict(
             score=Score(name=name, score=None),

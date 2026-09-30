@@ -54,6 +54,7 @@ def run(created_at: str, *, status: str = "pass") -> Run:
                         tolerance=0.0,
                         status=status,  # type: ignore[arg-type]
                         reason="found",
+                        assertion_id="contains",
                     ),
                 ),
             ),

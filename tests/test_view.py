@@ -557,12 +557,14 @@ def test_escaping_is_the_only_barrier_on_the_page_that_shares_the_promote_origin
                 threshold=0.7,
                 status="fail",
                 reason=hostile("reason"),
+                assertion_id=hostile("verdict_name"),
             ),
             Verdict(
                 score=Score(name=hostile("error_name"), score=None),
                 threshold=0.7,
                 status="error",
                 reason=hostile("error_reason"),
+                assertion_id=hostile("error_name"),
             ),
         ),
         responses=(
@@ -579,6 +581,7 @@ def test_escaping_is_the_only_barrier_on_the_page_that_shares_the_promote_origin
                 threshold=0.7,
                 status="fail",
                 reason="outside",
+                assertion_id=hostile("calibration_check"),
             ),
         ),
         calibration=CalibrationBand(
