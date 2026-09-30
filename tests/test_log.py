@@ -293,6 +293,10 @@ def test_an_undated_run_stays_undated() -> None:
 
 
 def test_the_types_have_no_field_a_measurement_could_occupy() -> None:
+    """`unread_on_record` was added to both by #287. It is a count of runs,
+    like `runs` and `silent_between`: how many runs the baseline or the
+    register name inside the span or window that were not read. It holds no
+    score, no status and no outcome."""
     assert {f.name for f in fields(IdentitySpan)} == {
         "side",
         "provider",
@@ -303,6 +307,7 @@ def test_the_types_have_no_field_a_measurement_could_occupy() -> None:
         "last_seen",
         "runs",
         "environments",
+        "unread_on_record",
     }
     assert {f.name for f in fields(Roll)} == {
         "side",
@@ -313,6 +318,7 @@ def test_the_types_have_no_field_a_measurement_could_occupy() -> None:
         "last_before",
         "first_after",
         "silent_between",
+        "unread_on_record",
     }
 
 

@@ -188,6 +188,16 @@ __all__ = [
 #:    must not read differently at two front ends — which is the reason this
 #:    package exists. (from the release delta-pass over 0.15.0)
 #:
+#:    `unread_on_record` on each span and each roll of `log --json`, and
+#:    `on_record_not_read` beside `skipped` and `unreadable`: added keys, under
+#:    the rule every added key above follows, so no bump. The runs the baseline
+#:    or the register name that the scan did not read. A missing run folded
+#:    away, joining spans and erasing rolls, and nothing said so. `0` and `[]`
+#:    are what a store where every run named is read has always meant. They do
+#:    **not** mean nothing is missing: a run neither artifact names leaves no
+#:    trace. They move no exit code. `log` has none that depends on its
+#:    reading. (#287)
+#:
 #: **This record grows by an added key. No count of the keys is written, and no
 #: enumeration of a set that can be found by looking — but the criterion is
 #: narrower than either, and most counts in this repository are fine.**
