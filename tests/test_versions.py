@@ -314,6 +314,14 @@ RECORDED: dict[str, dict[str, str]] = {
         "the lesson; moving the number would claim a later pass audited it",
     },
     "RELEASING.md": {
+        "0.24.1": (
+            "the release whose walkthrough read the promotion and its refusals "
+            "off the page, because the store had no commit for `git diff` to "
+            "read, and its index-race status (the pair agreeing "
+            "again, the signatures' wait not needed, both builds' installed "
+            "versions, the locks on the first pass). Every one is a fact about "
+            "a release that shipped"
+        ),
         "0.24.0": (
             "the release whose signatures' wait ran for the first time and "
             "never had to wait, its index-race status (the smoke's deadline "

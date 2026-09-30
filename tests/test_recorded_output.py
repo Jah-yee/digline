@@ -553,6 +553,7 @@ def _trajectory_document(calls: object) -> dict[str, Any]:
         "tenant": "acme",
         "environment": "staging",
         "redacted": False,
+        "projected": False,
         "suite": "qa",
         "config_hash": "h",
         "created_at": CREATED,

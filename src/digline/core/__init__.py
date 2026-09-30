@@ -98,6 +98,7 @@ from digline.core.pii import (
     verify_iban,
     verify_partita_iva,
 )
+from digline.core.projection import ProjectionRefusedError, project
 from digline.core.protocols import (
     Assertion,
     AsyncJudge,
@@ -170,6 +171,7 @@ from digline.core.sampling import (
     on_the_line,
 )
 from digline.core.text import NEVER_LANGUAGE, json_visible
+from digline.core.tokens import TOKEN_LENGTH, Minter, TokenKind, is_token
 from digline.core.types import (
     ALL_KINDS,
     CONVERSATION_ONLY,
@@ -378,6 +380,12 @@ __all__ = [
     "record_trajectory",
     "trajectory_chars",
     "redact",
+    "project",
+    "ProjectionRefusedError",
+    "Minter",
+    "TokenKind",
+    "TOKEN_LENGTH",
+    "is_token",
     "release_tuple",
     "restore_output",
     "run_from_json",

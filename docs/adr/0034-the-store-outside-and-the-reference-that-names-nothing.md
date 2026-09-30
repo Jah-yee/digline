@@ -518,6 +518,22 @@ section should conclude neither *numbers cross* nor *numbers are refused*:
 **numbers are the one axis this enumeration does not yet decide**, and the gate
 described above cannot be complete until it does.
 
+*Amended 2026-09-30; the list above is kept as written.* **The names in
+`SystemConfig.withheld` are not class (a). They are class (c), tokens of the
+configuration-key kind of their side.** `withheld` names a key whose value was
+removed, and the same key sits tokenised in `values` of another document of
+the same suite. A name in clear beside tokenised keys would decode the token
+it equals. So the kinds rule it one kind with the keys of its side, and
+tokenised. The *other* withheld markers, `Artifact.withheld` and
+`RecordedResponse.withheld`, are booleans, and nothing changes for them.
+**One consequence, stated so nobody reads it as a defect.** On a projected
+document `SystemConfig.perimeter()` no longer sees `base_url` in `withheld`,
+so it reads the endpoint as unnamed. That is harmless, and only because of the
+order of the projection: it redacts before it tokenises, so `resolved_model`
+was withheld while `base_url` was still text. The order is part of what the
+projection is, not an accident of how it is called
+(`digline.core.project`).
+
 **Route 6 is enumerated here rather than excepted.** `target_config` and
 `judge_config` carry keys and values written by the provider *or by the end
 company's own application*, reported through a shipped target; they cross in

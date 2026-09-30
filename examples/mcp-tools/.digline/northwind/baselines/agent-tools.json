@@ -13,6 +13,7 @@
   "git_commit": "8c77f33528f776b8d8f6c952fb298e0b1c9b9eb2-dirty",
   "judge_config": {},
   "metadata": {},
+  "projected": false,
   "promoted_at": "2026-09-20T12:54:53.923911+00:00",
   "redacted": false,
   "results": [
@@ -79,7 +80,7 @@
       ]
     }
   ],
-  "schema_version": 17,
+  "schema_version": 18,
   "suite": "agent-tools",
   "target_config": {},
   "tenant": "northwind",

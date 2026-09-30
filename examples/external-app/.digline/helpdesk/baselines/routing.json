@@ -7,6 +7,7 @@
   "git_commit": "b5870a655c776d75f8be518796bad8acf02fb08a-dirty",
   "judge_config": {},
   "metadata": {},
+  "projected": false,
   "redacted": false,
   "results": [
     {
@@ -280,7 +281,7 @@
       ]
     }
   ],
-  "schema_version": 17,
+  "schema_version": 18,
   "suite": "routing",
   "target_config": {},
   "tenant": "helpdesk"
