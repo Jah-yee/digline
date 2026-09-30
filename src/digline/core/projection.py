@@ -70,6 +70,9 @@ def project(run: Run, mint: Minter) -> Run:
       would pass;
     - an identity on the target side, which no kind covers. It is empty
       whenever digline wrote the run.
+    - a verdict whose `assertion_id` is not a digest: an assertion that
+      overrides `identity` with readable text, which a projection would carry
+      in clear. `dataclass_identity` derives one that projects.
 
     What `Run` refuses of a projected document, it refuses here too, because
     the result is built through it.
@@ -99,7 +102,17 @@ def project(run: Run, mint: Minter) -> Run:
     # First, and for the reason in the docstring: withheld while the keys are
     # still text.
     source = redact(run, NOTHING_EXTRA)
-    return rename(source, _Tokens(mint), projected=True)
+    try:
+        return rename(source, _Tokens(mint), projected=True)
+    except ValueError as exc:
+        # What `Run` refuses of a projected document, named as this function's
+        # refusal: most often an identity written by hand as readable text,
+        # whose message says to use `dataclass_identity`. A typed refusal, the
+        # minter's included, passes through unchanged. (Delta-pass over
+        # 0.25.0, F-4)
+        if type(exc) is not ValueError:
+            raise
+        raise ProjectionRefusedError(str(exc)) from exc
 
 
 #: What `rename` is handed: the new text for a name of a kind. `project` hands

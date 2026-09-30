@@ -98,6 +98,27 @@ neither.
   It asked once per place: 25 questions for 22 tokens on the test fixture, and
   the last answer won. (Delta-pass over 0.25.0, F-5)
 
+### Fixed — a projected document let a name through seven fields (delta-pass over 0.25.0, F-4)
+
+- **`Run.projected` now checks the form of every string it leaves in clear.**
+  It refused a name in a case id or a verdict name, and accepted one in
+  seven fields of digline's own vocabulary:
+  - a verdict's `assertion_id`;
+  - `config_hash`;
+  - `digline_version`;
+  - `rejudged_from`;
+  - `created_at`, `promoted_at` and `resumed_at`.
+
+  The name was read back and written out again. Each field is now checked for
+  what digline writes there: a digest, a version, a run key or a time.
+- **`project` itself carried one.** The `Assertion` protocol lets `identity`
+  be any string, so a third-party assertion whose identity was readable text,
+  `rossi-mario-account-check` in the test, crossed the projection in clear as
+  its `assertion_id`. `project` now refuses that run as
+  `ProjectionRefusedError`. The message says to derive the identity with
+  `dataclass_identity`, as `AssertionBase` does. An assertion that is never
+  projected is unaffected.
+
 ## 0.25.0 — 2026-09-30
 
 digline **0.25.0**. The projection: the reference a software house commits

@@ -1515,6 +1515,31 @@ class Run:
                     )
 
 
+#: The forms of the strings a projection leaves in clear because they are
+#: digline's own vocabulary (ADR 0034 §4, class (a)). Checked on a projected
+#: document, where a string without its form is a name that should have been a
+#: token. (Delta-pass over 0.25.0, F-4)
+_DIGEST = re.compile(r"[0-9a-f]{16}")
+_RUN_KEY = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}(?:T[0-9-]*Z?)?-[0-9a-f]{16}")
+_VERSION = re.compile(
+    r"[0-9]+\.[0-9]+\.[0-9]+(?:(?:a|b|rc)[0-9]+)?(?:\.(?:post|dev)[0-9]+)?"
+)
+
+
+#: An ISO 8601 date, or date and time, with an optional offset. A pattern
+#: rather than `datetime.fromisoformat`, because the core imports no clock
+#: module (`tests/test_layering.py`), and a form is all this asks.
+_TIME = re.compile(
+    r"[0-9]{4}-[0-9]{2}-[0-9]{2}"
+    r"(?:[T ][0-9]{2}:[0-9]{2}(?::[0-9]{2}(?:\.[0-9]{1,6})?)?)?"
+    r"(?:Z|[+-][0-9]{2}:?[0-9]{2})?"
+)
+
+
+def _is_time(text: str) -> bool:
+    return _TIME.fullmatch(text) is not None
+
+
 def _check_projected(run: Run) -> None:
     """Refuse a run that declares itself projected and holds a string the
     projection does not let through.
@@ -1525,6 +1550,13 @@ def _check_projected(run: Run) -> None:
     three classes: digline's own vocabulary, the committing party's own strings
     (`tenant`, `suite`, `environment`, `git_commit`), or a token. A string in
     none of them is refused. (ADR 0034 §4, §8)
+
+    The strings it leaves in clear as digline's own vocabulary are checked for
+    their form instead: a verdict's and a band's `assertion_id` and
+    `config_hash` are digests, `digline_version` a version, `rejudged_from` a
+    run key, and `created_at`, `promoted_at` and `resumed_at` times. Without it,
+    a name in any of them was read, and written out again. (Delta-pass over
+    0.25.0, F-4)
 
     **Two things this does not decide, and says so here.** Numbers: ADR 0034
     §4 leaves them the one axis its enumeration does not decide, so a number is
@@ -1551,6 +1583,48 @@ def _check_projected(run: Run) -> None:
                 "something"
             )
 
+    def formed(what: str, text: str, shape: str, ok: bool) -> None:
+        # Empty is absent, and absent names nothing.
+        if text and not ok:
+            raise ValueError(
+                f"Run.projected is set but {what} is {text!r}, which is not "
+                f"{shape}: a projection leaves this field in clear because "
+                "digline writes it, and what digline writes has that form"
+            )
+
+    def identity(v: Verdict, where: str) -> None:
+        if not _DIGEST.fullmatch(v.assertion_id):
+            raise ValueError(
+                f"Run.projected is set but the verdict {v.assertion_id!r} "
+                f"{where} has an identity that is not a digest, so a "
+                "projection would carry it in clear. An assertion that "
+                "overrides `identity` must return a digest to be projected: "
+                "derive it with `dataclass_identity`, as `AssertionBase` does"
+            )
+
+    formed(
+        "config_hash",
+        run.config_hash,
+        "a digest",
+        bool(_DIGEST.fullmatch(run.config_hash)),
+    )
+    formed(
+        "digline_version",
+        run.digline_version,
+        "a version",
+        bool(_VERSION.fullmatch(run.digline_version)),
+    )
+    formed(
+        "rejudged_from",
+        run.rejudged_from or "",
+        "a run key",
+        bool(_RUN_KEY.fullmatch(run.rejudged_from or "")),
+    )
+    formed("created_at", run.created_at, "a time", _is_time(run.created_at))
+    formed("promoted_at", run.promoted_at, "a time", _is_time(run.promoted_at))
+    for resumed in run.resumed_at:
+        formed("a resume time", resumed, "a time", _is_time(resumed))
+
     def verdict(v: Verdict, where: str, *, grouped: bool) -> None:
         family, group = (
             split_grouped_name(v.score.name)
@@ -1560,6 +1634,7 @@ def _check_projected(run: Run) -> None:
                 None,
             )
         )
+        identity(v, where)
         token(f"the name of a verdict {where}", family)
         if group is not None:
             token(f"the group of a verdict {where}", group)
@@ -1578,6 +1653,12 @@ def _check_projected(run: Run) -> None:
             verdict(v, where, grouped=False)
         if case.calibration is not None:
             token(f"the calibration check {where}", case.calibration.check)
+            formed(
+                f"the calibration band's identity {where}",
+                case.calibration.assertion_id,
+                "a digest",
+                bool(_DIGEST.fullmatch(case.calibration.assertion_id)),
+            )
     for v in run.aggregate:
         verdict(v, "in the aggregate", grouped=True)
     if run.metadata:
