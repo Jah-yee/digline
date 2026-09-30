@@ -751,7 +751,10 @@ def test_the_schema_did_not_move(tmp_path: Path) -> None:
     # coincidence did not create. It moved to 17 under ADR 0024 §4.7's
     # 2026-09-26 amendment, and holds a sixth: the band's `assertion_id` is on
     # every calibration case, resumed or not, and the journal version stands.
-    assert (SCHEMA_VERSION, JOURNAL_VERSION) == (17, 3)
+    # It moved to 18 under ADR 0034 §8 for `projected`, and holds a seventh:
+    # the flag is the run's, and the journal records cases and configurations,
+    # which do not write it.
+    assert (SCHEMA_VERSION, JOURNAL_VERSION) == (18, 3)
     key = killed(tmp_path, a_suite(), Counting(die_at=3))
     store, prepared = launch(tmp_path, a_suite(), Counting(), resume_key=key)
     resumed = measure(a_suite(), Counting(), store=store, prepared=prepared).run  # pyright: ignore[reportArgumentType]

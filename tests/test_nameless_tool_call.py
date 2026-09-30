@@ -312,7 +312,8 @@ def test_the_step_to_thirteen_writes_nothing() -> None:
     run = execute(nameless_suite(), unnamed_then_lookup(), created_at=CREATED)
     current = run_to_dict(run)
     # 16 -> 17 writes only onto a calibration band, and this run has none.
-    assert SCHEMA_VERSION == 17
+    # 17 -> 18 writes `projected: false`, which this document already holds.
+    assert SCHEMA_VERSION == 18
     assert upgrade_document({**current, "schema_version": 12}) == current
 
 
@@ -437,9 +438,13 @@ def test_this_reader_reads_what_0_14_1_wrote(tmp_path: Path) -> None:
     old = json.loads(document.read_text(encoding="utf-8"))
     assert old["schema_version"] == 12
     upgraded = upgrade_document(old)
+    # 17 -> 18 adds one key, `projected: false`, which every earlier document
+    # is. Nothing else moves.
+    assert upgraded.pop("projected") is False
     assert {k: v for k, v in upgraded.items() if k != "schema_version"} == {
         k: v for k, v in old.items() if k != "schema_version"
     }
+    upgraded["projected"] = False
     run = run_from_json(json.dumps(upgraded))
     calls = run.results[0].responses[0].tool_calls
     assert calls is not None

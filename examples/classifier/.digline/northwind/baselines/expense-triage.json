@@ -344,6 +344,7 @@
   "git_commit": "b44ad6ffbf22cc9dabdf54ec7e453c95e8259d93-dirty",
   "judge_config": {},
   "metadata": {},
+  "projected": false,
   "redacted": false,
   "results": [
     {
@@ -1087,7 +1088,7 @@
       ]
     }
   ],
-  "schema_version": 17,
+  "schema_version": 18,
   "suite": "expense-triage",
   "target_config": {},
   "tenant": "northwind"

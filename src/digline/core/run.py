@@ -15,10 +15,11 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from typing import Any, cast
 
-from digline.core.aggregate import RunAssertion
+from digline.core.aggregate import RunAssertion, split_grouped_name
 from digline.core.calibration import CalibrationBand
 from digline.core.protocols import Assertion
 from digline.core.text import recordable
+from digline.core.tokens import is_token
 from digline.core.types import (
     NO_USAGE,
     NOTHING_EXTRA,
@@ -225,7 +226,17 @@ __all__ = [
 #    exited 0 can read as exit 2 after migrating; the migration does not change
 #    what happened, it corrects what the document said about it. (ADR 0024
 #    §4.7, amended 2026-09-26)
-SCHEMA_VERSION = 17
+#
+# 18: one passenger, `projected`, and it rides alone because a reader that
+#    ignored it would read a projection as a document that names things. Beside
+#    `redacted`, never replacing it: a projected run is always a redacted one,
+#    and `Run(redacted=...)` is public. The key is written on every document,
+#    like `redacted`, and read as required. Checked against ADR 0014 §1: a
+#    declaration about the document, outside `config_hash`. **The bump needs
+#    its refusal**: 0.24.x would ignore the key and meet tokens where it
+#    expects a provider and a model. The step writes `false`, which is what
+#    every document before 18 is. (ADR 0034 §8)
+SCHEMA_VERSION = 18
 
 
 class DocumentRefusedError(ValueError):
@@ -428,6 +439,11 @@ class SystemConfig:
     #: the target side, where the set could only ever hold one element and would
     #: repeat what `values` already says.
     identities: tuple[str, ...] = ()
+    #: Whether the keys, the string values and the identities are tokens. Not
+    #: written in the document: it is the run's `projected`, handed down by the
+    #: parser the way `redacted` is handed to a case, and `Run` refuses a
+    #: configuration that disagrees with the run it sits in. (ADR 0034 §8)
+    projected: bool = False
 
     def __post_init__(self) -> None:
         # Sorted and de-duplicated here rather than by every caller: it is a
@@ -459,7 +475,16 @@ class SystemConfig:
                 )
         if not self.values:
             return
-        missing = sorted(SYSTEM_NAME_FIELDS - set(self.values))
+        # The key check here and the identity check below read keys by their
+        # text, and a projected configuration has none: its keys are tokens.
+        # Relaxed together and never one alone, because this one fires first,
+        # and a projection would meet it on both sides. Not broken rules: rules
+        # whose subject is absent. The document the projection was built from
+        # had the text, and passed them. (ADR 0034 §8; #263's sweep, checks 1
+        # and 2)
+        missing = (
+            [] if self.projected else sorted(SYSTEM_NAME_FIELDS - set(self.values))
+        )
         if missing:
             raise ValueError(
                 f"SystemConfig is missing {', '.join(missing)}: a "
@@ -473,6 +498,8 @@ class SystemConfig:
                 "set-up to record, and a merged one would describe something "
                 "nobody built"
             )
+        if self.projected:
+            return
         # Verified rather than believed, like every other claim in this module:
         # a single identity that contradicted `values` would be two answers to
         # "what graded this" in one object.
@@ -532,6 +559,7 @@ class SystemConfig:
             # A provider and a model are measurements and travel in clear, so
             # the instruments a run used are named in a redacted document too.
             identities=self.identities,
+            projected=self.projected,
         )
 
 
@@ -1311,6 +1339,13 @@ class Run:
     #: statement than a target change and is reported as one. (ADR 0005 §4)
     judge_config: SystemConfig = field(default_factory=SystemConfig)
     redacted: bool = False
+    #: Whether this is a **projection**: redacted, and then every string that
+    #: is not digline's or the committing party's replaced by a token (ADR 0034
+    #: §4, §5). A narrowing, declared rather than silent (§8), and **verified
+    #: rather than believed**, like `redacted`: see `__post_init__`. A projected
+    #: run is always a redacted one. Built by `digline.core.project`, never set
+    #: by hand on a run that holds text.
+    projected: bool = False
     #: The digline that wrote this document, beside the `schema_version` that
     #: says what shape it is. Stamped by `execute()`, never read from here: the
     #: core touches no process-global state, and a `Run` built by hand records
@@ -1390,6 +1425,21 @@ class Run:
             )
         for case in self.results:
             _check_band_binds(case)
+        for what, config in (
+            ("target_config", self.target_config),
+            ("judge_config", self.judge_config),
+        ):
+            # Its checks are relaxed on this flag, so a configuration that
+            # claimed it inside a run that does not would relax them for
+            # nothing. (ADR 0034 §8)
+            if config.projected != self.projected:
+                raise ValueError(
+                    f"Run.projected is {self.projected} but {what} says "
+                    f"{config.projected}: a configuration is projected exactly "
+                    "when the run it sits in is"
+                )
+        if self.projected:
+            _check_projected(self)
         if not self.redacted:
             return
         # `redacted` is a claim about the contents, so it is checked against
@@ -1463,6 +1513,105 @@ class Run:
                         "document with redact(), which keeps the count and "
                         "drops the text"
                     )
+
+
+def _check_projected(run: Run) -> None:
+    """Refuse a run that declares itself projected and holds a string the
+    projection does not let through.
+
+    `projected` is a claim about the contents, so it is checked against them,
+    for `redacted`'s reason: a flag that announced a guarantee nothing provided
+    would be worse than no flag. Every string in the document is in one of
+    three classes: digline's own vocabulary, the committing party's own strings
+    (`tenant`, `suite`, `environment`, `git_commit`), or a token. A string in
+    none of them is refused. (ADR 0034 §4, §8)
+
+    **Two things this does not decide, and says so here.** Numbers: ADR 0034
+    §4 leaves them the one axis its enumeration does not decide, so a number is
+    let through wherever it sits. And the **keys** of a verdict's metadata:
+    they survive redaction beside the numbers `travels()` keeps, are written by
+    an assertion's code rather than by the data, and are in none of the three
+    classes yet. Their string *values* are checked.
+    """
+    if not run.redacted:
+        # The serializer decides from `redacted` alone whether a reason is
+        # written or required, so this is the refusal the document format
+        # already implies, stated where it is decided. (ADR 0034 §8)
+        raise ValueError(
+            "Run.projected is set on a run that is not redacted: a projection "
+            "is redacted first, and a document that claimed one without the "
+            "other would have its reasons written back"
+        )
+
+    def token(what: str, text: str) -> None:
+        if not is_token(text):
+            raise ValueError(
+                f"Run.projected is set but {what} is {text!r}, which is not a "
+                "token: a projected document names nothing, and this names "
+                "something"
+            )
+
+    def verdict(v: Verdict, where: str, *, grouped: bool) -> None:
+        family, group = (
+            split_grouped_name(v.score.name)
+            if grouped
+            else (
+                v.score.name,
+                None,
+            )
+        )
+        token(f"the name of a verdict {where}", family)
+        if group is not None:
+            token(f"the group of a verdict {where}", group)
+        for key, value in v.score.metadata.items():
+            if isinstance(value, str):
+                raise ValueError(
+                    f"Run.projected is set but the verdict {v.assertion_id!r} "
+                    f"{where} carries the string metadata {key!r}: a string "
+                    "crosses a projection only as a token"
+                )
+
+    for case in run.results:
+        token("a case id", case.case_id)
+        where = f"of a case {case.case_id!r}"
+        for v in case.verdicts:
+            verdict(v, where, grouped=False)
+        if case.calibration is not None:
+            token(f"the calibration check {where}", case.calibration.check)
+    for v in run.aggregate:
+        verdict(v, "in the aggregate", grouped=True)
+    if run.metadata:
+        # A projection is redacted with no `Disclosure`, and under none the
+        # run's metadata travels not at all, numbers included.
+        #
+        # **This does not decide the class of numbers**, and is not a
+        # precedent for it. A number here is refused because `NOTHING_EXTRA`
+        # already removed every entry, whatever its type: the instance is
+        # closed by the redaction the projection starts from, not by ADR 0034
+        # §4, which still leaves numbers undecided everywhere else.
+        raise ValueError(
+            f"Run.projected is set but the run carries metadata "
+            f"({', '.join(sorted(run.metadata))}): a projection keeps none"
+        )
+    for path, artifact in run.artifacts.items():
+        token("an artifact path", path)
+        if not artifact.withheld:
+            raise ValueError(
+                f"Run.projected is set but the artifact {path!r} is not "
+                "withheld: a projection keeps neither an artifact's text nor "
+                "its digest"
+            )
+    for path in run.pinned:
+        token("a pinned path", path)
+    for side, config in (("target", run.target_config), ("judge", run.judge_config)):
+        for key, value in config.values.items():
+            token(f"a {side}_config key", key)
+            if isinstance(value, str):
+                token(f"a {side}_config value", value)
+        for key in config.withheld:
+            token(f"a withheld {side}_config key", key)
+        for label in config.identities:
+            token(f"a {side} identity", label)
 
 
 def _check_band_binds(case: CaseResult) -> None:
@@ -1707,6 +1856,10 @@ def redact(run: Run, disclosure: Disclosure = NOTHING_EXTRA) -> Run:
         target_config=run.target_config.redacted(),
         judge_config=run.judge_config.redacted(),
         redacted=True,
+        # Carried: redaction never widens, and a projection that lost its
+        # declaration by being redacted again would read as a document that
+        # names things. (ADR 0034 §8)
+        projected=run.projected,
         # Carried, not dropped. Which digline wrote a document is what makes a
         # strange file supportable, and withholding it would buy no secrecy —
         # it names our own instrument, never the end company. (ADR 0014 §3)
@@ -1871,6 +2024,7 @@ def run_to_dict(run: Run) -> dict[str, object]:
         "tenant": run.tenant,
         "environment": run.environment,
         "redacted": run.redacted,
+        "projected": run.projected,
         "suite": run.suite,
         "config_hash": run.config_hash,
         "created_at": run.created_at,
@@ -1935,11 +2089,14 @@ def config_to_dict(config: SystemConfig) -> dict[str, object]:
     return payload
 
 
-def config_from_dict(raw: Mapping[str, Any], where: str) -> SystemConfig:
+def config_from_dict(
+    raw: Mapping[str, Any], where: str, *, projected: bool = False
+) -> SystemConfig:
     """Straight into the value, which does the checking.
 
     A document is written by whoever holds it, not only by this code, so what
     `SystemConfig` refuses on construction it refuses on the way in too.
+    `projected` is the run's, handed down: the configuration does not write it.
     """
     values = cast(Mapping[str, ConfigValue], raw.get("values") or {})
     try:
@@ -1951,6 +2108,7 @@ def config_from_dict(raw: Mapping[str, Any], where: str) -> SystemConfig:
             identities=tuple(
                 str(label) for label in cast(Sequence[Any], raw.get("identities") or ())
             ),
+            projected=projected,
         )
     except ValueError as exc:
         raise ValueError(f"{where}: {exc}") from exc
@@ -2486,6 +2644,7 @@ def _run_from_mapping(raw: Mapping[str, Any]) -> Run:
         )
     results = cast(Sequence[Mapping[str, Any]], raw.get("results") or ())
     redacted = bool(_required(raw, "redacted", "run"))
+    projected = bool(_required(raw, "projected", "run"))
     artifacts = {
         path: _artifact_from_dict(item, path)
         for path, item in cast(
@@ -2496,6 +2655,7 @@ def _run_from_mapping(raw: Mapping[str, Any]) -> Run:
         tenant=str(_required(raw, "tenant", "run")),
         environment=str(_required(raw, "environment", "run")),
         redacted=redacted,
+        projected=projected,
         suite=str(_required(raw, "suite", "run")),
         config_hash=str(_required(raw, "config_hash", "run")),
         created_at=str(_required(raw, "created_at", "run")),
@@ -2513,10 +2673,12 @@ def _run_from_mapping(raw: Mapping[str, Any]) -> Run:
         target_config=config_from_dict(
             cast(Mapping[str, Any], _required(raw, "target_config", "run")),
             "target_config",
+            projected=projected,
         ),
         judge_config=config_from_dict(
             cast(Mapping[str, Any], _required(raw, "judge_config", "run")),
             "judge_config",
+            projected=projected,
         ),
         # Not `_required`: a document migrated from 9 carries none, and that
         # absence is a fact rather than a malformed file (ADR 0014 §2).

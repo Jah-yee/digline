@@ -338,6 +338,17 @@ def _add_schema_seventeen(raw: dict[str, Any]) -> dict[str, Any]:
     return raw
 
 
+def _add_schema_eighteen(raw: dict[str, Any]) -> dict[str, Any]:
+    """17 -> 18. One passenger: `projected`, beside `redacted`.
+
+    Every document written before 18 is not a projection, because nothing
+    before 18 could write one. So the value is `false`, and it is derived from
+    the version alone. (ADR 0034 §8)
+    """
+    raw["projected"] = False
+    return raw
+
+
 #: from-version -> how to reach the next one. A version absent from this table
 #: is one whose bump was not additive, and the absence is the whole statement.
 _STEPS: Mapping[int, Callable[[dict[str, Any]], dict[str, Any]]] = {
@@ -354,6 +365,7 @@ _STEPS: Mapping[int, Callable[[dict[str, Any]], dict[str, Any]]] = {
     14: _add_schema_fifteen,
     15: _add_schema_sixteen,
     16: _add_schema_seventeen,
+    17: _add_schema_eighteen,
 }
 
 #: What each non-additive bump introduced, for the refusal message. Kept beside

@@ -21,6 +21,7 @@ motion.
 | `Disclosure` — what may leave the perimeter | `Mapper` `default_mapper` |
 | `Verdict` `Score` `Status` `Message` | |
 | `Run` `CaseResult` `compare` `redact` `config_hash` | |
+| `project` `Minter` `TokenKind` `is_token` `ProjectionRefusedError` — [the projection](#the-projection) | |
 
 The report lives in `digline.report` (`headline`, `render_html`, `Locale`), the
 store in `digline.store` (`FileResultStore`, `RunRef`, and three methods by
@@ -1770,6 +1771,73 @@ model id and a temperature are measurements and always travel, while an endpoint
 host is topology and is always withheld, appearing in the document as
 `"withheld": ["base_url"]` and in a comparison as `unknown` — one special field,
 one existing rule, no switch to forget (ADR 0005 §2).
+
+## The projection
+
+When the end company keeps the store, the reference a software house commits
+is a **projection** of it: the promoted run, redacted, with every name
+replaced by a token ([ADR 0034](adr/0034-the-store-outside-and-the-reference-that-names-nothing.md)).
+It is produced **inside the process that owns the name table**, which is not
+digline's ([ADR 0036](adr/0036-the-name-table-and-the-process-that-owns-it.md)
+§7), so this is the part of digline that process calls:
+
+```python
+from digline.core import Minter, TokenKind, project, run_to_json
+
+
+def mint(
+    kind: TokenKind, text: str
+) -> str: ...  # look (kind, text) up in the table; mint a token if it is absent
+
+
+reference = store.promote_baseline(...)  # or digline.host.promote
+document = run_to_json(project(reference, mint))
+```
+
+**`project(run, mint)`** returns a `Run` with `projected` and `redacted` both
+set. It writes nothing, commits nothing, and does not know where the document
+goes. It starts from the reference a promotion returns, never from a
+comparison (ADR 0034 §2).
+
+**`Minter`** is `Callable[[TokenKind, str], str]`: the token for a name,
+minted if the table has none. digline never mints, stores or resolves a
+token. A token is 22 characters of url-safe base64, 128 random bits from
+`secrets` (ADR 0036 §5), and the minter is keyed by kind *and* text, so equal
+text in two kinds gets two tokens.
+
+**`TokenKind`** names what each token stands for: `case_id`, `group`,
+`verdict_name`, `calibration_check`, `artifact_path`, `target_config_key`,
+`target_config_value`, `judge_config_key`, `judge_config_value` and
+`judge_identity`. The group inside `family[group=…]` is tokenised apart from
+the family, so the name still parses. Configuration keys are tokenised
+wherever they appear, in `values` and in `withheld`. Numbers stay as they
+are: ADR 0034 §4 has not decided them.
+
+**The order is part of what it is.** `project` redacts first, with no
+`Disclosure`, and only then replaces names. The perimeter fields — `base_url`,
+`fingerprint`, and `resolved_model` wherever `base_url` names an endpoint —
+are withheld while their keys are still text. The other order would carry them
+across under tokens, and nothing on the projected document could see it.
+
+**`ProjectionRefusedError`**, in `REFUSALS`, is raised for:
+
+- a run that is already projected;
+- a run that is not a promoted reference: no `promoted_at`, or recorded
+  answers still on it. **This reads what the document says**; a `Run` built
+  by hand with a stamp and no answers passes;
+- an answer from `mint` without a token's form, one name given two tokens, or
+  two names given one token, within one call. **The first is a check of form**:
+  a minter that echoed a 22-character name back would pass it;
+- an identity on the target side, which no kind covers.
+
+**`Run.projected` is verified, not believed**, like `redacted`. A run that
+declares it is refused unless it is redacted, every name listed above is a
+token, every artifact is withheld, the run carries no metadata, and no verdict
+carries string metadata. The keys of a verdict's metadata are not checked:
+they are in none of ADR 0034 §4's classes yet. **The refusal of run metadata
+decides nothing about numbers.** Redaction with no `Disclosure` already removed
+every entry, numbers included, so a projection never has any. ADR 0034 §4
+still leaves numbers undecided everywhere else.
 
 ## A complete example
 

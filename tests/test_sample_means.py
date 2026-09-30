@@ -213,7 +213,8 @@ def test_the_step_writes_nothing() -> None:
     # 13 -> 14 writes nothing either (ADR 0025 §7), so a schema-12 document
     # still arrives here unchanged but for its version.
     # 16 -> 17 writes only onto a calibration band, and this run has none.
-    assert SCHEMA_VERSION == 17
+    # 17 -> 18 writes `projected: false`, which this document already holds.
+    assert SCHEMA_VERSION == 18
     assert upgrade_document({**unstamped, "schema_version": 12}) == unstamped
 
 

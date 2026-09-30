@@ -742,7 +742,8 @@ def test_the_migration_to_twelve_writes_nothing() -> None:
     # Through 12, 13 and on to 14, whose steps write nothing either (ADR 0018
     # §1 amended 2026-09-17, ADR 0024 §6.5, ADR 0025 §7): what 11 -> 12 adds is
     # still nothing. 16 -> 17 writes only onto a band, and this run has none.
-    assert SCHEMA_VERSION == 17
+    # 17 -> 18 writes `projected: false`, which this document already holds.
+    assert SCHEMA_VERSION == 18
     assert upgrade_document(at_eleven) == current
 
 
