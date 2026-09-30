@@ -647,6 +647,9 @@ RECORDED: dict[str, dict[str, str]] = {
         ),
         "0.5.0": "'From 0.5.0 the declarative suite format refuses an api_key "
         "key by name' — when the refusal landed",
+        "2.2.0": "not a digline version: the mcp release the stdio session was "
+        "measured on, in the declaration of the PyJWT advisories on 2026-09-30. "
+        "A measurement, not a pin",
         "0.7.2": "'was fixed in 0.7.2' — the symlink escape, named so the "
         "scope paragraph says which side of the line it fell on and when. A "
         "fact about a shipped release, not a claim about this one",
