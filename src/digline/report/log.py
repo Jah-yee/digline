@@ -27,7 +27,7 @@ what they could not.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Literal
 
 from digline.core import RegisterEntry, Run, SystemConfig, Verdict
@@ -110,6 +110,12 @@ class IdentitySpan:
     No score, no status, no outcome, no canary — by type (ADR 0020 §4).
     `environments` is reported and never splits a span: decision 8 keeps the
     environment inside the perimeter and out of any constraint.
+
+    **Consecutive among the runs read**, not among the runs there were.
+    `first_seen` is the first sighting read here. `unread_on_record` counts
+    the runs the baseline or the register name, strictly inside the span, that
+    were not read. A run of another model there would have split the span, and
+    the reading cannot say which. (#287)
     """
 
     side: Side
@@ -121,6 +127,7 @@ class IdentitySpan:
     last_seen: str
     runs: int
     environments: tuple[str, ...]
+    unread_on_record: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -130,6 +137,12 @@ class Roll:
     The moment is **not known** and is never pinned: it is after the last run
     that recorded `before` and no later than the first that recorded `after`,
     with `silent_between` runs in that window that recorded nothing.
+
+    Both bounds and the count are **of the runs read**. `silent_between` is
+    how many runs *read* in the window recorded no answering model. A run that
+    is missing is not counted, and zero does not mean the window held no run.
+    `unread_on_record` counts the runs the baseline or the register name inside
+    the window that were not read. (#287)
     """
 
     side: Side
@@ -140,6 +153,7 @@ class Roll:
     last_before: str
     first_after: str
     silent_between: int
+    unread_on_record: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -321,6 +335,11 @@ class IdentityLog:
     spread_absence: Mapping[SpreadAbsence, int] = field(
         default_factory=dict[SpreadAbsence, int]
     )
+    #: Runs the baseline or the register name that were not read here, by
+    #: `created_at`, oldest first, inside the window. Absent or unreadable: the
+    #: reading cannot tell which, so it says *not read*. Where neither artifact
+    #: names a run, a missing run leaves no trace, and this is empty. (#287)
+    on_record_not_read: tuple[str, ...] = ()
 
 
 def sighting(config: SystemConfig, *, writer: str) -> Sighting:
@@ -639,7 +658,28 @@ def identity_log(
     at its original `created_at` (ADR 0017 §8), and one run never carries two
     answering models on a side: `ObservedIdentity` errors the case where an alias
     answers as a second model mid-run (ADR 0005 §8).
+
+    **A scan sees what is there, not what was.** A run that is missing folds
+    away: its neighbours join into one span, a roll it carried disappears, and
+    a first sighting moves to the next run read. Nothing in the rows can show
+    that. So the reading names a missing run only where a committed artifact
+    records one: the baseline's `created_at`, and each register line's
+    `run_created_at`. Those instants inside the window, minus every run
+    read, are `on_record_not_read`, and each span and roll counts the ones
+    it encloses. **With neither artifact naming the run, it leaves no trace.**
+    An empty `on_record_not_read` does not mean no run is missing. (#287)
     """
+    read = {run.created_at for _key, run in rows}
+    on_record = sorted(
+        {
+            instant
+            for instant in (
+                *(() if baseline is None else (baseline[1].created_at,)),
+                *(entry.run_created_at for entry in register),
+            )
+            if instant not in read and _in_window(instant, since, until)
+        }
+    )
     ordered = sorted(
         ((key, run) for key, run in rows if _in_window(run.created_at, since, until)),
         key=lambda pair: (pair[1].created_at, pair[0]),
@@ -659,8 +699,20 @@ def identity_log(
             # it would stretch the source's last sighting on a copy.
             if not (side == "target" and run.rejudged_from is not None)
         ]
-        spans.extend(_spans(side, seen))
-        rolls.extend(_rolls(side, seen))
+        spans.extend(
+            replace(
+                span,
+                unread_on_record=_inside(on_record, span.first_seen, span.last_seen),
+            )
+            for span in _spans(side, seen)
+        )
+        rolls.extend(
+            replace(
+                roll,
+                unread_on_record=_inside(on_record, roll.last_before, roll.first_after),
+            )
+            for roll in _rolls(side, seen)
+        )
 
     reference = None
     if baseline is not None:
@@ -702,7 +754,14 @@ def identity_log(
         register_unreadable=register_unreadable,
         spread=readings,
         spread_absence=absence,
+        on_record_not_read=tuple(on_record),
     )
+
+
+def _inside(instants: Sequence[str], low: str, high: str) -> int:
+    """How many of `instants` fall strictly between two bounds. Compared as
+    strings, which is how the fold orders `created_at` too."""
+    return sum(1 for instant in instants if low < instant < high)
 
 
 # --------------------------------------------------------------------------- #
@@ -739,6 +798,10 @@ def _span_line(span: IdentitySpan, locale: Locale) -> str:
         last=span.last_seen,
         runs=span.runs,
         environments=environments,
+    ) + (
+        phrase(locale, "log.span.unread", count=span.unread_on_record)
+        if span.unread_on_record
+        else ""
     )
 
 
@@ -923,6 +986,19 @@ def log_text(log: IdentityLog, *, locale: Locale) -> tuple[str, ...]:
         )
     if log.unreadable:
         lines.append(phrase(locale, "log.not_read.unreadable", count=log.unreadable))
+    if log.on_record_not_read:
+        unread = log.on_record_not_read
+        lines.append(
+            phrase(
+                locale,
+                "log.not_read.on_record",
+                count=len(unread),
+                before=sum(1 for i in unread if i < log.first),
+                after=sum(1 for i in unread if i > log.last),
+            )
+            if log.runs
+            else phrase(locale, "log.not_read.on_record.none_read", count=len(unread))
+        )
 
     if log.runs:
         for side in SIDES:
@@ -958,6 +1034,11 @@ def log_text(log: IdentityLog, *, locale: Locale) -> tuple[str, ...]:
             if roll.silent_between:
                 lines.append(
                     "  " + phrase(locale, "log.roll.silence", count=roll.silent_between)
+                )
+            if roll.unread_on_record:
+                lines.append(
+                    "  "
+                    + phrase(locale, "log.roll.unread", count=roll.unread_on_record)
                 )
 
     lines.append("")
