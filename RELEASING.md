@@ -1117,6 +1117,29 @@ Until it is built, the check is a person: before tagging, for each package
 `tag_names.py` does **not** list, ask whether anything under its `src/` changed
 since the tag that published its version.
 
+**A change that alters nothing that runs and nothing a user reads rides the
+package's next real release, and is not re-decided at every tag.** The
+condition decides it, not the size of the diff. The typical case is a type
+annotation, or an import under `TYPE_CHECKING`, in a module with
+`from __future__ import annotations`. The installed code behaves identically,
+and nothing a user reads changes. Such a change goes in the list below once,
+with its package and its commit. At each later tag the check above only
+confirms that the diff since the publishing tag is still exactly that. **Any
+other change under that `src/` reopens the question**, and so does a change
+that turns out to reach a message, a docstring a tool prints, or anything
+executed. It is the same rule `.dist-info` follows above, applied to source
+text: a release has to be earned by a change a user can meet.
+
+Ruled 2026-09-30, after four releases in a row had given the same answer to
+the same diff: v0.22.0, v0.23.0, v0.24.0 and v0.24.1.
+
+Carried today:
+- **`pytest-digline` 0.2.0**, published by `v0.19.0`. `1653ce6` changed
+  `plugin.py` on two lines: `FileResultStore` became `ResultStore`, in an
+  import under `TYPE_CHECKING` and in one annotation. The module has
+  `from __future__ import annotations`. It rides `pytest-digline`'s next real
+  release, and it comes out of this list then.
+
 ### A floor names a core version, so the core publishes first
 
 **Not negotiable, and it is an ordering rule rather than a waiting one.** When a
