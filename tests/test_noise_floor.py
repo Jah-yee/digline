@@ -96,6 +96,7 @@ def _folded(scores: Sequence[float], threshold: float = 0.5) -> Verdict:
                 threshold=threshold,
                 status="pass" if score >= threshold else "fail",
                 reason="sample",
+                assertion_id="rubric",
             )
             for score in scores
         ],
@@ -122,6 +123,7 @@ def test_an_unsampled_check_is_never_on_the_line() -> None:
         threshold=0.5,
         status="pass",
         reason="one sample",
+        assertion_id="rubric",
     )
     assert on_the_line(alone) is False
 

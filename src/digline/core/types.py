@@ -40,6 +40,7 @@ __all__ = [
     "TEXT_OR_CONVERSATION",
     "TEXT_OR_STRUCTURED",
     "ToolStatus",
+    "UnidentifiedVerdictError",
     "Usage",
     "Verdict",
     "at_precision",
@@ -447,6 +448,16 @@ class Score:
         return bool(self.samples)
 
 
+class UnidentifiedVerdictError(ValueError):
+    """A verdict was built without the `assertion_id` `compare()` pairs it on.
+
+    Raised by `Verdict` itself, so every route meets it: an assertion that
+    returned one (the driver records it as that assertion's error) and a
+    document that carries `""` (the reader refuses it by this name). A
+    `ValueError`, like the other refusals a document can meet on the way in.
+    """
+
+
 @dataclass(frozen=True, slots=True)
 class Verdict:
     """What an assertion produces and what a driver consumes. Never a bare
@@ -460,9 +471,12 @@ class Verdict:
     needed to interpret it.
 
     `assertion_id` is the identity `compare()` pairs on — see
-    `AssertionBase.identity`. It defaults to the score name, which is correct
-    whenever a case carries one assertion per name; assertions built through
-    `AssertionBase` always supply the real fingerprint.
+    `AssertionBase.identity`. Keyword-only and with no default, and an empty
+    one is refused with `UnidentifiedVerdictError`. It used to default to the
+    score name, which read a document carrying `""` by deriving an identity
+    ADR 0001 says must be refused, and on a projected document copied a
+    verdict name's token into a field that crosses in clear. (ADR 0001 §2,
+    amended 2026-09-30; #263)
     """
 
     score: Score
@@ -470,7 +484,16 @@ class Verdict:
     status: Status
     reason: str
     tolerance: float = 0.0
-    assertion_id: str = ""
+    # `kw_only` so the field can have no default while sitting after two that
+    # do: a positional field without a default may not follow one with.
+    #
+    # **It catches most omissions, not all.** pyright reports a call that
+    # leaves it out, but not one under a `type: ignore`, nor one that passes it
+    # through a default of its own (`assertion_id: str = ""` in a helper). Two
+    # of the tests this change touched were of those kinds, and only running
+    # them found them. That is why the refusal in `__post_init__` is needed,
+    # and is not a second belt: it is the only check that sees every route.
+    assertion_id: str = field(kw_only=True)
     #: A model placed this value on a scale: the assertion that produced it is
     #: `judged()`, its class's `KIND` read through `Repeated`. Stamped by the
     #: driver, never by an assertion, and written to the document only when
@@ -481,10 +504,15 @@ class Verdict:
     judged: bool = False
 
     def __post_init__(self) -> None:
+        if not self.assertion_id:
+            raise UnidentifiedVerdictError(
+                f"the verdict {self.score.name!r} carries no assertion_id: "
+                "compare() pairs on it, and one derived from the name would "
+                "pair verdicts that were never the same check (ADR 0001 §2)"
+            )
+
         # Standard frozen-dataclass idiom: `__post_init__` is the one place
         # allowed to write a field, and it must go through `object`.
-        if not self.assertion_id:
-            object.__setattr__(self, "assertion_id", self.score.name)
 
         # A Verdict carries exactly what gets persisted, at storage precision.
         #

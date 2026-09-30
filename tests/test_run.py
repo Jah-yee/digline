@@ -180,6 +180,7 @@ def test_floats_have_fixed_precision() -> None:
                         tolerance=0.0,
                         status="fail",  # 1/3 < 0.5; the two must agree
                         reason="r",
+                        assertion_id="x",
                     ),
                 ),
             ),
@@ -259,18 +260,6 @@ def test_a_run_compared_with_its_own_round_trip_shows_no_drift() -> None:
     assert not result.has_regressions
 
 
-def test_the_assertion_id_defaults_to_the_name() -> None:
-    """Correct whenever a case carries one assertion per name, which keeps
-    hand-built verdicts readable in tests."""
-    v = Verdict(
-        score=Score(name="contains", score=1.0),
-        threshold=1.0,
-        status="pass",
-        reason="r",
-    )
-    assert v.assertion_id == "contains"
-
-
 # --------------------------------------------------------------------------- #
 # Type invariants
 # --------------------------------------------------------------------------- #
@@ -283,6 +272,7 @@ def test_an_errored_verdict_cannot_carry_a_score() -> None:
             threshold=0.5,
             status="error",
             reason="r",
+            assertion_id="x",
         )
 
 
@@ -293,13 +283,18 @@ def test_a_missing_score_cannot_be_a_pass() -> None:
             threshold=0.5,
             status="pass",
             reason="r",
+            assertion_id="x",
         )
 
 
 def test_a_verdict_without_a_reason_is_rejected() -> None:
     with pytest.raises(ValueError, match="reason is mandatory"):
         Verdict(
-            score=Score(name="x", score=1.0), threshold=0.5, status="pass", reason=""
+            score=Score(name="x", score=1.0),
+            threshold=0.5,
+            status="pass",
+            reason="",
+            assertion_id="x",
         )
 
 

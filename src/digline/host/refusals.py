@@ -34,6 +34,7 @@ from digline.core.resolution import (
     WrongRowError,
 )
 from digline.core.run import DocumentRefusedError
+from digline.core.types import UnidentifiedVerdictError
 from digline.host.errors import UsageError
 from digline.run.replay import ReplayError
 from digline.store.migrate import NonAdditiveError
@@ -70,6 +71,7 @@ REFUSALS: tuple[type[Exception], ...] = (
     WrongKindError,
     WrongRowError,
     UnresolvedConfigError,
+    UnidentifiedVerdictError,
     # store
     ConfigMismatchError,
     ErroredRunError,
