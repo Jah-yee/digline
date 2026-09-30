@@ -9,6 +9,7 @@ function rather than a table.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import replace
 from typing import cast
 
@@ -47,19 +48,9 @@ def project(run: Run, mint: Minter) -> Run:
     process needs no suite, and nothing a suite disclosed crosses a projection.
     That is a narrowing, and `projected` declares it.
 
-    Where each name goes, by kind:
-
-    - a case's id: `case_id`;
-    - a verdict's name, and an aggregate's family: `verdict_name`;
-    - the group inside `family[group=…]`: `group`, and the name is rebuilt
-      with `grouped_name`, so it still parses;
-    - a calibration band's check: `calibration_check`;
-    - artifact paths, as keys and in `pinned`: `artifact_path`;
-    - configuration keys, in `values` and in `withheld`, and string values:
-      the key and value kinds of their side;
-    - a judge's `provider/model` label: `judge_identity`.
-
-    Numbers are left as they are: ADR 0034 §4 has not decided them.
+    Where each name goes, by kind, is `rename`'s list: one map, which the
+    resolver reads in the other direction. Numbers are left as they are: ADR
+    0034 §4 has not decided them.
 
     It returns a `Run`. It writes nothing, commits nothing, and knows neither
     the store nor where the document goes. `run_to_json` serializes it.
@@ -108,23 +99,57 @@ def project(run: Run, mint: Minter) -> Run:
     # First, and for the reason in the docstring: withheld while the keys are
     # still text.
     source = redact(run, NOTHING_EXTRA)
-    tokens = _Tokens(mint)
+    return rename(source, _Tokens(mint), projected=True)
+
+
+#: What `rename` is handed: the new text for a name of a kind. `project` hands
+#: it a minter's token for the text; `resolve_tokens` hands it a row's text for
+#: the token.
+type Rename = Callable[[TokenKind, str], str]
+
+
+def rename(run: Run, name: Rename, *, projected: bool) -> Run:
+    """`run` with every name replaced by `name(kind, name)`, and `projected`
+    set as given.
+
+    **The one map from place to kind**, in both directions: the projection
+    writes a token where this says a kind sits, and the resolver checks a row's
+    kind against the same place. Written once so that the two cannot disagree
+    about the document's shape.
+
+    - a case's id: `case_id`;
+    - a verdict's name, and an aggregate's family: `verdict_name`;
+    - the group inside `family[group=…]`: `group`, rebuilt with `grouped_name`;
+    - a calibration band's check: `calibration_check`;
+    - artifact paths, as keys and in `pinned`: `artifact_path`;
+    - configuration keys, in `values` and in `withheld`, and string values:
+      the key and value kinds of their side;
+    - a judge's `provider/model` label: `judge_identity`.
+    """
     return replace(
-        source,
-        results=tuple(_case(case, tokens) for case in source.results),
-        aggregate=tuple(_aggregate(v, tokens) for v in source.aggregate),
+        run,
+        results=tuple(_case(case, name) for case in run.results),
+        aggregate=tuple(_aggregate(v, name) for v in run.aggregate),
         artifacts={
-            tokens("artifact_path", path): artifact
-            for path, artifact in source.artifacts.items()
+            name("artifact_path", path): artifact
+            for path, artifact in run.artifacts.items()
         },
-        pinned=tuple(tokens("artifact_path", path) for path in source.pinned),
+        pinned=tuple(name("artifact_path", path) for path in run.pinned),
         target_config=_config(
-            source.target_config, tokens, "target_config_key", "target_config_value"
+            run.target_config,
+            name,
+            "target_config_key",
+            "target_config_value",
+            projected=projected,
         ),
         judge_config=_config(
-            source.judge_config, tokens, "judge_config_key", "judge_config_value"
+            run.judge_config,
+            name,
+            "judge_config_key",
+            "judge_config_value",
+            projected=projected,
         ),
-        projected=True,
+        projected=projected,
     )
 
 
@@ -172,43 +197,46 @@ def _verdict(verdict: Verdict, name: str) -> Verdict:
     return replace(verdict, score=replace(verdict.score, name=name))
 
 
-def _case(case: CaseResult, tokens: _Tokens) -> CaseResult:
+def _case(case: CaseResult, name: Rename) -> CaseResult:
     return replace(
         case,
-        case_id=tokens("case_id", case.case_id),
+        case_id=name("case_id", case.case_id),
         verdicts=tuple(
-            _verdict(v, tokens("verdict_name", v.score.name)) for v in case.verdicts
+            _verdict(v, name("verdict_name", v.score.name)) for v in case.verdicts
         ),
         calibration=(
             None
             if case.calibration is None
             else replace(
                 case.calibration,
-                check=tokens("calibration_check", case.calibration.check),
+                check=name("calibration_check", case.calibration.check),
             )
         ),
     )
 
 
-def _aggregate(verdict: Verdict, tokens: _Tokens) -> Verdict:
+def _aggregate(verdict: Verdict, name: Rename) -> Verdict:
     family, group = split_grouped_name(verdict.score.name)
-    name = tokens("verdict_name", family)
+    renamed = name("verdict_name", family)
     if group is not None:
-        name = grouped_name(name, tokens("group", group))
-    return _verdict(verdict, name)
+        renamed = grouped_name(renamed, name("group", group))
+    return _verdict(verdict, renamed)
 
 
 def _config(
-    config: SystemConfig, tokens: _Tokens, key: TokenKind, value: TokenKind
+    config: SystemConfig,
+    name: Rename,
+    key: TokenKind,
+    value: TokenKind,
+    *,
+    projected: bool,
 ) -> SystemConfig:
     def mapped(v: ConfigValue) -> ConfigValue:
-        return tokens(value, v) if isinstance(v, str) else v
+        return name(value, v) if isinstance(v, str) else v
 
     return SystemConfig(
-        values={tokens(key, k): mapped(v) for k, v in config.values.items()},
-        withheld=frozenset(tokens(key, k) for k in config.withheld),
-        identities=tuple(
-            tokens("judge_identity", label) for label in config.identities
-        ),
-        projected=True,
+        values={name(key, k): mapped(v) for k, v in config.values.items()},
+        withheld=frozenset(name(key, k) for k in config.withheld),
+        identities=tuple(name("judge_identity", label) for label in config.identities),
+        projected=projected,
     )

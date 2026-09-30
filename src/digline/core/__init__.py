@@ -123,6 +123,14 @@ from digline.core.register import (
     RecordedOutcome,
     RegisterEntry,
 )
+from digline.core.resolution import (
+    NothingResolvedError,
+    NotProjectedError,
+    UnresolvedConfigError,
+    WrongKindError,
+    WrongRowError,
+    resolve_tokens,
+)
 from digline.core.run import (
     DECLARED_PRICE_FIELDS,
     MAX_RECORDED_CHARS,
@@ -171,7 +179,14 @@ from digline.core.sampling import (
     on_the_line,
 )
 from digline.core.text import NEVER_LANGUAGE, json_visible
-from digline.core.tokens import TOKEN_LENGTH, Minter, TokenKind, is_token
+from digline.core.tokens import (
+    TOKEN_LENGTH,
+    Lookup,
+    Minter,
+    NameRow,
+    TokenKind,
+    is_token,
+)
 from digline.core.types import (
     ALL_KINDS,
     CONVERSATION_ONLY,
@@ -381,6 +396,14 @@ __all__ = [
     "trajectory_chars",
     "redact",
     "project",
+    "resolve_tokens",
+    "Lookup",
+    "NameRow",
+    "NothingResolvedError",
+    "NotProjectedError",
+    "UnresolvedConfigError",
+    "WrongKindError",
+    "WrongRowError",
     "ProjectionRefusedError",
     "Minter",
     "TokenKind",
