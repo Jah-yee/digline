@@ -124,8 +124,13 @@ def resolve_tokens(run: Run, lookup: Lookup) -> Run:
         return token
 
     rename(run, collect, projected=True)
-    # One question per token, however many places it sits in.
-    rows = {token: _read(lookup, token) for _, token in places}
+    # One question per token, however many places it sits in. A loop rather
+    # than a comprehension keyed by token: that one read each token's row once
+    # per place and kept the last answer. (Delta-pass over 0.25.0, F-5)
+    rows: dict[str, tuple[str, str] | None] = {}
+    for _, token in places:
+        if token not in rows:
+            rows[token] = _read(lookup, token)
     texts: dict[str, str] = {}
     for kind, token in places:
         row = rows[token]
