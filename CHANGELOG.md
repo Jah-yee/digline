@@ -6,36 +6,11 @@ upgrading, and what deliberately did not move. The reasoning lives in
 read the [release titles](https://github.com/digline/digline/releases) — the
 notes under them are this file, verbatim.
 
-## 0.24.0 — 2026-09-30
+## 0.24.1 — unreleased
 
-digline **0.24.0**. One exit code moves, which is why this is a minor, and
-two additions come with it. Nothing to migrate.
-
-- **The exit code.** A suite file whose import cannot be satisfied used to
-  crash with a traceback, and Python's exit status for that is `1` — the value
-  digline uses for *worse than the baseline*. It is now a refusal that names
-  the module, and exits `64`, like every other usage error. The new value is
-  the right one, and a pipeline that read `1` there reads something else now,
-  which is what the rule makes a minor.
-- **The additions are new surface, and on their own they would be a patch.**
-  `FileResultStore.name_table_dir` and `NAME_TABLE_DIRNAME`, and a reserved
-  `name-table/` directory in the tenant's layout; and a documented way for a
-  program to read, promote and catch refusals. Nothing that worked on 0.23.0
-  stops working.
-
-### Added — the name table's directory
-
-- **`FileResultStore.name_table_dir(tenant)`** returns
-  `.digline/<tenant>/name-table/`, the directory ADR 0036 §2 reserves for the
-  process that owns the name table. It is the documented way for a program
-  outside digline to reach the tenant's directory. It checks the tenant and
-  creates nothing. `NAME_TABLE_DIRNAME` is exported beside it.
-- **A directory, not a file name**, so a table kept in SQLite has its
-  `-journal`, `-wal` and `-shm` inside the reserved name too. digline writes
-  nothing under it and reads nothing from it.
-- **The generated `.gitignore` gains `*/name-table/`**, because the table is
-  never committed. A `.gitignore` digline generated earlier is not rewritten:
-  add the line by hand before the table is written.
+digline **0.24.1**. New surface for a program that drives digline, and one
+function added to `digline.host`. Nothing that worked on 0.24.0 stops working,
+and nothing to migrate.
 
 ### Added — reading and promoting from a program
 
@@ -58,6 +33,36 @@ refusals by the classification (#232). `docs/api.md` now names, in
   before it had a name on the page.
 - **`REFUSALS`**, as a tuple to catch and not to extend. A class leaves it only
   with a changelog entry. `NOT_REFUSALS` stays internal.
+
+## 0.24.0 — 2026-09-30
+
+digline **0.24.0**. One exit code moves, which is why this is a minor, and
+one addition comes with it. Nothing to migrate.
+
+- **The exit code.** A suite file whose import cannot be satisfied used to
+  crash with a traceback, and Python's exit status for that is `1` — the value
+  digline uses for *worse than the baseline*. It is now a refusal that names
+  the module, and exits `64`, like every other usage error. The new value is
+  the right one, and a pipeline that read `1` there reads something else now,
+  which is what the rule makes a minor.
+- **The addition is new surface, and on its own it would be a patch.**
+  `FileResultStore.name_table_dir` and `NAME_TABLE_DIRNAME`, and a reserved
+  `name-table/` directory in the tenant's layout. Nothing that worked on 0.23.0
+  stops working.
+
+### Added — the name table's directory
+
+- **`FileResultStore.name_table_dir(tenant)`** returns
+  `.digline/<tenant>/name-table/`, the directory ADR 0036 §2 reserves for the
+  process that owns the name table. It is the documented way for a program
+  outside digline to reach the tenant's directory. It checks the tenant and
+  creates nothing. `NAME_TABLE_DIRNAME` is exported beside it.
+- **A directory, not a file name**, so a table kept in SQLite has its
+  `-journal`, `-wal` and `-shm` inside the reserved name too. digline writes
+  nothing under it and reads nothing from it.
+- **The generated `.gitignore` gains `*/name-table/`**, because the table is
+  never committed. A `.gitignore` digline generated earlier is not rewritten:
+  add the line by hand before the table is written.
 
 ### Fixed — a suite with a missing import reached an agent as five words
 
