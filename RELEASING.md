@@ -1350,8 +1350,10 @@ case; see *After the tag*, the reviewer gate.
 `pypi` job's wait (`await_index.py`) asks `/simple/`, which is what `pip`
 resolves from. This script asks `/pypi/<name>/<version>/json` and then
 `/integrity/…/provenance`, and the JSON page answered 404 behind `/simple/`
-twice. On v0.22.0 that was 43 seconds after the upload, and on v0.23.0 it was
-36. Each time a single read took the 404 for an absence and refused, and the
+three times. On v0.21.0 that was ten seconds after the `pypi` job went green,
+on v0.22.0 43 seconds after the upload, and on v0.23.0 36. *Corrected
+2026-09-30: this said "twice", and v0.21.0's own Status entry records the
+first.* Each time a single read took the 404 for an absence and refused, and the
 re-run was what attached the signatures. So every read now asks again until it
 answers or `TIMEOUT` (600 seconds in `publish.yml`) runs out, and it ends in
 one of three words:
@@ -1579,6 +1581,80 @@ This is the part that changes from release to release. Step 4 of *After the
 tag* updates it on every tag, and step 6 is what puts the capture's reading in
 it — including the sentence that says the capture ran and found nothing, which
 is the one a quiet log cannot supply.
+
+- **v0.24.1 — the pair agreed again, and the signatures' wait again did not
+  have to wait, this time 40 seconds after the upload, inside the window where
+  the JSON page had 404'd before.** `publish` and `docker-publish` both passed
+  on attempt 1. `/approvals` reads `approved` by `alexpran` on `pypi`. The
+  approval came before the smoke's 30-minute deadline. The smoke's runner wait
+  printed `every version is served (after 270s)`, and most of that was the
+  approval. The three tags resolve to one digest,
+  `sha256:1615f7eb3ff3794d7c88df16b4be443cac06bbe32618caa8eb6b60c7b84a9a0d`.
+
+  **Inside the builds, the pair agreed for every pin.**
+  - The smoke build (`#9`, amd64) and the multi-arch build (`#15`, arm64) each
+    carry a `side=wait` and a `side=pip` line for all four pins, with the same
+    `serial` and `etag` on both sides. For `digline` that is `41633880` and
+    `7AICkafxLz3xcRSW/vohfg`.
+  - In `#9` the last `via` hop differed within each pair, which is row three
+    of the table. In `#15` it was the same server on both sides: one server,
+    one object.
+  - pip's half printed 33 lines in each build.
+  - Both builds installed `digline-0.24.1`, `digline-anthropic-0.5.3`,
+    `digline-openai-0.5.2` and `digline-bedrock-0.5.1`.
+  - The multi-arch amd64 layers `#10` to `#13` were `CACHED`.
+  - The in-build waits printed `after 0s` and `after 1s`.
+
+  The capture ran, the pair was present for every pin, and it had nothing to
+  explain.
+
+  **The signatures' wait: 20 reads, none repeated, no third word.** The script
+  made 20 reads in a second and a half, from 10:01:25.0 to 10:01:26.5:
+  - six JSON pages;
+  - twelve attestations;
+  - the two files at 0.24.1.
+
+  Each one answered on its first read. There is no `waiting` line and no
+  `served … (after Ns, read N)`, and neither `absent` nor `unread` fired. The
+  result was two bundles, and ten files skipped, each named with the tag that
+  published it.
+
+  **What 40 seconds says, and what it does not.** The upload finished at
+  10:00:45.1, and the script's first read came 40 seconds later. That is
+  between v0.23.0's 36 and v0.22.0's 43, where the JSON page 404'd. This
+  time it answered. So the JSON page's lag behind the upload varies: at 40
+  seconds it has been served and it has not.
+  - It still proves nothing about the loop: no read met a 404, so the loop has
+    not yet run against a real index.
+  - Only `tests/test_release_bundles.py`'s offline control has shown it
+    holding.
+
+  **The two endpoints are not in step, and that is why only one consumer ever
+  failed.** On this tag:
+  - the `pypi` job's wait, which asks `/simple/`, printed one `waiting` line at
+    10:00:55 and then `every version is served (after 11s)`;
+  - on v0.23.0, `/simple/` answered after 10 s.
+
+  The JSON page, asked by `release_bundles.py`, has lagged further behind:
+  - not served at 36 s (v0.23.0) and at 43 s (v0.22.0);
+  - served at 40 s (v0.24.1) and at 59 s (v0.24.0).
+
+  The `pypi` job's wait has never failed over this, because it asks the
+  endpoint that catches up first. `github-release` asks the other one, and
+  failed three times (v0.21.0, v0.22.0, v0.23.0) until it gained a wait of its
+  own.
+
+  **`listed` never warned.** The one `release-followup` run after the tag
+  fired no `::warning`.
+
+  **Elsewhere.** `uv lock --upgrade-package digline` moved all seven example
+  locks to 0.24.1 on the first pass. The versions were read back from the
+  seven files.
+
+  **The next tag must show** the pair for every pin again. It must also show,
+  once more, whether the signatures' wait has to wait. A `waiting` line from
+  it, and what it read next, is still the first observation of the loop against
+  a real index.
 
 - **v0.24.0 — the pair agreed on both legs, and `release_bundles.py`'s wait
   ran for the first time and never had to wait, so this green does not prove
