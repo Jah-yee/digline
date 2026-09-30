@@ -1,6 +1,7 @@
 """Persistence of runs and baselines. Depends on `digline.core`."""
 
 from digline.store.file_store import (
+    NAME_TABLE_DIRNAME,
     PENDING_DIRNAME,
     REGISTER_DIRNAME,
     FileJournal,
@@ -48,6 +49,7 @@ from digline.store.protocol import (
 
 __all__ = [
     "JOURNAL_VERSION",
+    "NAME_TABLE_DIRNAME",
     "PENDING_DIRNAME",
     "REGISTER_DIRNAME",
     "REGISTER_VERSION",
