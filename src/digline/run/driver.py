@@ -893,8 +893,11 @@ def execute(
     a boundary unless `suite.disclosure` names it.
 
     `created_at` is passed in rather than read from the clock, so a run stays
-    reproducible and the driver's tests stay deterministic; `store.utc_now_iso()`
-    exists for callers who want now.
+    reproducible and the driver's tests stay deterministic;
+    `digline.host.utc_now_iso()` is the clock for callers who want now. It keeps
+    microseconds, and it has to: a run's key is built from `created_at`, so two
+    runs of one suite stamped in the same second would share a key, and the
+    second would silently replace the first. (#285)
 
     `done` maps `case_id` to a result somebody already holds — a journal, after
     a killed run (ADR 0017 §4). Those cases are **not called**, and their

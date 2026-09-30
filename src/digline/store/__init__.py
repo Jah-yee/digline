@@ -7,7 +7,6 @@ from digline.store.file_store import (
     FileJournal,
     FileResultStore,
     journal_key,
-    utc_now_iso,
 )
 from digline.store.migrate import (
     MigrationReport,
@@ -85,5 +84,4 @@ __all__ = [
     "migrate_file",
     "migrate_paths",
     "upgrade_document",
-    "utc_now_iso",
 ]
