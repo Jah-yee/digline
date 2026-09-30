@@ -183,6 +183,10 @@ RELEASED: dict[str, int] = {
     "0.23.0": 17,
     "0.24.0": 17,
     "0.24.1": 17,
+    # 18 — `projected`, beside `redacted` (ADR 0034 §8). One passenger, alone,
+    # because a reader that ignored it would read a projection as a document
+    # that names things.
+    "0.25.0": 18,
 }
 
 #: `digline>=0.4,<0.5` → the `0.5`. Only the upper bound: the floor is a

@@ -13,6 +13,7 @@
   "git_commit": "94560671abeca4bbbe94a3109561d75df3d3a233-dirty",
   "judge_config": {},
   "metadata": {},
+  "projected": false,
   "promoted_at": "2026-09-13T09:10:32.804322+00:00",
   "redacted": false,
   "results": [
@@ -249,7 +250,7 @@
       ]
     }
   ],
-  "schema_version": 17,
+  "schema_version": 18,
   "suite": "dispatch",
   "target_config": {},
   "tenant": "northwind"

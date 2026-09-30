@@ -6,6 +6,63 @@ upgrading, and what deliberately did not move. The reasoning lives in
 read the [release titles](https://github.com/digline/digline/releases) — the
 notes under them are this file, verbatim.
 
+## 0.25.0 — unreleased
+
+digline **0.25.0**. The projection: the reference a software house commits
+when the end company keeps the store, with every name replaced by a token.
+Schema 18 comes with it, for one flag. Run `digline migrate`.
+
+```sh
+uv add --upgrade digline
+digline migrate --suite suite.py
+```
+
+### Added — the projection (ADR 0034, ADR 0036)
+
+- **`digline.core.project(run, mint)`** turns a promoted reference into a
+  document that names nothing. It is called by the process that owns the name
+  table, which is not digline's, and it is handed that process's minting
+  function: `mint(kind, text)` returns the token for a name, minting one if
+  there is none. digline never mints, stores or resolves a token.
+  - **The order is part of what it is.** It redacts first, with no
+    `Disclosure`, and only then replaces names. So the perimeter fields
+    (`base_url`, `fingerprint`, and `resolved_model` at a named endpoint) are
+    withheld while their keys are still text. The other order would carry them
+    across under tokens, where no check can see them.
+  - **What becomes a token**, by kind: case ids, verdict names and aggregate
+    families, the group inside `family[group=…]` (still parseable), a
+    calibration band's check, artifact paths and `pinned`, configuration keys
+    (in `values` and `withheld`) and string values per side, and a judge's
+    `provider/model` label. **`TokenKind`** names the ten kinds. Numbers stay
+    as they are: ADR 0034 §4 has not decided them.
+  - **What it refuses**, as `ProjectionRefusedError`, now in
+    `host.REFUSALS`: a run already projected; a run that is not a promoted
+    reference; a token without a token's form; one name given two tokens, or
+    two names one token, within one call. Two of these are checks of what the
+    document says, and the docstring says how far they reach: *not promoted*
+    is read from `promoted_at` and the absence of answers, and a token is
+    checked for its form.
+- **`Run.projected`**, beside `redacted`, and verified rather than believed.
+  A run that declares itself projected is refused if it is not redacted, if a
+  case id, a verdict name, a group, a check, an artifact path or a
+  configuration key or string value is not a token, if an artifact is not
+  withheld, if it keeps run metadata, or if a verdict carries string
+  metadata. The refusal of run metadata decides nothing about numbers:
+  redaction with no `Disclosure` already removes every entry, so a projection
+  never has any.
+- **A projected configuration needs no `provider` or `model` in clear.** The
+  two checks that read those keys by their text, the presence of both and
+  the identity built from them, are relaxed together on a projected
+  configuration, and nowhere else. The count check stays.
+
+### Changed — schema 18
+
+- **`SCHEMA_VERSION` 17 → 18, with one passenger: `projected`.** Every
+  document carries the key, like `redacted`. The step writes `false`, which is
+  what every earlier document is. A 0.24.x reader refuses a schema-18 document,
+  which is the point: it would otherwise read a projection as a document with
+  names in it. A resume journal does not move.
+
 ## 0.24.1 — 2026-09-30
 
 digline **0.24.1**. New surface for a program that drives digline, and one

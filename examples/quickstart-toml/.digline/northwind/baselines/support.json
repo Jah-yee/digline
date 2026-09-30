@@ -7,6 +7,7 @@
   "git_commit": "ac89cb4ad088becb2d9457bd54bd66f04f9d2b43-dirty",
   "judge_config": {},
   "metadata": {},
+  "projected": false,
   "redacted": false,
   "results": [
     {
@@ -220,7 +221,7 @@
       "verdicts": []
     }
   ],
-  "schema_version": 17,
+  "schema_version": 18,
   "suite": "support",
   "target_config": {
     "values": {
