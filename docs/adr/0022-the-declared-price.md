@@ -455,3 +455,20 @@ usage before a rule.
 
 **Dated prices.** A rate that changes on a known date is two suites or two
 commits today, which is the honest form until somebody needs a third.
+
+**Owed, not decided: whether a target is identified only by its declared
+price.** *Recorded 2026-09-30, from the delta-pass over 0.24.1.*
+- `load_target` accepts any callable as a target. `pricing_for(loaded,
+  "os:system", …)` returned the empty digest, the same one a suite with no
+  target contributes. `"os:path"`, a module, was refused.
+- By §4, a target that declares no price leaves `config_hash` byte-identical.
+  So a wrong `--target`, or a wrong `target` passed to `digline.host.promote`,
+  whose object declares no price, produces the same hash as a right one that
+  declares none. Condition 2 of the promotion cannot tell the two apart.
+- Between two differently priced targets, or a priced one and an unpriced one,
+  the hashes differ and the promotion is refused. The check fails closed there.
+
+This is how `--target` has behaved since §5. `host/loader.py` did not change
+in 0.24.1. What moved is that `promote` now puts the same parameter in front of
+a program. Whether the hash should name the target, and not only its price,
+is this record's question to answer. It is not answered here.
