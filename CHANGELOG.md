@@ -85,6 +85,19 @@ neither.
   exception.** `store/` was allowed one for the removed function, and
   `tests/test_layering.py` no longer grants it.
 
+### Fixed — the tenant's refusal has a name, and the resolver asks once per token
+
+- **`DifferentTenantsError`**, new in `digline.core` and in `host.REFUSALS`.
+  `compare()` and `diff()` refused two tenants (fixed decision 8) with a bare
+  `ValueError`, which `REFUSALS` does not name, so a front end translating
+  refusals by name passed it on as a crash. It is still a `ValueError`, so a
+  caller that caught the builtin keeps working. `DifferentRegimesError` had
+  copied the refusal from one line above it in `compare()`, and had been given
+  its own name when it was copied.
+- **`resolve_tokens` asks the lookup once per token**, as its comment said.
+  It asked once per place: 25 questions for 22 tokens on the test fixture, and
+  the last answer won. (Delta-pass over 0.25.0, F-5)
+
 ## 0.25.0 — 2026-09-30
 
 digline **0.25.0**. The projection: the reference a software house commits

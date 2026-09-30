@@ -29,6 +29,7 @@ __all__ = [
     "Denominator",
     "ConfigOutcome",
     "DifferentRegimesError",
+    "DifferentTenantsError",
     "Direction",
     "Expansion",
     "Noise",
@@ -85,6 +86,18 @@ type Expansion = Literal["new_group", "now_grouped", ""]
 #: an assertion and not a parameter: it is the one member of `config_hash` no
 #: document holds, and the row exists to say exactly that. (ADR 0028 §5)
 AGREEMENT_FIELD = "min_agreement"
+
+
+class DifferentTenantsError(ValueError):
+    """Raised when the two runs belong to different tenants: one end customer's
+    numbers read as another's history. (Fixed decision 8)
+
+    A `ValueError`, which is what the refusal was before it had a name, so a
+    caller that caught the builtin keeps working; and a class of its own, in
+    `host.REFUSALS`, so a front end that translates refusals by name translates
+    this one. `compare()` and `diff()` both raise it. (Delta-pass over 0.25.0,
+    beside F-2)
+    """
 
 
 class DifferentRegimesError(ValueError):
@@ -944,7 +957,8 @@ def compare(run: Run, baseline: Run) -> Comparison:
     effect of a configuration change — but `promote_baseline` will refuse to
     promote the result until the configuration matches again.
 
-    Comparing across tenants raises. Two perimeters produce numbers on the same
+    Comparing across tenants raises `DifferentTenantsError`. Two perimeters
+    produce numbers on the same
     scale, so the mistake is arithmetically valid and factually nonsense — one
     end customer's results read as another's history.
 
@@ -968,7 +982,7 @@ def compare(run: Run, baseline: Run) -> Comparison:
     inherits the payload of its inputs.
     """
     if run.tenant != baseline.tenant:
-        raise ValueError(
+        raise DifferentTenantsError(
             f"cannot compare across tenants: run is {run.tenant!r}, "
             f"baseline is {baseline.tenant!r}"
         )
