@@ -184,7 +184,23 @@ def _import(module_part: str, spec: str) -> ModuleType:
         # Registered before execution so a module using dataclasses that refer
         # to their own names resolves normally.
         sys.modules[name] = module
-        exec(code, module.__dict__)  # noqa: S102 — the user's own suite, by request
+        # An import the suite cannot satisfy is a refusal with a reader, as it
+        # already is for the dotted form below. Unwrapped it was classified as
+        # nobody's refusal, so the MCP server passed it on as the bare "Error
+        # executing tool <name>" and put the module's name on stderr, where no
+        # client reads it — the common case under `uvx`, where a plugin the
+        # suite imports is not installed. Only `ImportError`: any other failure
+        # in the suite's own code stays the unexpected exception it is.
+        try:
+            exec(code, module.__dict__)  # noqa: S102 — the user's own suite, by request
+        except ImportError as exc:
+            missing = repr(exc.name) if exc.name else "a module"
+            raise UsageError(
+                f"{path} could not import {missing}: {exc}. A suite runs in the "
+                "environment of the tool that loads it, so what it imports — a "
+                "provider plugin, the application under test and its SDK — has "
+                "to be installed there."
+            ) from exc
         return module
 
     try:
