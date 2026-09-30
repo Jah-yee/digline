@@ -12,7 +12,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
+import subprocess
 from collections.abc import Sequence
 from pathlib import Path
 from typing import cast
@@ -63,9 +65,26 @@ def target(case):
 """
 
 
+#: What a commit's SHA is made of besides the tree: two dates, and whatever the
+#: machine's git configuration adds (a `commit.gpgsign` puts a signature, and
+#: its clock, into the object). Every one of them is pinned, so the SHA is the
+#: same on every run. The run document carries that SHA, and a test that looks
+#: for four chosen digits in a document must not find them in forty hex
+#: characters nobody chose. The timestamps are the other such source, and the
+#: redaction test takes them out itself.
+PINNED_GIT = {
+    "GIT_AUTHOR_DATE": "2026-01-01T00:00:00+00:00",
+    "GIT_COMMITTER_DATE": "2026-01-01T00:00:00+00:00",
+    "GIT_CONFIG_GLOBAL": os.devnull,
+    "GIT_CONFIG_NOSYSTEM": "1",
+}
+
+
 @pytest.fixture
-def project(tmp_path: Path) -> Path:
+def project(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """A repository with a prompt beside the suite, committed once."""
+    for name, value in PINNED_GIT.items():
+        monkeypatch.setenv(name, value)
     root = tmp_path / "project"
     root.mkdir()
     (root / "suite.py").write_text(SUITE % {"disclosure": ""}, encoding="utf-8")
@@ -547,6 +566,8 @@ def test_report_redacted_is_the_path_that_has_to_be_right(project: Path) -> None
     )
     hidden = hidden_path.read_text(encoding="utf-8")
     assert REMOVED not in hidden and ADDED not in hidden
+    # The commit's SHA is pinned by the fixture, which is what keeps forty hex
+    # characters from carrying "2500" — once, at `a462500aee…`, they did.
     # The timestamps come out first, and that is not fastidiousness: this run
     # was stamped by the real clock, and the microseconds of an ISO timestamp
     # are four digits nobody chose — `…T14:11:03.525004+00:00` contains "2500".
@@ -908,3 +929,17 @@ def test_a_run_document_carries_the_pin_across_the_boundary() -> None:
         "the boundary form dropped the declaration: a reader outside the "
         "perimeter gets an exit code the document cannot account for"
     )
+
+
+def test_the_fixture_commit_carries_nothing_that_moves(project: Path) -> None:
+    """The pin is what the redaction test's digit check stands on, so it is
+    checked here rather than assumed. The dates are the pinned ones, not the
+    clock's, and no signature was added by a configuration the machine had."""
+    shown = subprocess.run(
+        ["git", "-C", str(project), "log", "-1", "--format=%at %ct %G?"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.split()
+    # 2026-01-01T00:00:00+00:00, as seconds: git spells UTC as `Z` in ISO.
+    assert shown == ["1767225600", "1767225600", "N"]
