@@ -1605,6 +1605,72 @@ tag* updates it on every tag, and step 6 is what puts the capture's reading in
 it — including the sentence that says the capture ran and found nothing, which
 is the one a quiet log cannot supply.
 
+- **v0.25.0 — the pair agreed for every pin, and the signatures' wait did not
+  have to wait: its first read came 58.6 seconds after the upload, later than
+  any read that has met a 404.** `publish` and `docker-publish` both passed on
+  attempt 1. `/approvals` reads `approved` by `alexpran` on `pypi`, and the
+  environment reads `can_admins_bypass: false`. The approval came before the
+  smoke's 30-minute deadline. The smoke's runner wait printed
+  `every version is served (after 211s)`, and most of that was the approval.
+  The three tags resolve to one digest,
+  `sha256:0fcf3c1260a73b1734416056d907a07068e702383c51984ca05473d0461f035f`.
+
+  **Inside the builds, the pair agreed for every pin.**
+  - The smoke build (`#9`, amd64) and the multi-arch build (`#15`, arm64) each
+    carry a `side=wait` and a `side=pip` line for all four pins, with the same
+    `serial` and `etag` on both sides. For `digline` that is `41642074` and
+    `DSUdlMpHqLvbdKqlblDOiw`.
+  - **In `#9` the in-build wait had to wait**, as it did on v0.23.0, v0.22.0
+    and v0.21.1, and did not on v0.24.1 (v0.24.0's entry does not say). Its
+    first read, at 14:04:19.5, saw serial `41633880` and 46
+    versions, none at 0.25.0. That was the same object the runner wait had read
+    before the upload. It printed one `waiting` line, and at 14:04:34.8 it read
+    `41642074` and printed `served digline==0.25.0 (after 15s)`. pip's read at
+    14:04:35.6 got that same object. The build's first read came 60 seconds
+    after the upload finished and still saw the old object.
+  - The last `via` hop differed within every pair in both builds, which is row
+    three of the table.
+  - pip's half printed 33 lines in each build.
+  - Both builds installed `digline-0.25.0`, `digline-anthropic-0.5.3`,
+    `digline-openai-0.5.2` and `digline-bedrock-0.5.1`.
+  - The multi-arch amd64 layers `#10` to `#13` were `CACHED`.
+  - The multi-arch in-build wait printed `after 0s` and `after 1s`.
+
+  The capture ran, the pair was present for every pin, and it had nothing to
+  explain.
+
+  **The signatures' wait: no `waiting` line, no `served … (after Ns, read N)`,
+  and neither `absent` nor `unread`.** The step started at 14:04:17.9 and its
+  output ends at 14:04:19.4. The script prints no line per read, so the number
+  of reads is derived from what it had to read, not counted: six JSON pages,
+  twelve attestations and the two files at 0.25.0, the same 20 as on v0.24.1.
+  The result was two bundles, and ten files skipped, each named with the tag
+  that published it.
+
+  **What 58.6 seconds says, and what it does not.** The upload finished at
+  14:03:19.3 and the script's first read came at 14:04:17.9. The JSON page has
+  404'd at 36 seconds (v0.23.0) and 43 (v0.22.0), and answered at 40 (v0.24.1)
+  and 59 (v0.24.0). This read came as late as v0.24.0's, so an answer here
+  says nothing new about the lag.
+  - The loop has still not met a 404 on a real index. Four tags have now run
+    it.
+  - Only `tests/test_release_bundles.py`'s offline control has shown it
+    holding.
+
+  **`/simple/` again caught up first.** The `pypi` job's wait printed one
+  `waiting` line and then `every version is served (after 10s)`, as on v0.23.0
+  and v0.24.1.
+
+  **Elsewhere.** `uv lock --upgrade-package digline` moved six of the seven
+  example locks to 0.25.0 on the first pass. `classifier`'s stayed at 0.24.1
+  and moved on a second pass with `--refresh-package digline`: a cached index
+  page, and the first time one has held back a lock here. The versions were
+  read back from the seven files.
+
+  **The next tag must show** the pair for every pin again, and whether the
+  signatures' wait has to wait. A `waiting` line from it, and what it read
+  next, is still the first observation of the loop against a real index.
+
 - **v0.24.1 — the pair agreed again, and the signatures' wait again did not
   have to wait, this time 40 seconds after the upload, inside the window where
   the JSON page had 404'd before.** `publish` and `docker-publish` both passed
