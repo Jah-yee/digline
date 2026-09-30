@@ -149,3 +149,30 @@ def test_a_document_naming_another_suite_is_refused_in_words(repo: Path) -> None
         f"({kind.__name__}: {message!r})"
     )
     assert "other" in message, message
+
+
+def test_a_suite_whose_import_is_missing_is_refused_in_words(repo: Path) -> None:
+    """The registry's first failure. Launched with `uvx`, the server runs where
+    no provider plugin is installed, and a suite that imports one used to reach
+    the agent as "Error executing tool list_runs" — five words, every tool the
+    same, and the module's name on stderr where no client reads it."""
+    (repo / "suite_plugin.py").write_text(
+        "import digline_plugin_that_is_not_installed\n", encoding="utf-8"
+    )
+    message, kind = refusal(repo, "list_runs", suite=str(repo / "suite_plugin.py"))
+    assert kind is not UnexpectedToolError, (
+        f"a suite with a missing import crashed instead of being refused "
+        f"({kind.__name__}: {message!r})"
+    )
+    assert "digline_plugin_that_is_not_installed" in message, message
+
+
+def test_a_suite_that_fails_for_another_reason_still_crashes(repo: Path) -> None:
+    """The control for the test above: only an import is a refusal. A suite
+    whose own code raises is a bug, and dressing it as a sentence would hide
+    it (ADR 0011 §10)."""
+    (repo / "suite_broken.py").write_text(
+        "raise RuntimeError('a bug in the suite')\n", encoding="utf-8"
+    )
+    _message, kind = refusal(repo, "list_runs", suite=str(repo / "suite_broken.py"))
+    assert kind is UnexpectedToolError, kind.__name__
