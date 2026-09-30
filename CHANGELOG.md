@@ -28,6 +28,41 @@ notes under them are this file, verbatim.
 - Over MCP nothing changes: the read tools already drop this note by design,
   and MCP has no tool that promotes or registers.
 
+### Fixed — a comparison across the projection hid a regression (delta-pass over 0.25.0)
+
+- **`compare()` refuses a pair in which one run is projected and the other is
+  not**, as **`DifferentRegimesError`**, new in `digline.core` and in
+  `host.REFUSALS`. The CLI exits 64 on it, as on two tenants. Across the
+  regime, one side names its cases by token and the other by text, so every
+  case read as `new` plus `missing`. A clear run with a real regression,
+  compared with a projected reference, exited **0** with *Nothing got worse*.
+  The same run against the clear reference exits 1, and still does. The store
+  reached it too: nothing refuses promoting a projection (ADR 0034 §9 is not
+  built), and a clear run then compared green against it.
+- **Not closed: two projections minted from different tables.** Both declare
+  `projected`, and nothing in a document says which table minted it, so a
+  rebuilt table still turns a regression into `new` plus `missing`. That is an
+  open question of ADR 0036, and a test holds it as an expected failure that
+  turns red the day it is answered.
+
+### Fixed — the resolver named every refusal, and read two rows for one name
+
+Both reached through a table whose rows disagree with each other: edited by
+hand, or merged from two. A table the owning process wrote itself does
+neither.
+
+- **`IncoherentRowsError`**, new in `digline.core` and in `host.REFUSALS`.
+  `resolve_tokens` checked each row on its own, then rebuilt the `Run`. When
+  the rows passed one by one and not together, the `Run` refused them as a
+  bare `ValueError`, which `REFUSALS` does not name. Examples are a judge
+  identity that is not its `provider/model`, a perimeter key read back in
+  clear, or an empty model. A caller catching `REFUSALS` got a traceback.
+- **`DuplicateNameError`**, new in `digline.core` and in `host.REFUSALS`. Two
+  tokens of one kind that resolve to the same text are refused. They used to
+  be read, as a run with two cases of one id. It is the mirror of the refusal
+  `project` already makes of one name given two tokens. Equal text in two
+  kinds is still two names, and is read.
+
 ### Fixed — one clock, and `execute()` names it (#285)
 
 - **`execute()`'s docstring sent a library caller to a clock that lost runs.**
