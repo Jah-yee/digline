@@ -71,11 +71,11 @@ def test_it_creates_the_layout_and_the_gitignore(tmp_path: Path) -> None:
     assert (tmp_path / ".digline" / "acme" / "runs").is_dir()
     ignored = (tmp_path / ".digline" / ".gitignore").read_text(encoding="utf-8")
     # Rules only, not comments: run artifacts are ephemeral, baselines are meant
-    # to be committed — for every tenant.
+    # to be committed, and the name table never is — for every tenant.
     rules = [
         r.strip() for r in ignored.splitlines() if r.strip() and not r.startswith("#")
     ]
-    assert rules == ["*/runs/"]
+    assert rules == ["*/runs/", "*/name-table/"]
 
 
 def test_it_does_not_overwrite_an_edited_gitignore(tmp_path: Path) -> None:

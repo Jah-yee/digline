@@ -594,6 +594,11 @@ it already gone.
   decided (§8), its home and its callers are not.
 - **The spelling of the reserved name, and the table's format** (§2). The
   format is the owning process's.
+  *Spelled 2026-09-30, in #234: the reserved name is a directory,
+  `name-table/`, so a table kept in SQLite covers its `-journal`, `-wal` and
+  `-shm` beside it. It is reached through `FileResultStore.name_table_dir`,
+  and the generated `.gitignore` ignores it. The format stays the owning
+  process's. The bullet is kept as written.*
 - **What happens to the cases whose shared group label a person removes** (§9).
   It changes what every case that carried it is grouped by.
 - **How a person is expected to recognise a row as personal** (§9). The

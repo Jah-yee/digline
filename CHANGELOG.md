@@ -6,6 +6,22 @@ upgrading, and what deliberately did not move. The reasoning lives in
 read the [release titles](https://github.com/digline/digline/releases) — the
 notes under them are this file, verbatim.
 
+## Unreleased
+
+### Added — the name table's directory
+
+- **`FileResultStore.name_table_dir(tenant)`** returns
+  `.digline/<tenant>/name-table/`, the directory ADR 0036 §2 reserves for the
+  process that owns the name table. It is the documented way for a program
+  outside digline to reach the tenant's directory. It checks the tenant and
+  creates nothing. `NAME_TABLE_DIRNAME` is exported beside it.
+- **A directory, not a file name**, so a table kept in SQLite has its
+  `-journal`, `-wal` and `-shm` inside the reserved name too. digline writes
+  nothing under it and reads nothing from it.
+- **The generated `.gitignore` gains `*/name-table/`**, because the table is
+  never committed. A `.gitignore` digline generated earlier is not rewritten:
+  add the line by hand before the table is written.
+
 ## 0.23.0 — 2026-09-29
 
 digline **0.23.0**. One exit code moves, which is why this is a minor, and
