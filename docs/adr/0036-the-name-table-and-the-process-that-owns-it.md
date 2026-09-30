@@ -21,10 +21,7 @@
   none was added: the conditions the design rests on are written where they
   are made (§5, §6, §9). **What it amends is made in the change that accepts
   it**, as ADR 0034's acceptance found it should have been
-- Shipped: 0.24.0 — §2's reserved directory, `name-table/`, reached through
-  `FileResultStore.name_table_dir`, and nothing else of digline's part: the
-  resolver §3 and §8 rule on, `digline.core.resolve_tokens`, is built after
-  0.24.0 and not in it (#236), and the rest is the owning process's
+- Shipped: 0.24.0
 - Date: 2026-09-29
 - Opens: **nothing on landing.** No `SCHEMA_VERSION`, no `OUTPUT_VERSION`, no
   `REGISTER_VERSION`, no `JOURNAL_VERSION`, no `LEDGER_VERSION`, no migration.
@@ -36,7 +33,12 @@
   which digline keeps and never writes (§2). **Two refusals** — a document in
   which no token resolves, and a row whose kind is not the kind of the place
   its token sits in — each classified in `host.REFUSALS`, or
-  `tests/test_refusals.py` will not see it (§3, §8)
+  `tests/test_refusals.py` will not see it (§3, §8). **Nothing else is
+  digline's:** §7's three writers and §9's erasure surface run inside the
+  owning process, whose code is not digline's. *Added 2026-09-30, when the
+  qualifier came off `Shipped:`: §2's directory shipped in 0.24.0, the
+  resolver and the two callables in 0.25.0, and a bare version must not read
+  as the whole record built by digline.*
 - Assumes: [ADR 0002](0002-three-worlds-and-where-the-data-lives.md) §1 (the
   tenant is the perimeter, enforced as addressing and not as access) and §5
   (the `case_id` crosses, so it cannot be payload, and a generated id has no
