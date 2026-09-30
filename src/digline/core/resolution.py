@@ -15,6 +15,8 @@ from digline.core.run import Run
 from digline.core.tokens import Lookup, TokenKind
 
 __all__ = [
+    "DuplicateNameError",
+    "IncoherentRowsError",
     "NotProjectedError",
     "NothingResolvedError",
     "UnresolvedConfigError",
@@ -37,6 +39,19 @@ class WrongKindError(ValueError):
 class WrongRowError(ValueError):
     """The lookup answered a token with a row that is not that token's, or
     that is not a row: a defect in the lookup, which is not read."""
+
+
+class DuplicateNameError(ValueError):
+    """Two tokens of one kind resolve to the same text: the table gives one
+    name two rows. The mirror of the projection's refusal of a minter that
+    gives one name two tokens. (Delta-pass over 0.25.0, F-3)"""
+
+
+class IncoherentRowsError(ValueError):
+    """Every row resolved, and together they describe no run: a judge's
+    identity that is not its `provider/model`, a perimeter key read back in
+    clear, an empty model. The rebuilt `Run` refuses them, and this names that
+    refusal so a front end translates it. (Delta-pass over 0.25.0, F-2)"""
 
 
 class NotProjectedError(ValueError):
@@ -91,6 +106,9 @@ def resolve_tokens(run: Run, lookup: Lookup) -> Run:
     - `UnresolvedConfigError`: a token in a configuration, key, string value
       or judge identity, has no row. The other kinds stay in place when
       unresolved; a configuration cannot, because it would name no system.
+    - `DuplicateNameError`: two tokens of one kind resolve to the same text;
+    - `IncoherentRowsError`: the rows resolve, and the run they rebuild
+      refuses them, as a judge identity that is not its `provider/model`.
 
     It writes nothing and knows neither the store nor the table.
     """
@@ -134,7 +152,32 @@ def resolve_tokens(run: Run, lookup: Lookup) -> Run:
             "configuration is read whole or not at all, and half of one names "
             "no system"
         )
-    return rename(run, lambda _kind, token: texts.get(token, token), projected=False)
+    names: dict[tuple[TokenKind, str], str] = {}
+    for kind, token in places:
+        if token not in texts:
+            continue
+        first = names.setdefault((kind, texts[token]), token)
+        if first != token:
+            raise DuplicateNameError(
+                f"two {kind} tokens resolve to the same text: the table gives "
+                "one name two rows, and the document would read two things as "
+                "one"
+            )
+    try:
+        return rename(
+            run, lambda _kind, token: texts.get(token, token), projected=False
+        )
+    except ValueError as exc:
+        # **A bare `ValueError` is a refusal nobody classified**, the shape
+        # `run_from_dict` repairs at its own boundary.
+        # The rows passed every check above one by one, and the `Run` built
+        # from them refuses what they say together. A typed refusal already
+        # carries its name and passes through unchanged.
+        if type(exc) is not ValueError:
+            raise
+        raise IncoherentRowsError(
+            f"the rows resolve one by one and together describe no run: {exc}"
+        ) from exc
 
 
 def _read(lookup: Lookup, token: str) -> tuple[str, str] | None:

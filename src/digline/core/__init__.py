@@ -57,6 +57,7 @@ from digline.core.compare import (
     ConfigDelta,
     ConfigOutcome,
     Denominator,
+    DifferentRegimesError,
     Direction,
     Expansion,
     Noise,
@@ -124,6 +125,8 @@ from digline.core.register import (
     RegisterEntry,
 )
 from digline.core.resolution import (
+    DuplicateNameError,
+    IncoherentRowsError,
     NothingResolvedError,
     NotProjectedError,
     UnresolvedConfigError,
@@ -332,6 +335,7 @@ __all__ = [
     "CheckDifference",
     "Difference",
     "DifferentJudgesError",
+    "DifferentRegimesError",
     "DifferentSuitesError",
     "DocumentRefusedError",
     "DiffOutcome",
@@ -402,6 +406,8 @@ __all__ = [
     "Lookup",
     "NameRow",
     "NothingResolvedError",
+    "DuplicateNameError",
+    "IncoherentRowsError",
     "NotProjectedError",
     "UnresolvedConfigError",
     "WrongKindError",
