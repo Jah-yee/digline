@@ -1834,12 +1834,20 @@ across under tokens, and nothing on the projected document could see it.
 - an answer from `mint` without a token's form, one name given two tokens, or
   two names given one token, within one call. **The first is a check of form**:
   a minter that echoed a 22-character name back would pass it;
-- an identity on the target side, which no kind covers.
+- an identity on the target side, which no kind covers;
+- a verdict whose `assertion_id` is not a digest. The `Assertion` protocol
+  lets `identity` be any string, and one written by hand as readable text
+  would cross the projection in clear. The refusal says to derive it with
+  `dataclass_identity`, which is what `AssertionBase` does.
 
 **`Run.projected` is verified, not believed**, like `redacted`. A run that
 declares it is refused unless it is redacted, every name listed above is a
 token, every artifact is withheld, the run carries no metadata, and no verdict
-carries string metadata. The keys of a verdict's metadata are not checked:
+carries string metadata. The strings it leaves in clear, because digline
+writes them, are checked for their form: a verdict's and a band's
+`assertion_id` and `config_hash` are digests, `digline_version` a version,
+`rejudged_from` a run key, and `created_at`, `promoted_at` and `resumed_at`
+times. The keys of a verdict's metadata are not checked:
 they are in none of ADR 0034 §4's classes yet. **The refusal of run metadata
 decides nothing about numbers.** Redaction with no `Disclosure` already removed
 every entry, numbers included, so a projection never has any. ADR 0034 §4
