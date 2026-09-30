@@ -70,7 +70,8 @@ from digline.run import Case, Response, Suite
 
 `tenant` is the **perimeter**: one end customer, one project. It separates the
 data on disk (`.digline/<tenant>/`) and `compare()` raises if two runs do not
-share it. `environment` says *where inside that perimeter* — production,
+share it. It raises too if one is [projected](#the-projection) and the other is
+not. `environment` says *where inside that perimeter* — production,
 staging, acceptance — and constrains nothing: comparing staging against the
 production baseline is the pre-release check.
 
@@ -1844,6 +1845,16 @@ decides nothing about numbers.** Redaction with no `Disclosure` already removed
 every entry, numbers included, so a projection never has any. ADR 0034 §4
 still leaves numbers undecided everywhere else.
 
+**`compare()` refuses a pair whose `projected` differs**, as
+**`DifferentRegimesError`**, in `REFUSALS`, the way it refuses two tenants. A
+projected document names its cases by token and the other side names them by
+text, so no case would meet its counterpart. Every one would read as `new`
+plus `missing`, which exits 0, and a regression against the projected
+reference would read as *Nothing got worse*. **This does not close the same
+failure between two projections minted from different tables.** Both declare
+`projected`, and nothing in a document says which table minted it. That is an
+open question of ADR 0036.
+
 ## The resolver
 
 The mirror of the projection. `project` is handed a minter and turns names
@@ -1891,6 +1902,16 @@ table* all read the same.
   their text, so half of one names no system.
 - **`NotProjectedError`**: the run is not projected, so there is nothing to
   resolve.
+- **`DuplicateNameError`**: two tokens of one kind resolve to the same text.
+  The table gives one name two rows, and the run would read two things as
+  one, such as two cases with one id. It is the mirror of the projection's
+  refusal of one name given two tokens. Equal text in two kinds is two names,
+  and is read.
+- **`IncoherentRowsError`**: every row resolved, and the run they rebuild
+  refuses what they say together. Examples are a judge identity that is not
+  its `provider/model`, a perimeter key read back in clear, or an empty model.
+  Without it, that was the rebuilt `Run`'s own bare `ValueError`, which no
+  front end translates.
 
 ## A complete example
 
