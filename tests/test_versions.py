@@ -116,6 +116,20 @@ def swept() -> list[Path]:
 #: A literal equal to the current version must never appear here; the test
 #: below refuses it.
 RECORDED: dict[str, dict[str, str]] = {
+    "src/digline/core/projection.py": {
+        "0.25.0": (
+            "'(Delta-pass over 0.25.0, F-n)': the pass over the 0.25.0 release that "
+            "found what this file now does, told as history. Moving the number would "
+            "say a later pass found it"
+        ),
+    },
+    "src/digline/core/resolution.py": {
+        "0.25.0": (
+            "'(Delta-pass over 0.25.0, F-n)': the pass over the 0.25.0 release that "
+            "found what this file now does, told as history. Moving the number would "
+            "say a later pass found it"
+        ),
+    },
     "src/digline/cli/main.py": {
         "0.19.0": (
             "'how 0.19.0 came to build the whole feature and never connect it' — "
@@ -314,6 +328,13 @@ RECORDED: dict[str, dict[str, str]] = {
         "the lesson; moving the number would claim a later pass audited it",
     },
     "RELEASING.md": {
+        "0.25.0": (
+            "the release whose index-race status is recorded: the pair agreeing for "
+            "every pin, the smoke build's in-build wait waiting 15 seconds for the new"
+            " serial, the signatures' wait not needed at 58.6 seconds, the installed "
+            "versions, and classifier's lock needing a second pass. Every one is a "
+            "fact about a release that shipped"
+        ),
         "0.24.1": (
             "the release whose walkthrough read the promotion and its refusals "
             "off the page, because the store had no commit for `git diff` to "
@@ -844,6 +865,11 @@ RECORDED: dict[str, dict[str, str]] = {
         "Moving the number would claim a later pass found it",
     },
     "src/digline/core/run.py": {
+        "0.25.0": (
+            "'(Delta-pass over 0.25.0, F-n)': the pass over the 0.25.0 release that "
+            "found what this file now does, told as history. Moving the number would "
+            "say a later pass found it"
+        ),
         "0.21.0": "'(0.21.0 delta-pass, S-1)' — the pass that found a bare "
         "ValueError reaching the MCP as an opaque error. Moving it would say a "
         "later pass found it",
@@ -918,6 +944,11 @@ RECORDED: dict[str, dict[str, str]] = {
     # The 0.12.1 delta-pass, in the same shape: the release named where each
     # finding is closed, history from the moment 0.13.0 shipped.
     "src/digline/core/compare.py": {
+        "0.25.0": (
+            "'(Delta-pass over 0.25.0, F-n)': the pass over the 0.25.0 release that "
+            "found what this file now does, told as history. Moving the number would "
+            "say a later pass found it"
+        ),
         "0.19.0": (
             "the 0.19.0 delta-pass, which found what this file now does, told as "
             "history. Moving the number would claim a later pass audited its own "
