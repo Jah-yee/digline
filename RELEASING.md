@@ -422,8 +422,17 @@ for itself.
   git init -q && git add -A && git commit -qm walk
   uv run --project <digline checkout> digline run --suite suite.py
   uv run --project <digline checkout> digline promote --suite suite.py --run latest --replacing none
+  git add .digline && git commit -qm baseline
   uv run --project <digline checkout> digline run --suite suite.py
   ```
+
+  **Commit the baseline before step 3, or step 3 loses its check.** Step 3
+  reads the promotion in `git diff .digline/*/baselines/`, and steps 4 to 6
+  read the refusals there too. An untracked `.digline/` shows as `??`, and
+  `git diff` says nothing whatever happens. On 2026-09-30, for 0.24.1, the
+  store above had no such commit. The promotion and the four refusals were read
+  off the page alone, and `git diff` could not be run. The `git add` line is
+  there for that reason.
 
 - **The digline you are releasing, not one from PyPI.** Every command runs as
   `uv run --project <digline checkout> …`, with the checkout synced
