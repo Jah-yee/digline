@@ -6,7 +6,27 @@ upgrading, and what deliberately did not move. The reasoning lives in
 read the [release titles](https://github.com/digline/digline/releases) — the
 notes under them are this file, verbatim.
 
-## 0.25.1 — unreleased
+## Unreleased
+
+### Fixed — `latest` says when a newer run is on record and not read (#286)
+
+- **`--run latest` used to fall back to an older run without a word** when the
+  newest run's file was gone. `promote --run latest` and `register --run latest`
+  then acted on a run nobody may have read, and the printed key was the only
+  sign. Now the note on stderr says so wherever this store's committed
+  artifacts remember a run newer than the one picked: *"the baseline was
+  promoted from run …, newer than …, and that run was not read here"*, and the
+  same sentence for a register line. A baseline or register that cannot be
+  read is named in the note, and `latest` still resolves.
+- **What it cannot see, and does not claim to.** A scan finds what is there,
+  not what was. With no baseline and no register line newer than the pick,
+  nothing in the store records that a newer run existed, and the note stays
+  empty. **An empty note does not mean nothing is missing.** The one record
+  that would know is the deletion ledger, which does not exist yet: ADR 0035
+  proposes it, and keeps it off every read path (§10).
+  `resolve_key`'s docstring says the same, for whoever wants to widen it.
+- Over MCP nothing changes: the read tools already drop this note by design,
+  and MCP has no tool that promotes or registers.
 
 ### Fixed — a comparison across the projection hid a regression (delta-pass over 0.25.0)
 
