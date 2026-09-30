@@ -329,3 +329,19 @@ def test_equal_text_in_two_kinds_still_resolves() -> None:
     run = projected(owner)
     resolved = resolve_tokens(run, rewriting(owner, "case_id", "calibration-1", CHECK))
     assert CHECK in {case.case_id for case in resolved.results}
+
+
+def test_the_lookup_is_asked_once_per_token() -> None:
+    """Not once per place: a token sits in several (a family shared by the
+    case verdicts and the aggregate), and the lookup may be a query. Was: 25
+    questions for 22 tokens on this fixture. (Delta-pass over 0.25.0, F-5)"""
+    owner = Owner()
+    run = projected(owner)
+    asked: list[str] = []
+
+    def counting(token: str) -> NameRow | None:
+        asked.append(token)
+        return owner.lookup(token)
+
+    resolve_tokens(run, counting)
+    assert len(asked) == len(set(asked))
