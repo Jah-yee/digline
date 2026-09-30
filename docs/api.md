@@ -70,7 +70,8 @@ from digline.run import Case, Response, Suite
 
 `tenant` is the **perimeter**: one end customer, one project. It separates the
 data on disk (`.digline/<tenant>/`) and `compare()` raises if two runs do not
-share it. `environment` says *where inside that perimeter* — production,
+share it. It raises too if one is [projected](#the-projection) and the other is
+not. `environment` says *where inside that perimeter* — production,
 staging, acceptance — and constrains nothing: comparing staging against the
 production baseline is the pre-release check.
 
@@ -1843,6 +1844,16 @@ they are in none of ADR 0034 §4's classes yet. **The refusal of run metadata
 decides nothing about numbers.** Redaction with no `Disclosure` already removed
 every entry, numbers included, so a projection never has any. ADR 0034 §4
 still leaves numbers undecided everywhere else.
+
+**`compare()` refuses a pair whose `projected` differs**, as
+**`DifferentRegimesError`**, in `REFUSALS`, the way it refuses two tenants. A
+projected document names its cases by token and the other side names them by
+text, so no case would meet its counterpart. Every one would read as `new`
+plus `missing`, which exits 0, and a regression against the projected
+reference would read as *Nothing got worse*. **This does not close the same
+failure between two projections minted from different tables.** Both declare
+`projected`, and nothing in a document says which table minted it. That is an
+open question of ADR 0036.
 
 ## The resolver
 
