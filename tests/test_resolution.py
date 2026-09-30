@@ -7,13 +7,16 @@ and half a configuration read as a system. (ADR 0036 §2, §3, §8)
 from __future__ import annotations
 
 import secrets
+from collections.abc import Callable
 from dataclasses import dataclass
 
 import pytest
-from tests.test_projection import CASE, GROUP, Table, promoted
+from tests.test_projection import CASE, CHECK, GROUP, JUDGE_MODEL, Table, promoted
 
 from digline.core import (
     NOTHING_EXTRA,
+    DuplicateNameError,
+    IncoherentRowsError,
     NameRow,
     NothingResolvedError,
     NotProjectedError,
@@ -211,6 +214,8 @@ def test_a_configuration_with_an_erased_row_is_refused(
 
 def test_every_resolver_refusal_is_classified() -> None:
     for refusal in (
+        DuplicateNameError,
+        IncoherentRowsError,
         NothingResolvedError,
         NotProjectedError,
         UnresolvedConfigError,
@@ -249,3 +254,78 @@ def test_a_resolved_run_can_be_projected_again_with_the_same_tokens() -> None:
     first = projected(owner)
     again = project(resolve_tokens(first, owner.lookup), owner.mint)
     assert run_to_json(again) == run_to_json(first)
+
+
+# --------------------------------------------------------------------------- #
+# A table whose rows disagree with each other (delta-pass over 0.25.0, F-2, F-3)
+# --------------------------------------------------------------------------- #
+
+
+def rewriting(
+    owner: Owner, kind: TokenKind, text: str, to: str
+) -> Callable[[str], NameRow | None]:
+    """The owner's lookup, with the row of one (kind, text) reading `to`: a
+    table edited by hand, or merged from two."""
+    target = owner.table.token(kind, text)
+
+    def lookup(token: str) -> NameRow | None:
+        row = owner.lookup(token)
+        return Row(token, kind, to) if token == target else row
+
+    return lookup
+
+
+@pytest.mark.parametrize(
+    ("kind", "text", "to"),
+    [
+        pytest.param(
+            "judge_identity", f"anthropic/{JUDGE_MODEL}", "openai/gpt-5", id="identity"
+        ),
+        pytest.param("judge_config_value", JUDGE_MODEL, "", id="empty-model"),
+    ],
+)
+def test_rows_that_describe_no_run_are_refused_by_name(
+    kind: TokenKind, text: str, to: str
+) -> None:
+    """Was: the rebuilt `Run`'s own bare `ValueError`, which no front end
+    translates and `REFUSALS` does not name."""
+    owner = Owner()
+    run = projected(owner)
+    with pytest.raises(IncoherentRowsError, match="describe no run"):
+        resolve_tokens(run, rewriting(owner, kind, text, to))
+
+
+def test_a_perimeter_key_read_back_in_clear_is_refused_by_name() -> None:
+    """A target that named no endpoint, so no key is withheld, and a row that
+    reads `base_url` for one of its keys: a redacted run carrying the
+    perimeter in clear, which `Run` refuses."""
+    owner = Owner()
+    run = projected(
+        owner,
+        promoted(
+            target_config=SystemConfig(
+                values={"provider": "openai", "model": "gpt-5", "temperature": 0.3}
+            )
+        ),
+    )
+    lookup = rewriting(owner, "target_config_key", "temperature", "base_url")
+    with pytest.raises(IncoherentRowsError, match="base_url"):
+        resolve_tokens(run, lookup)
+
+
+def test_two_tokens_of_one_kind_resolving_to_one_name_are_refused() -> None:
+    """The mirror of the projection's refusal of one name given two tokens.
+    Was: read, as a run with two cases of one id."""
+    owner = Owner()
+    run = projected(owner)
+    with pytest.raises(DuplicateNameError, match="case_id"):
+        resolve_tokens(run, rewriting(owner, "case_id", "calibration-1", CASE))
+
+
+def test_equal_text_in_two_kinds_still_resolves() -> None:
+    """The control: kinds are separate, so equal text under two of them is two
+    names, not one name twice."""
+    owner = Owner()
+    run = projected(owner)
+    resolved = resolve_tokens(run, rewriting(owner, "case_id", "calibration-1", CHECK))
+    assert CHECK in {case.case_id for case in resolved.results}
