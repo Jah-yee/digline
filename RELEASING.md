@@ -1571,6 +1571,71 @@ tag* updates it on every tag, and step 6 is what puts the capture's reading in
 it — including the sentence that says the capture ran and found nothing, which
 is the one a quiet log cannot supply.
 
+- **v0.24.0 — the pair agreed on both legs, and `release_bundles.py`'s wait
+  ran for the first time and never had to wait, so this green does not prove
+  it.** `publish` passed on attempt 1, `github-release` included. Its approval
+  reads `approved` by `alexpran` on `pypi` from `/approvals`, not from the
+  run's green. `docker-publish` needed an attempt 2, for the reason *Applying
+  it* gives the smoke's 30-minute deadline: it waits on a person. Attempt 1's
+  runner wait ran from 07:59:27 to 08:28:59 and failed with *`/simple/digline/`
+  is served and lists 44 file version(s), none at 0.24.0*. The approval came
+  after that, and the upload finished at 08:46:56. After
+  `gh run rerun --failed`, the three tags resolve to one digest,
+  `sha256:d0cb215ddab661ec326c7238b37fd6fde3dd74fd4a8014040054e30cdd622dfc`.
+
+  **Runner level.** The `pypi` job printed `every version is served (after
+  10s)` at 08:47:07. The smoke's own wait, on attempt 2, printed `after 0s`.
+
+  **Inside the builds, the pair agreed for every pin.**
+  - The smoke build (`#9`, amd64) and the multi-arch build (`#15`, arm64) each
+    carry a `side=wait` and a `side=pip` line for all four pins. On both sides
+    of each pair, `serial` and `etag` are the same. For `digline` that is
+    `41631205` and `tJx93VHaOSEhmO9mY6IDgQ`.
+  - The last hop of `via` differs within each pair: `kiad7000188` against
+    `kiad7000023`, and `kiad7000153` against `kiad7000126`. That is row three
+    of the table, the routine case.
+  - pip's half printed 33 lines in each build.
+  - Both builds printed `Successfully installed` with `digline-0.24.0`,
+    `digline-anthropic-0.5.3`, `digline-openai-0.5.2` and
+    `digline-bedrock-0.5.1`.
+  - The multi-arch amd64 layers `#10` to `#13` were `CACHED` from the smoke
+    build, so they proved nothing of their own.
+
+  The capture ran, the pair was present for every pin, and it had nothing to
+  explain.
+
+  **The signatures' wait: 20 reads, none repeated, no third word.** The script
+  made 20 reads in about two seconds, from 08:47:55.8 to 08:47:57.9:
+  - six JSON pages, one per package in `dist/`;
+  - twelve attestations, one per file;
+  - the two files at 0.24.0, fetched to check their digests.
+
+  Each one answered on its first read. The log has no `waiting` line, and no
+  `served … (after Ns, read N)` line, which the script prints only for a read
+  that took more than one. Neither `absent` nor `unread` fired, and there was
+  no `::error`. The result was two bundles for `refs/tags/v0.24.0`, and ten
+  files skipped, each named with the tag that published it.
+
+  **But the green does not prove the wait.** The first read came 59 seconds
+  after the upload finished. The JSON page 404'd at 43 seconds on v0.22.0 and
+  at 36 on v0.23.0. This read came later than both, so the page was already
+  served. The repair ran and had nothing to absorb. Only
+  `tests/test_release_bundles.py`'s offline control has shown the loop
+  holding against a lagging index.
+
+  **`listed` never warned.** None of the four `release-followup` runs after
+  the tag fired a `::warning`.
+
+  **Elsewhere.** `uv lock --upgrade-package digline` moved all seven example
+  locks to 0.24.0 on the first pass. The versions were read back from the seven
+  files before committing.
+
+  **The next tag must show** the pair for every pin again. It must also show,
+  once more, whether `release_bundles.py`'s wait has to wait. A `waiting`
+  line, and what it read next, is the first observation of the loop against a
+  real index. A clean first read, like this one, says only when the script
+  started.
+
 - **v0.23.0 — the wait held on both legs again, and the JSON endpoint 404'd
   a second time, so `release_bundles.py` is now a consumer owed its own
   wait.** `docker-publish` passed on attempt 1. All three tags resolve to one
@@ -2845,6 +2910,17 @@ right three. That is the point: so were the five above, until they were not.
 They cannot resolve a version PyPI does not have yet, so it probably has to stay
 a post-tag commit — but if a lock can be written against the version about to
 ship, the dispatch stops being necessary.)*
+
+**The approval is a person's click, and never a session's.** A session that
+drives a release stops at the `[GATE]`, gives the counts, and waits. The
+approval is given in the Actions tab by the person who owns the account. A
+session never approves it through the API — no `POST` to
+`pending_deployments`, not even when told "approve". An API approval is
+recorded under that person's login, and nothing afterwards tells it apart from
+their click. It is the one point of this file where somebody has to stop. If a
+session clicks it, the gate becomes an automatic step with a person's name on
+it, which certifies a decision nobody made. Ruled on 2026-09-30, at v0.24.0,
+after a session offered to approve it.
 
 **Whether the reviewer gate actually held is not visible in the run's green.**
 A fast approval passes through `waiting` in seconds — on 0.7.1 it was **16** —
