@@ -6,11 +6,13 @@ upgrading, and what deliberately did not move. The reasoning lives in
 read the [release titles](https://github.com/digline/digline/releases) — the
 notes under them are this file, verbatim.
 
-## 0.25.0 — unreleased
+## 0.25.0 — 2026-09-30
 
 digline **0.25.0**. The projection: the reference a software house commits
 when the end company keeps the store, with every name replaced by a token.
-Schema 18 comes with it, for one flag. Run `digline migrate`.
+The resolver reads it back. Schema 18 comes with it, for one flag. Run
+`digline migrate`. A third-party assertion that built its `Verdict` without
+`assertion_id` must now pass one.
 
 ```sh
 uv add --upgrade digline
@@ -104,6 +106,22 @@ digline migrate --suite suite.py
   what every earlier document is. A 0.24.x reader refuses a schema-18 document,
   which is the point: it would otherwise read a projection as a document with
   names in it. A resume journal does not move.
+
+### Not owed — the browser walkthrough
+
+- **The walkthrough in `RELEASING.md` (ADR 0033 §8) was not owed for this
+  release.** Nothing in the launch key, the hand-over or the promote form
+  changed since 0.24.1, which ran it. The check was a diff between `v0.24.1`
+  and this release's tree, not a recollection. Nothing under `cli/`,
+  `report/` or `wire/` moved, and `host/promotion.py` is untouched. In
+  `store/`, only `migrate.py` moved, for the step to 18. In `host/`, only
+  `refusals.py` moved: `REFUSALS` gained seven classes, and `digline view`'s
+  routes catch that tuple. None of the seven is newly raised on the promote
+  path. Six belong to the projection and the resolver, which `view` does not
+  call. The seventh, `UnidentifiedVerdictError`, refuses a stored verdict whose
+  `assertion_id` is empty, which 0.24.1 read with the check's name. Only a
+  document edited by hand carries one, and because the class is in the tuple,
+  a promotion through the page refuses it by name.
 
 ## 0.24.1 — 2026-09-30
 
