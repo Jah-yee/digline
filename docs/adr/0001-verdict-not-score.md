@@ -232,6 +232,12 @@ rules are applied to.
      than naming the assertion. Now the refusal is raised inside the assertion's call, so
      it is that assertion's errored verdict, and the reason names the class.
 
+   **Keyword-only catches most omissions, not all.** pyright reports a call that leaves
+   the field out, but not a call under a `type: ignore`, nor one that passes it through a
+   default of its own. Two of the test helpers this change touched were of those kinds,
+   and only running them found them. So the refusal at construction is what closes the
+   routes. It is not a second belt behind the type checker.
+
    The occurrence survives as a tie-breaker between verdicts that share an identity — the
    same assertion, identically configured, applied twice to the same case. There, position
    is the only thing left, and it is correct precisely because the two are

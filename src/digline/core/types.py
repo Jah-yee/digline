@@ -486,6 +486,13 @@ class Verdict:
     tolerance: float = 0.0
     # `kw_only` so the field can have no default while sitting after two that
     # do: a positional field without a default may not follow one with.
+    #
+    # **It catches most omissions, not all.** pyright reports a call that
+    # leaves it out, but not one under a `type: ignore`, nor one that passes it
+    # through a default of its own (`assertion_id: str = ""` in a helper). Two
+    # of the tests this change touched were of those kinds, and only running
+    # them found them. That is why the refusal in `__post_init__` is needed,
+    # and is not a second belt: it is the only check that sees every route.
     assertion_id: str = field(kw_only=True)
     #: A model placed this value on a scale: the assertion that produced it is
     #: `judged()`, its class's `KIND` read through `Repeated`. Stamped by the
