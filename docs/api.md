@@ -69,8 +69,8 @@ from digline.run import Case, Response, Suite
 | `artifacts` | `Sequence[Path]` | `()` |
 
 `tenant` is the **perimeter**: one end customer, one project. It separates the
-data on disk (`.digline/<tenant>/`) and `compare()` raises if two runs do not
-share it. It raises too if one is [projected](#the-projection) and the other is
+data on disk (`.digline/<tenant>/`) and `compare()` raises
+`DifferentTenantsError`, in `REFUSALS`, if two runs do not share it. It raises too if one is [projected](#the-projection) and the other is
 not. `environment` says *where inside that perimeter* — production,
 staging, acceptance — and constrains nothing: comparing staging against the
 production baseline is the pre-release check.

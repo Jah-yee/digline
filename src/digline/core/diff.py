@@ -28,6 +28,7 @@ from digline.core.compare import (
     AGREEMENT_FIELD,
     ArtifactDelta,
     ConfigDelta,
+    DifferentTenantsError,
     Noise,
     Scope,
     SuiteDelta,
@@ -376,7 +377,7 @@ def _refuse(left: Run, right: Run) -> None:
         # is a report rather than a verdict: one end customer's numbers read as
         # another's is arithmetically valid and factually nonsense in any
         # document.
-        raise ValueError(
+        raise DifferentTenantsError(
             f"cannot diff across tenants: one run is {left.tenant!r}, the other "
             f"is {right.tenant!r}"
         )
