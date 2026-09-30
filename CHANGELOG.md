@@ -6,7 +6,7 @@ upgrading, and what deliberately did not move. The reasoning lives in
 read the [release titles](https://github.com/digline/digline/releases) — the
 notes under them are this file, verbatim.
 
-## 0.25.1 — unreleased
+## 0.25.1 — 2026-09-30
 
 digline **0.25.1**. Repairs, and no new surface. Six come from the delta-pass
 over 0.25.0: its five findings on the projection, and the tenant's refusal
@@ -155,6 +155,34 @@ does neither.
   `ProjectionRefusedError`. The message says to derive the identity with
   `dataclass_identity`, as `AssertionBase` does. An assertion that is never
   projected is unaffected.
+
+### Seen working in a browser — the walkthrough, owed and run
+
+- **The walkthrough in `RELEASING.md` ran on 2026-09-30, before the tag,** on
+  `f5bd397`, in one browser engine. It was owed because `POST /promote`'s
+  handler changed one line: it stamps `promoted_at` through
+  `digline.host.utc_now_iso()`, which keeps microseconds, where it used the
+  removed `digline.store.utc_now_iso()` (#285). The origin check, the cookie,
+  the launch key and the form did not change.
+  - **Which digline ran:** `digline.__file__` resolved to the release
+    checkout's `src/digline/`, at 0.25.1.
+  - **The promotion worked, and the line it was owed for is right.**
+    *Make baseline*, pressed on the row that was not the baseline, moved the
+    baseline to it. `git diff` on the committed baseline showed the move, with
+    `promoted_at` at `2026-09-30T16:17:51.345982+00:00`: microseconds present.
+    The document carries `projected: false`, at schema 18.
+  - **What it proves, and what it does not.** The store was prepared with
+    0.25.1, so the baseline it replaced had microseconds too, stamped by
+    `digline promote`. There is no before and after on this page. It proves
+    that the stamp `view` writes now is right, not that it changed.
+  - **Four refusals, each with a different cause:**
+    - no cookie;
+    - a cookie from an earlier start;
+    - a launch key from another start;
+    - an address already opened.
+
+    The baseline did not move after any of the four.
+  - **Not tried:** a second browser engine.
 
 ## 0.25.0 — 2026-09-30
 
