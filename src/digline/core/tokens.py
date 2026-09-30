@@ -12,9 +12,9 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable
-from typing import Literal
+from typing import Literal, Protocol
 
-__all__ = ["TOKEN_LENGTH", "Minter", "TokenKind", "is_token"]
+__all__ = ["TOKEN_LENGTH", "Lookup", "Minter", "NameRow", "TokenKind", "is_token"]
 
 #: What a token stands for. A value names **what the text is**, and reads on its
 #: own in the owning process's table, where there is no document around it.
@@ -42,6 +42,33 @@ type TokenKind = Literal[
 #: tokens. It runs inside the process that owns the table, and nothing outside
 #: that process may write it. (ADR 0036 §2, §6, §7)
 type Minter = Callable[[TokenKind, str], str]
+
+
+class NameRow(Protocol):
+    """A row of the name table, as digline reads it: the token, the kind it
+    was minted under, and the text.
+
+    **Structural**: digline builds no row. The owning process's own row type
+    satisfies this by having the three, read-only or not, and imports nothing
+    to do so. The kind is a `str` rather than a `TokenKind` because the core
+    only compares kinds for equality (ADR 0036 §3). The token is here so that
+    a lookup which returns another token's row is refused rather than read.
+    """
+
+    @property
+    def token(self) -> str: ...
+
+    @property
+    def kind(self) -> str: ...
+
+    @property
+    def text(self) -> str: ...
+
+
+#: The row a token names, or `None` where the table has none: erased, never
+#: minted here, or the wrong table, which read the same (ADR 0036 §2, §8). The
+#: mirror of `Minter`, handed to `resolve_tokens` by the owning process.
+type Lookup = Callable[[str], NameRow | None]
 
 #: 128 random bits in url-safe base64 without padding. (ADR 0036 §5)
 TOKEN_LENGTH = 22

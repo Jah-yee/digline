@@ -55,6 +55,29 @@ digline migrate --suite suite.py
   the identity built from them, are relaxed together on a projected
   configuration, and nowhere else. The count check stays.
 
+### Added — the resolver (ADR 0036 §3, §8)
+
+- **`digline.core.resolve_tokens(run, lookup)`** reads a projected document
+  back: each token is replaced by the text of its row, and the result is a
+  `Run` with `projected` false and `redacted` still true. With every row
+  present, it is the reference as redaction alone writes it, and a test holds
+  the round trip. It is called by the process that owns the table, which
+  hands it a **`Lookup`** (`Callable[[str], NameRow | None]`). **`NameRow`** is
+  structural (`token`, `kind`, `text`), so the owner's own rows satisfy it
+  with no import.
+- **The projection and the resolver read one map** from place to kind, so the
+  kind the resolver checks is the kind the projection wrote.
+- **Five refusals**, all in `host.REFUSALS`:
+  - `NothingResolvedError`: tokens are present and none resolves, which is
+    the wrong table. A document with no token is read.
+  - `WrongKindError`: a row of another kind than its place's.
+  - `WrongRowError`: a row for another token, or something that is not a row.
+  - `UnresolvedConfigError`: a configuration token with no row. A
+    configuration resolves whole or not at all.
+  - `NotProjectedError`: the run is not projected.
+
+  A token of any other kind with no row stays in place.
+
 ### Changed — schema 18
 
 - **`SCHEMA_VERSION` 17 → 18, with one passenger: `projected`.** Every
