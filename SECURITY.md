@@ -189,6 +189,50 @@ trust this summary.
   ran it in (fixed decision 2). A vulnerability in digline is a vulnerability
   in a program you ran locally, not in something holding your data.
 
+## Advisories against a dependency
+
+**A scanner reads the lock files, and a lock file is not what ships.** OpenSSF
+Scorecard and Dependabot grade this repository by the root `uv.lock`, each
+example's lock and the Maven poms, and Dependabot labels what it finds there
+`runtime` whichever group it came from. A user installs a published package's
+declared dependencies, resolved on their own machine. So an advisory against a
+dependency is answered here by what ships, not by what was counted. Either
+count can move with no commit here, the day an advisory is published. The scan
+says which advisories are open today; this section says which of them we
+declared, and why.
+
+- **nltk, [GHSA-8mgp-746c-j5xp](https://osv.dev/GHSA-8mgp-746c-j5xp): open,
+  with no fix upstream, and not shipped.** The advisory covers every nltk
+  release, the latest included, so there is nothing to move to. nltk arrives
+  through `llama-index-core`, which the root lock holds for the `dev` group only
+  and `examples/llamaindex` holds for its own run. No published package depends
+  on it — not `digline`, not a plugin, not `pytest-digline`, not `digline-mcp` —
+  and the Docker image does not contain it. It stays open in both scanners
+  until nltk ships a fix, and Dependabot will go on calling it `runtime`: that
+  label describes the scanner, not the package.
+- **PyJWT, ten advisories published on 2026-09-29: fixed in the lock, and not
+  reached by anything digline runs.** PyJWT arrives through `digline-mcp` →
+  `mcp` → `pyjwt[crypto]`, and the root lock now holds a fixed release. The
+  floor is mcp's, and mcp still allows the affected releases, at its latest
+  version and on its main branch alike, so an environment that already held an older PyJWT keeps it when `digline-mcp` is
+  installed. The Docker image does not contain `digline-mcp`, and so has no
+  PyJWT at all. `digline-mcp` serves over stdio, and the one module in mcp that
+  imports PyJWT is the client-side OAuth credentials extension. **Measured on
+  2026-09-30, with mcp 2.2.0:** a real stdio session — initialize, then the tool
+  listing — imported no `jwt` module, and the same watcher caught eleven when a
+  control imported the client extension. The session called no tool. A tool
+  runs digline's own code, and nothing in digline imports PyJWT or mcp's
+  client.
+
+  **`digline-mcp` declares no PyJWT floor of its own, and that was decided,
+  not missed.** A package's dependencies say what it needs to run.
+  `digline-mcp` does not run PyJWT's code, as the measurement above shows, so
+  a direct dependency on PyJWT would be a false statement about what it needs.
+  It would also go on constraining users after the reason for it had gone.
+  This ruling rests on that measurement. If `digline-mcp` ever serves over a
+  transport that loads mcp's auth code, or mcp moves PyJWT onto the stdio path,
+  the ruling lapses and the question is open again.
+
 ## Out of scope
 
 **The behaviour of the models you evaluate.** Prompt injection, jailbreaks and
