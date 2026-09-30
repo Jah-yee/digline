@@ -1142,6 +1142,19 @@ def test_a_suite_can_import_a_module_beside_it(tmp_path: Path) -> None:
     assert done.stdout.strip()
 
 
+def test_a_suite_whose_import_is_missing_is_a_usage_error(tmp_path: Path) -> None:
+    """A missing import names the module and exits as a refusal, as the dotted
+    form always has — not as a traceback. Under `uvx` it is the first thing a
+    suite that imports a plugin meets."""
+    (tmp_path / "suite_plugin.py").write_text(
+        "import digline_plugin_that_is_not_installed\n", encoding="utf-8"
+    )
+    done = cli(tmp_path, "run", "--suite", "suite_plugin.py")
+    assert done.returncode == EXIT_USAGE, done.stderr
+    assert "digline_plugin_that_is_not_installed" in done.stderr
+    assert "Traceback" not in done.stderr, done.stderr
+
+
 APP_SUITE = """\
 import brief
 from digline.core import JudgeReply, LlmRubric

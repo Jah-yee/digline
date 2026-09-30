@@ -22,6 +22,20 @@ notes under them are this file, verbatim.
   never committed. A `.gitignore` digline generated earlier is not rewritten:
   add the line by hand before the table is written.
 
+### Fixed — a suite with a missing import reached an agent as five words
+
+- **A suite file whose import cannot be satisfied is now a refusal that names
+  the module.** The dotted form (`package.module`) always was one; the file
+  form (`suite.py`) ran the file unguarded, so its `ModuleNotFoundError` was
+  classified as nobody's refusal. The CLI printed a traceback, and the MCP
+  server passed it on as *"Error executing tool list_runs"*, the same five
+  words for every tool, with the module's name on stderr where no client reads
+  it. That is the first thing a suite importing a provider plugin meets under
+  `uvx digline-mcp`, where no plugin is installed.
+- **Only an import.** Any other exception raised by a suite's own code is still
+  the unexpected exception it was, because dressing a bug as a sentence hides
+  it (ADR 0011 §10).
+
 ## 0.23.0 — 2026-09-29
 
 digline **0.23.0**. One exit code moves, which is why this is a minor, and
