@@ -314,6 +314,13 @@ RECORDED: dict[str, dict[str, str]] = {
         "the lesson; moving the number would claim a later pass audited it",
     },
     "RELEASING.md": {
+        "0.23.0": (
+            "the release whose signatures job took the JSON page's 404 behind "
+            "`/simple/` for an absence, which is why the wait in "
+            "`release_bundles.py` exists, and its index-race status (the waits, "
+            "the in-build install, the signature verified from outside the run, "
+            "the locks). Every one is a fact about a release that shipped"
+        ),
         "0.22.0": (
             "the release whose bump (#204) is quoted as the image job the "
             "substitution kept green, the minor on the way to which step 5 was "

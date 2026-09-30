@@ -21,7 +21,9 @@
   none was added: the conditions the design rests on are written where they
   are made (§5, §6, §9). **What it amends is made in the change that accepts
   it**, as ADR 0034's acceptance found it should have been
-- Shipped: unreleased
+- Shipped: 0.24.0 — §2's reserved directory, `name-table/`, reached through
+  `FileResultStore.name_table_dir`, and nothing else of digline's part: the
+  resolver §8 rules on is unbuilt (#236), and the rest is the owning process's
 - Date: 2026-09-29
 - Opens: **nothing on landing.** No `SCHEMA_VERSION`, no `OUTPUT_VERSION`, no
   `REGISTER_VERSION`, no `JOURNAL_VERSION`, no `LEDGER_VERSION`, no migration.
