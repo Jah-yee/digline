@@ -71,10 +71,10 @@ from pathlib import Path
 
 from digline.cli.output import say
 from digline.core import key_of
-from digline.host import REFUSALS, promote_priced
+from digline.host import REFUSALS, promote_priced, utc_now_iso
 from digline.report import Locale, case_history, escape, pages
 from digline.run import Suite
-from digline.store import ResultStore, RunRef, utc_now_iso
+from digline.store import ResultStore, RunRef
 
 __all__ = ["Launch", "ViewHandler", "cookie_values", "serve"]
 

@@ -143,12 +143,14 @@ def test_the_host_is_the_only_layer_that_reads_the_clock_or_git() -> None:
     outright here the way it is in the core. What is forbidden is asking what
     time it *is*, and shelling out to git, anywhere but `host/`.
 
-    `store/file_store.py` is the one exception and it is deliberate: it exposes
-    `utc_now_iso` for tests and helpers that need a stamp, and never calls it to
-    fill a field of a `Run`. A run's `created_at` is passed in, which is what
-    makes it reproducible.
+    `store/` used to be an exception here, for a second `utc_now_iso` that
+    truncated to the second "for tests and helpers" and "never" filled a field
+    of a `Run`. Both halves had stopped being true. The view stamped
+    `promoted_at` with it, and `execute()`'s docstring sent library callers to
+    it for `created_at`, where two runs in one second share a key and the second
+    replaces the first. It is gone, and so is the exception. (#285)
     """
-    allowed = {SRC / "host", SRC / "store"}
+    allowed = {SRC / "host"}
     for source in sorted(SRC.rglob("*.py")):
         if any(parent in allowed for parent in source.parents):
             continue
