@@ -92,7 +92,7 @@ def promoted(**overrides: object) -> Run:
         "tenant": "acme",
         "environment": "production",
         "suite": "support",
-        "config_hash": "c0ffee",
+        "config_hash": "c0ffee00c0ffee00",
         "created_at": "2026-09-30T10:00:00+00:00",
         "promoted_at": "2026-09-30T12:00:00+00:00",
         "results": (
