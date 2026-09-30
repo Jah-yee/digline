@@ -23,7 +23,8 @@ motion.
 | `Run` `CaseResult` `compare` `redact` `config_hash` | |
 
 The report lives in `digline.report` (`headline`, `render_html`, `Locale`), the
-store in `digline.store` (`FileResultStore`, `RunRef`).
+store in `digline.store` (`FileResultStore`, `RunRef`, and
+`FileResultStore.name_table_dir` — [below](#the-name-tables-directory)).
 
 Two more, for anything that drives digline rather than declares a suite.
 `digline.host` is the layer that touches the world — `load_suite`,
@@ -1450,6 +1451,53 @@ callback per finished case. The driver still knows nothing about the store.
 
 The reasoning in full is
 [ADR 0017](adr/0017-the-journal-and-the-resumed-run.md).
+
+## The name table's directory
+
+The name table maps the tokens in a projected reference back to the text they
+stand for ([ADR 0036](adr/0036-the-name-table-and-the-process-that-owns-it.md)).
+**digline does not write it.** The process that owns the table does, in a
+format of its own, and hands digline two callables. The table still lives in
+the tenant's directory, like everything else in the perimeter, under one
+reserved name:
+
+    .digline/<tenant>/name-table/
+
+A program outside digline reaches it from a store:
+
+```python
+from digline.store import FileResultStore
+
+store = FileResultStore(project_root)  # the directory that holds .digline/
+where = store.name_table_dir("northwind")  # .digline/northwind/name-table/
+where.mkdir(parents=True, exist_ok=True)  # the owning process creates it
+```
+
+`name_table_dir` checks the tenant the way every tenant is checked — one safe
+path segment, so `..` or `a/b` is refused with `PathRefusedError` — and returns
+the path. It creates nothing, does not resolve links, and reads nothing.
+
+**What the reservation holds, and how.**
+
+- **The name is a directory, not a file.** A table kept in SQLite is at times
+  several files: `-journal` while a transaction is open, `-wal` and `-shm` in
+  WAL mode. Every one of them, and anything another engine keeps, sits inside
+  the directory, so one name covers them all.
+- **digline writes nothing under it and reads nothing from it.** Nothing is
+  refused at run time, because nothing needs to be: every path digline builds
+  goes through `baselines/`, `runs/` or `register/`, and none walks the
+  tenant's directory. A test keeps that true, with a planted SQLite file and
+  its companions left byte for byte unchanged through a run and a promotion.
+- **It is kept out of git.** The table is the re-identification key and is
+  never committed. The `.gitignore` digline generates in `.digline/` ignores
+  `*/name-table/`. **A `.gitignore` generated before this rule existed does not
+  have that line, and digline never rewrites one that is already there**:
+  add `*/name-table/` to it by hand before the table is written.
+
+What is inside the directory, its format, its lock and its retention are the
+owning process's. `tenant_dir` is not documented and stays internal: the
+reserved directory is the only part of a tenant's layout a program outside
+digline is given.
 
 ## What `--json` promises
 
