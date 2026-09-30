@@ -52,6 +52,7 @@ def run(cfg: str = "hash-a", suite: str = "test-suite", tenant: str = "acme") ->
                         tolerance=0.0,
                         status="pass",
                         reason="found",
+                        assertion_id="contains",
                     ),
                 ),
             ),

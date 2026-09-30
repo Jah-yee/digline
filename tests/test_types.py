@@ -27,6 +27,7 @@ def ok_verdict(**kwargs: object) -> Verdict:
         "threshold": 0.5,
         "status": "pass",
         "reason": "r",
+        "assertion_id": "x",
     }
     base.update(kwargs)
     return Verdict(**base)  # type: ignore[arg-type]
@@ -44,6 +45,7 @@ def test_a_pass_below_the_threshold_is_refused() -> None:
             threshold=0.7,
             status="pass",
             reason="r",
+            assertion_id="x",
         )
 
 
@@ -54,6 +56,7 @@ def test_a_fail_at_or_above_the_threshold_is_refused() -> None:
             threshold=0.7,
             status="fail",
             reason="r",
+            assertion_id="x",
         )
 
 

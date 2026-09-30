@@ -78,6 +78,25 @@ digline migrate --suite suite.py
 
   A token of any other kind with no row stays in place.
 
+### Changed — a verdict without an identity is refused (#263)
+
+- **`Verdict.assertion_id` has no default, and an empty one is refused** with
+  **`UnidentifiedVerdictError`**, new in `digline.core` and in
+  `host.REFUSALS`. It used to default to the score's name. **A third-party
+  assertion that builds its `Verdict` without `assertion_id` must now pass
+  one**: its `identity`. One built on `AssertionBase` already does.
+  - **A document carrying `"assertion_id": ""` is refused.** It used to be read
+    with the name as its identity. On a projected document that put a verdict
+    name's token in a field that crosses in clear. digline never writes `""`,
+    so no document it wrote is affected, and nothing needs migrating.
+  - **An assertion that omits it errors on its own line**, and the reason names
+    the class. Before, its verdict was recorded as an unreconciled gap.
+- **A guard on configuration keys read by their text in `digline.core`.** A
+  projection turns those keys into tokens, so a check that reads one is blind
+  on a projected document. A test lists every such read, with why it holds, and
+  turns red on a new one. It proves that somebody looked, not that they were
+  right.
+
 ### Changed — schema 18
 
 - **`SCHEMA_VERSION` 17 → 18, with one passenger: `projected`.** Every
