@@ -1028,6 +1028,21 @@ TEXT: Mapping[Locale, Mapping[str, str]] = {
         "log.window.open": "…",
         "log.not_read.schema": "{count} run(s) at schema {version} were not read.",
         "log.not_read.unreadable": "{count} file(s) could not be read.",
+        # A run the baseline or the register names, and the scan did not read:
+        # absent or unreadable, never said to be removed. Only said where one
+        # of the two records it — a run neither names leaves no trace. (#287)
+        "log.not_read.on_record": (
+            "{count} run(s) named by the baseline or the register were not read "
+            "here: {before} before the first run read, {after} after the last."
+        ),
+        "log.not_read.on_record.none_read": (
+            "{count} run(s) named by the baseline or the register were not read here."
+        ),
+        "log.span.unread": "; {count} run(s) on record inside it were not read",
+        "log.roll.unread": (
+            "{count} run(s) on record between them were not read, so what they "
+            "recorded is not known."
+        ),
         "log.side.target": "Target",
         "log.side.judge": "Judge",
         "log.span": "  {sighting} — {first} to {last}, {runs} run(s){environments}",
@@ -2097,6 +2112,22 @@ TEXT: Mapping[Locale, Mapping[str, str]] = {
             "{count} esecuzioni allo schema {version} non sono state lette."
         ),
         "log.not_read.unreadable": "{count} file non si sono potuti leggere.",
+        "log.not_read.on_record": (
+            "{count} esecuzioni nominate dal riferimento o dal registro non sono "
+            "state lette qui: {before} prima della prima letta, {after} dopo "
+            "l'ultima."
+        ),
+        "log.not_read.on_record.none_read": (
+            "{count} esecuzioni nominate dal riferimento o dal registro non sono "
+            "state lette qui."
+        ),
+        "log.span.unread": (
+            "; {count} esecuzioni registrate al suo interno non sono state lette"
+        ),
+        "log.roll.unread": (
+            "{count} esecuzioni registrate tra le due non sono state lette, quindi "
+            "non si sa cosa abbiano registrato."
+        ),
         "log.side.target": "Sistema",
         "log.side.judge": "Giudice",
         "log.span": (

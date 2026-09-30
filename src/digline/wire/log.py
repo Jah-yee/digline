@@ -69,13 +69,20 @@ def span_json(span: IdentitySpan) -> dict[str, object]:
         "last_seen": span.last_seen,
         "runs": span.runs,
         "environments": list(span.environments),
+        # Added key: runs the baseline or the register name, strictly inside
+        # the span, that were not read. `runs` and both dates are of the runs
+        # read. (#287)
+        "unread_on_record": span.unread_on_record,
     }
 
 
 def roll_json(roll: Roll) -> dict[str, object]:
     """A roll carries a window and never a moment: `last_before` and
-    `first_after` bound it, and `silent_between` says how much went unrecorded
-    inside it."""
+    `first_after` bound it, and `silent_between` says how many runs **read**
+    inside it recorded no answering model. A missing run is not counted there,
+    so `0` does not mean the window held no run. `unread_on_record` counts the
+    ones the baseline or the register name, and those are the only missing runs
+    the reading can see. (#287)"""
     return {
         "side": roll.side,
         "provider": roll.provider,
@@ -85,6 +92,7 @@ def roll_json(roll: Roll) -> dict[str, object]:
         "last_before": roll.last_before,
         "first_after": roll.first_after,
         "silent_between": roll.silent_between,
+        "unread_on_record": roll.unread_on_record,
     }
 
 
@@ -207,6 +215,11 @@ def log_json(log: IdentityLog) -> dict[str, object]:
             ],
             "skipped": {str(version): n for version, n in sorted(log.skipped.items())},
             "unreadable": log.unreadable,
+            # Added key: the `created_at` of every run the baseline or the
+            # register name that was not read here, inside the window. Empty
+            # does not mean nothing is missing: a run neither names leaves no
+            # trace. (#287)
+            "on_record_not_read": list(log.on_record_not_read),
             "reference": (
                 None
                 if reference is None
