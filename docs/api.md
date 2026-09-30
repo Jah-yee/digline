@@ -22,6 +22,7 @@ motion.
 | `Verdict` `Score` `Status` `Message` | |
 | `Run` `CaseResult` `compare` `redact` `config_hash` | |
 | `project` `Minter` `TokenKind` `is_token` `ProjectionRefusedError` — [the projection](#the-projection) | |
+| `resolve_tokens` `Lookup` `NameRow` and five refusals — [the resolver](#the-resolver) | |
 
 The report lives in `digline.report` (`headline`, `render_html`, `Locale`), the
 store in `digline.store` (`FileResultStore`, `RunRef`, and three methods by
@@ -1838,6 +1839,54 @@ they are in none of ADR 0034 §4's classes yet. **The refusal of run metadata
 decides nothing about numbers.** Redaction with no `Disclosure` already removed
 every entry, numbers included, so a projection never has any. ADR 0034 §4
 still leaves numbers undecided everywhere else.
+
+## The resolver
+
+The mirror of the projection. `project` is handed a minter and turns names
+into tokens; **`resolve_tokens(run, lookup)`** is handed a lookup and turns
+them back ([ADR 0036](adr/0036-the-name-table-and-the-process-that-owns-it.md)
+§2, §3, §8). It is called by the process that owns the table. digline itself
+never calls it, because it never holds the table.
+
+```python
+from digline.core import resolve_tokens, run_from_json
+
+reference = run_from_json(committed_file.read_text(encoding="utf-8"))
+readable = resolve_tokens(reference, table.lookup)  # table: the owner's
+```
+
+**`Lookup`** is `Callable[[str], NameRow | None]`: the row a token names, or
+`None`. **`NameRow`** is structural: anything with a `token`, a `kind` and a
+`text`, each a string, is one. digline builds no row, and the owner's row type
+needs no import to satisfy it. The kind is a plain `str`, compared for
+equality with the kind of the place the token sits in.
+
+**What it returns** is a `Run` whose names are text again: `projected` is
+false and `redacted` stays true, because the reasons were removed before the
+names were and do not come back. With every row present, the result is the
+reference as `redact(reference, NOTHING_EXTRA)` writes it. A test holds that.
+
+**A token with no row stays where it is**, as the token: an erased case id is
+read as its token, and an erased group leaves `family[group=<token>]`,
+still parseable. Token by token, *erased*, *never minted here* and *the wrong
+table* all read the same.
+
+**Refused**, each in `REFUSALS`:
+
+- **`NothingResolvedError`**: the document carries tokens and none has a
+  row. That is the wrong table, because a token has no row in any other. A
+  document with **no** token is read. A legitimate document whose every row
+  was erased is refused too: that fails loud, which is the direction chosen.
+- **`WrongKindError`**: a row minted under another kind than its place's.
+  Which place carries which kind is the same map the projection writes by.
+- **`WrongRowError`**: the lookup answered with the row of another token, or
+  with something that is not a row.
+- **`UnresolvedConfigError`**: a configuration key, string value or judge
+  identity has no row. The other kinds stay in place when unresolved. A
+  configuration cannot, because its checks read `provider` and `model` by
+  their text, so half of one names no system.
+- **`NotProjectedError`**: the run is not projected, so there is nothing to
+  resolve.
 
 ## A complete example
 

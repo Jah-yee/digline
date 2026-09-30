@@ -23,7 +23,8 @@
   it**, as ADR 0034's acceptance found it should have been
 - Shipped: 0.24.0 — §2's reserved directory, `name-table/`, reached through
   `FileResultStore.name_table_dir`, and nothing else of digline's part: the
-  resolver §8 rules on is unbuilt (#236), and the rest is the owning process's
+  resolver §3 and §8 rule on, `digline.core.resolve_tokens`, is built after
+  0.24.0 and not in it (#236), and the rest is the owning process's
 - Date: 2026-09-29
 - Opens: **nothing on landing.** No `SCHEMA_VERSION`, no `OUTPUT_VERSION`, no
   `REGISTER_VERSION`, no `JOURNAL_VERSION`, no `LEDGER_VERSION`, no migration.
@@ -594,6 +595,13 @@ it already gone.
   rules on it.
 - **Who resolves, and through which reader**: the resolver's refusal is
   decided (§8), its home and its callers are not.
+  *Decided 2026-09-30, in #236: its home is `digline.core`, beside the
+  projection, as `resolve_tokens(run, lookup)`. It reads the same map from
+  place to kind that the projection writes by. Its caller is the owning
+  process. digline itself has none, because it never holds the table and so
+  never holds a lookup to pass (§2). A row is a structural type, `NameRow`
+  (token, kind, text), which the owning process's rows satisfy without
+  importing it. The bullet is kept as written.*
 - **The spelling of the reserved name, and the table's format** (§2). The
   format is the owning process's.
   *Spelled 2026-09-30, in #234: the reserved name is a directory,

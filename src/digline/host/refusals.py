@@ -26,6 +26,13 @@ from collections.abc import Mapping
 
 from digline.core.diff import DifferentJudgesError, DifferentSuitesError
 from digline.core.projection import ProjectionRefusedError
+from digline.core.resolution import (
+    NothingResolvedError,
+    NotProjectedError,
+    UnresolvedConfigError,
+    WrongKindError,
+    WrongRowError,
+)
 from digline.core.run import DocumentRefusedError
 from digline.host.errors import UsageError
 from digline.run.replay import ReplayError
@@ -58,6 +65,11 @@ REFUSALS: tuple[type[Exception], ...] = (
     DifferentJudgesError,
     DocumentRefusedError,
     ProjectionRefusedError,
+    NotProjectedError,
+    NothingResolvedError,
+    WrongKindError,
+    WrongRowError,
+    UnresolvedConfigError,
     # store
     ConfigMismatchError,
     ErroredRunError,
