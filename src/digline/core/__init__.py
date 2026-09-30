@@ -125,6 +125,8 @@ from digline.core.register import (
     RegisterEntry,
 )
 from digline.core.resolution import (
+    DuplicateNameError,
+    IncoherentRowsError,
     NothingResolvedError,
     NotProjectedError,
     UnresolvedConfigError,
@@ -404,6 +406,8 @@ __all__ = [
     "Lookup",
     "NameRow",
     "NothingResolvedError",
+    "DuplicateNameError",
+    "IncoherentRowsError",
     "NotProjectedError",
     "UnresolvedConfigError",
     "WrongKindError",
