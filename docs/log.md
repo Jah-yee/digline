@@ -100,6 +100,34 @@ scoped by the spans above it: on a history where eleven of thirteen sightings
 identify nothing, it means *there was almost nothing to compare*, not *the
 provider held still*.
 
+## A run that is missing
+
+Spans and rolls are drawn from the runs **read**, and a scan sees what is there,
+not what was. A run file that is gone, gitignored on this clone or removed by
+hand, is not a gap in the reading. It folds away:
+
+- **A, B, A with the B run missing** reads as one A span and no roll.
+- **A, B, B with the first B missing** moves B's first sighting to the second.
+- **A missing first or last sighting** loses the roll at the edge, with nothing
+  on the other side to compare against.
+
+So the reading names a missing run wherever something committed records it: the
+baseline's `created_at`, and the run each register line names. Such a run that
+was not read here is counted:
+
+- after the heading: `N run(s) named by the baseline or the register were not
+  read here: K before the first run read, M after the last.`;
+- on each span that encloses one: `; N run(s) on record inside it were not
+  read`;
+- under each roll whose window holds one: `N run(s) on record between them were
+  not read, so what they recorded is not known.`
+
+It says *not read*, not *removed*: the file may be absent or unreadable.
+**Where neither the baseline nor the register names the run, it leaves no trace,
+and nothing is said.** No count here means no run on record went unread. It
+does not mean no run is missing. The count of silences under a roll is a count
+of runs *read*, for the same reason.
+
 ## The absences, and there are seven
 
 A reading of identity over real history is mostly absence, and **each absence is
@@ -330,8 +358,10 @@ $ digline log --suite suite.py --json
 ```
 
 emits the same reading for a program: `spans`, `rolls`, `replays`, `spread`,
-`spread_absence`, `reference`, `register`, the `window`, and the counts `runs`,
-`skipped` and `unreadable`. `spread_absence` is why `spread` is empty, counted
+`spread_absence`, `reference`, `register`, the `window`, the counts `runs`,
+`skipped` and `unreadable`, and `on_record_not_read`: the `created_at` of each
+run the baseline or the register names that was not read. Each span and each
+roll carries `unread_on_record`, the same runs counted inside it. `spread_absence` is why `spread` is empty, counted
 by cause — a consumer reading `[]` could not tell a store with no runs from a
 suite with no run-level check from a run whose every check flipped, which is
 the same reason the absences above cross. `answered` is `null` exactly when `absence` names why.
