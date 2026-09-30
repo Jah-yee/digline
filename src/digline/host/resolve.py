@@ -20,7 +20,13 @@ from dataclasses import dataclass
 from digline.core import NO_BASELINE, Run, key_of
 from digline.host.errors import UsageError
 from digline.run import Suite
-from digline.store import ResultStore, RunRef
+from digline.store import (
+    RegisterRefusedError,
+    ResultStore,
+    RunRef,
+    SupportsRegister,
+    TenantMismatchError,
+)
 
 __all__ = [
     "LATEST",
@@ -69,6 +75,19 @@ def resolve_key(store: ResultStore, suite: Suite, key: str) -> Resolved:
 
     Within what can be read, the newest is chosen on `created_at`, the recorded
     fact, rather than on the filename that encodes it.
+
+    **A newer run that is gone is said only where something recorded it.** A
+    scan sees what is there, not what was: with the newest file removed,
+    `latest` is the one before it, and the listing looks exactly as if the
+    removed run had never been written. So the note names a missing run only
+    where a committed artifact of this store remembers one newer than the
+    pick. The baseline was promoted from a run, and every register line names
+    one. Where neither does, the note stays empty and says nothing about
+    whether a run is missing. **An empty note does not mean nothing is
+    missing.** Widening that needs a record of what existed. The one such
+    record is the deletion ledger, which ADR 0035 proposes and keeps off every
+    read path (§10), so this function may not read it. A note that claimed to
+    detect a removal it cannot see would be worse than none. (#286)
     """
     if key != LATEST:
         return Resolved(key)
@@ -91,7 +110,51 @@ def resolve_key(store: ResultStore, suite: Suite, key: str) -> Resolved:
     newest = max(
         (store.read_run(ref) for ref in listing.runs), key=lambda r: r.created_at
     )
-    return Resolved(key_of(newest.created_at, newest.config_hash), listing.note())
+    key = key_of(newest.created_at, newest.config_hash)
+    notes = [listing.note(), *_newer_on_record(store, suite, newest, key)]
+    return Resolved(key, "; ".join(note for note in notes if note))
+
+
+def _newer_on_record(
+    store: ResultStore, suite: Suite, picked: Run, key: str
+) -> list[str]:
+    """What this store's committed artifacts remember that is newer than the
+    run `latest` picked, one sentence per artifact, or nothing.
+
+    Newer than the pick means not among the runs read: had it been read, it
+    would have been the pick. It can be absent or unreadable, which is why the
+    sentence says *not read here* and not *removed*. An artifact that cannot be
+    read is named rather than passed over, as `scan_runs` does for a run:
+    silence there would read as *nothing newer on record*.
+    """
+    found: list[str] = []
+    try:
+        baseline = store.read_baseline(suite.tenant, suite.name)
+    except (OSError, ValueError, TenantMismatchError) as exc:
+        found.append(f"the baseline could not be read to check for a newer run: {exc}")
+    else:
+        if baseline is not None and baseline.created_at > picked.created_at:
+            found.append(
+                "the baseline was promoted from run "
+                f"{key_of(baseline.created_at, baseline.config_hash)}, newer than "
+                f"{key}, and that run was not read here"
+            )
+    if isinstance(store, SupportsRegister):
+        try:
+            entries = store.read_register(suite.tenant, suite.name).entries
+        except RegisterRefusedError as exc:
+            found.append(
+                f"the register could not be read to check for a newer run: {exc}"
+            )
+        else:
+            newer = [e for e in entries if e.run_created_at > picked.created_at]
+            if newer:
+                last = max(newer, key=lambda e: e.run_created_at)
+                found.append(
+                    f"the register names run {last.run_key}, newer than {key}, "
+                    "and that run was not read here"
+                )
+    return found
 
 
 def read_run(store: ResultStore, suite: Suite, key: str) -> Run:
