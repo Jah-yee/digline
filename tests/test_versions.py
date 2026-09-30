@@ -314,6 +314,13 @@ RECORDED: dict[str, dict[str, str]] = {
         "the lesson; moving the number would claim a later pass audited it",
     },
     "RELEASING.md": {
+        "0.24.0": (
+            "the release whose signatures' wait ran for the first time and "
+            "never had to wait, its index-race status (the smoke's deadline "
+            "passed during the approval, the pair, the locks), and the release "
+            "at which the reviewer gate was ruled a person's click. Every one "
+            "is a fact about a release that shipped"
+        ),
         "0.23.0": (
             "the release whose signatures job took the JSON page's 404 behind "
             "`/simple/` for an absence, which is why the wait in "
