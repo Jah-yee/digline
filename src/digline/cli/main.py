@@ -46,7 +46,6 @@ from digline.host import (
     LATEST,
     NO_BASELINE,
     REFUSALS,
-    TARGET_ATTR,
     Loaded,
     UsageError,
     explained,
@@ -58,11 +57,12 @@ from digline.host import (
     measure,
     need_baseline,
     prepare,
+    pricing_for,
+    promote,
     read_artifacts,
     read_pinned,
     read_run,
     record,
-    replacing,
     reported,
     resolve_key,
     utc_now_iso,
@@ -83,7 +83,6 @@ from digline.run import (
     ReplayError,
     Suite,
     planned_calls,
-    price_digest_of,
     rejudge,
     undeclared_kinds,
 )
@@ -92,7 +91,6 @@ from digline.store import (
     JournalRefusedError,
     Pending,
     ResultStore,
-    RunRef,
     SupportsJournal,
     migrate_paths,
 )
@@ -228,19 +226,10 @@ def _pricing(args: argparse.Namespace, loaded: Loaded) -> str:
     `run` chooses its target with `--target`, and until ADR 0022 `promote`,
     `view` and `rejudge` could not — so a multi-target suite could sign a run of
     one system as the reference for another. They take the same flag now, and
-    the hash they check is computed off the same target (ADR 0022 §5).
-
-    A `suite.py` with no `target` at all, and no `--target`, contributes
-    nothing: it is promoted as it always was, because there is no price there
-    to have declared.
+    the hash they check is computed off the same target (ADR 0022 §5), by the
+    one function `digline.host.promote` uses.
     """
-    if (
-        args.target is None
-        and loaded.module is not None
-        and not hasattr(loaded.module, TARGET_ATTR)
-    ):
-        return ""
-    return price_digest_of(load_target(args.target, loaded, args.suite))
+    return pricing_for(loaded, args.target, args.suite)
 
 
 def cmd_run(args: argparse.Namespace) -> int:
@@ -705,17 +694,18 @@ def cmd_list(args: argparse.Namespace) -> int:
 def cmd_promote(args: argparse.Namespace) -> int:
     suite, loaded, store = _load(args)
     key = _resolve(store, suite, args.run)
-    ref = RunRef(tenant=suite.tenant, suite=suite.name, key=key)
     # The clock is read here, in the layer allowed to read it, and handed down
     # as a value — the rule `created_at` already follows. What it stamps is the
     # human signature's own time: `created_at` says when the run was measured.
-    promoted = store.promote_baseline(
-        ref,
-        suite.config_hash(pricing=_pricing(args, loaded)),
-        # What the person compared against, as they typed it — never read from
-        # the store here, which would make the check compare the baseline with
-        # itself. (ADR 0031 §1)
-        expected_baseline=replacing(args.replacing),
+    # The configuration hash is computed inside, off the suite and the target
+    # measured, which is what a program outside digline calls too (#256).
+    promoted = promote(
+        store,
+        loaded,
+        key,
+        target=args.target,
+        # What the person compared against, as they typed it. (ADR 0031 §1)
+        replacing=args.replacing,
         promoted_at=utc_now_iso(),
     )
     # The resolved key, never the literal "latest": what was promoted must be

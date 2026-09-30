@@ -23,12 +23,15 @@ motion.
 | `Run` `CaseResult` `compare` `redact` `config_hash` | |
 
 The report lives in `digline.report` (`headline`, `render_html`, `Locale`), the
-store in `digline.store` (`FileResultStore`, `RunRef`, and
-`FileResultStore.name_table_dir` — [below](#the-name-tables-directory)).
+store in `digline.store` (`FileResultStore`, `RunRef`, and three methods by
+name: `FileResultStore.name_table_dir` — [below](#the-name-tables-directory) —
+and `read_run` and `read_baseline` —
+[further below](#reading-and-promoting-from-a-program)).
 
 Two more, for anything that drives digline rather than declares a suite.
-`digline.host` is the layer that touches the world — `load_suite`,
-`load_target`, `read_artifacts`, `git_commit`, `utc_now_iso`, `resolve_key`.
+`digline.host` is the layer that touches the world — `load_suite`, `Loaded`,
+`load_target`, `read_artifacts`, `git_commit`, `utc_now_iso`, `resolve_key`,
+`promote` and `REFUSALS`.
 `digline.wire` is the machine surface: `OUTPUT_VERSION`, the exit codes, and the
 functions that build every `--json` and every MCP response. A script that loads
 a suite imports the first; nothing but a front end needs the second.
@@ -1498,6 +1501,129 @@ What is inside the directory, its format, its lock and its retention are the
 owning process's. `tenant_dir` is not documented and stays internal: the
 reserved directory is the only part of a tenant's layout a program outside
 digline is given.
+
+## Reading and promoting from a program
+
+A program that drives digline reads a run, reads a baseline and promotes, and
+catches what digline refuses. These are the names it does that with. Each one
+is published by name: listing a class above does not make its methods public.
+
+```python
+from digline.host import REFUSALS, load_suite, promote, resolve_key, utc_now_iso
+from digline.store import FileResultStore, RunRef
+
+suite, loaded = load_suite("suite.py")
+store = FileResultStore(project_root)
+try:
+    key = resolve_key(store, suite, "latest").key
+    run = store.read_run(RunRef(tenant=suite.tenant, suite=suite.name, key=key))
+    baseline = store.read_baseline(suite.tenant, suite.name)  # None: first round
+    reference = promote(
+        store,
+        loaded,
+        key,
+        target=None,  # the suite's own target; a spec names another
+        replacing="none",  # or the baseline key compare printed
+        promoted_at=utc_now_iso(),
+    )
+except REFUSALS as refused:
+    print(refused)  # a sentence written for a reader
+```
+
+### Reading: `read_run` and `read_baseline`
+
+- **`FileResultStore.read_run(ref)`** returns the `Run` stored under a
+  `RunRef`. It refuses `RunNotFoundError` when there is no such run,
+  `PathRefusedError` for a name that is not one safe path segment or a file
+  that leads out of the store, `TenantMismatchError` or `SuiteMismatchError`
+  when the document names another tenant or suite than the address it was
+  read through, and `DocumentRefusedError` for a document this version cannot
+  read.
+- **`FileResultStore.read_baseline(tenant, suite)`** returns the baseline, or
+  `None` when the suite has none yet in that perimeter. The first round is not
+  an error. It refuses the way `read_run` does.
+
+`scan_runs` is not documented and stays internal. What a program needs from a
+scan is the newest run, and `resolve_key(store, suite, "latest")` gives it,
+together with a note on what the scan could not read.
+
+### Promoting: `promote`, and why not `promote_baseline`
+
+`promote(store, loaded, key, *, target, replacing, promoted_at)` makes the run
+`key` the baseline of the suite `loaded` holds, and returns the reference it
+wrote. That is the value a projection starts from
+([ADR 0034](adr/0034-the-store-outside-and-the-reference-that-names-nothing.md)
+§2).
+
+- `key` is a run key. `latest` is refused: resolve it with `resolve_key`, which
+  also returns the note on what its scan skipped.
+- `target` is the spec of the target the run was measured with, as `--target`
+  takes it, or `None` for the suite's own. **It is a parameter because only
+  the caller knows which target was measured.** A suite with several targets
+  would otherwise sign a run of one system as the reference for another
+  ([ADR 0022](adr/0022-the-declared-price.md) §5).
+- `replacing` is the reference this promotion replaces, as `compare` printed
+  it: a key, or `none` where the suite has no baseline yet
+  ([ADR 0031](adr/0031-the-reference-promote-replaces.md)).
+- `promoted_at` is the signature's time, read by the caller: `utc_now_iso()`.
+
+It refuses every condition `digline promote` refuses, because it is what
+`digline promote` calls. The conditions are the ones
+[ADR 0002](adr/0002-three-worlds-and-where-the-data-lives.md) §8 collects,
+plus the moved reference from ADR 0031. The last one checked is
+`BaselineMovedError`, raised when the baseline changed after `compare` read it.
+
+**`FileResultStore.promote_baseline` is not documented, and that is on
+purpose.** It takes the configuration hash the run must match as an argument.
+That hash is the suite's, over the price of the target measured, and the value
+a caller finds in reach is the run's own `config_hash`. Passed that value, the
+check compares the run with itself and passes every time. `promote` takes what
+the suite was loaded as and computes the hash itself, so there is nothing to
+pass wrongly. A program that implements a store of its own meets
+`promote_baseline` on the `ResultStore` protocol, and what that protocol owes
+is documented there.
+
+### `Loaded`: what `load_suite` returns
+
+`Loaded` is the second value `load_suite` returns, and it is published as an
+**opaque value**. Keep it and pass it back to `load_target` and to `promote`.
+What is committed is its name and that path. Its fields are internal.
+
+Until it was named here, `load_suite` returned it and `load_target` took it,
+both documented, while the type itself had no name on this page. Publishing
+it closes that gap too: `load_target` no longer takes a type the page does not
+name.
+
+### `REFUSALS`: what to catch
+
+`REFUSALS` is a tuple of every exception class digline raises on purpose, with
+a sentence written for a reader. Anything else that escapes digline is a bug
+and should travel as one. What it commits to:
+
+- **Complete.** Every refusal digline defines is in it, and a test fails on
+  one that is not. digline's own command line, `digline view` and
+  `digline-mcp` all catch this tuple, and nothing narrower.
+- **Named, never copied.** Write `except REFUSALS`. The tuple is read from the
+  installed digline, so a refusal added in a later version is caught without
+  your code changing. A copied list is how a refusal once reached a person as
+  a closed connection.
+- **A class leaves it only with a changelog entry.** Adding one is an ordinary
+  change. Removing one would stop your code from catching it without anything
+  turning red, so it is announced as a break.
+- **The message is for a reader inside the perimeter.** It can name the
+  tenant, the suite, a path or a run key. Whether to show it across a boundary
+  is up to the program showing it.
+
+It is a tuple because `except` takes a class or a tuple of classes, and nothing
+else. It is meant for catching, not for extending. To catch your own errors
+beside digline's, compose them: `except (*REFUSALS, MyError)`. digline's
+command line does the same with `ValueError`. No program outside digline has
+needed digline's front ends to show one of its errors as a refusal. **If a
+plugin ever does**, the form is a common base class the refusals inherit,
+which can be added without breaking a caller of the tuple.
+
+`NOT_REFUSALS` is exported beside it and is not documented. It is the other
+half of the classification's bookkeeping and stays internal.
 
 ## What `--json` promises
 
