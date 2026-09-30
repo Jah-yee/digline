@@ -22,7 +22,7 @@ from collections.abc import Mapping
 from typing import cast
 from urllib.parse import urlsplit
 
-from digline.core import ConfigValue
+from digline.core import SYSTEM_NAME_FIELDS, ConfigValue
 
 #: What may appear in a hostname: letters, digits, dot, dash, underscore, and
 #: the `[`, `]`, `:` and `%` an IPv6 literal with a zone id needs. Deliberately
@@ -91,10 +91,8 @@ def endpoint_host(base_url: str | None) -> str | None:
 #: 0005 §1 keeps what is outside the contract out of the record — an open
 #: mapping of unknown keys is exactly where an account identifier or a
 #: customer's own tuning would end up, in the box where nobody can check it.
-CONTRACT_FIELDS = frozenset(
+CONTRACT_FIELDS = SYSTEM_NAME_FIELDS | frozenset(
     {
-        "provider",
-        "model",
         "max_tokens",
         "temperature",
         "top_p",
@@ -152,7 +150,7 @@ def declared_config(found: object, *, where: str) -> dict[str, ConfigValue]:
             )
         checked[key] = value
 
-    for key in ("provider", "model"):
+    for key in sorted(SYSTEM_NAME_FIELDS):
         value = checked.get(key)
         if not isinstance(value, str) or not value:
             raise ValueError(

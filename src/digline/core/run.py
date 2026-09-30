@@ -47,6 +47,7 @@ __all__ = [
     "MAX_RECORDED_CHARS",
     "OBSERVED_FIELDS",
     "PERIMETER_FIELDS",
+    "SYSTEM_NAME_FIELDS",
     "identity_of",
     "NO_BASELINE",
     "key_of",
@@ -303,6 +304,15 @@ def release_tuple(version: str) -> tuple[int, ...]:
 #: (ADR 0005 §9)
 PERIMETER_FIELDS = frozenset({"base_url", "fingerprint"})
 
+#: The keys that say who answered, and as what: without both, a configuration
+#: names no system. `identity_of` is built from them.
+#:
+#: A set rather than the pair written where it is checked, because it was
+#: written three times — once in `SystemConfig`'s refusal and twice in
+#: `digline.targets.config` — and three hand-kept copies of one list drift
+#: apart without anybody deciding they should.
+SYSTEM_NAME_FIELDS = frozenset({"provider", "model"})
+
 #: Withheld **only where the run went to an endpoint the suite named**, and in
 #: clear otherwise.
 #:
@@ -449,7 +459,7 @@ class SystemConfig:
                 )
         if not self.values:
             return
-        missing = sorted({"provider", "model"} - set(self.values))
+        missing = sorted(SYSTEM_NAME_FIELDS - set(self.values))
         if missing:
             raise ValueError(
                 f"SystemConfig is missing {', '.join(missing)}: a "
