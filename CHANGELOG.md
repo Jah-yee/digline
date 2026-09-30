@@ -98,6 +98,30 @@ neither.
   It asked once per place: 25 questions for 22 tokens on the test fixture, and
   the last answer won. (Delta-pass over 0.25.0, F-5)
 
+### Fixed — `log` said a model never changed when a run was missing (#287)
+
+- **A missing run folded away, and the reading stated something false.**
+  - With A, B, A and the B run's file gone, `log` showed one A span and no
+    roll: the model never changed.
+  - With the first B gone, B's first sighting moved to the next run.
+  - At either end of the history a roll disappeared, with nothing on the other
+    side to compare against.
+  - No delete is needed for any of this: a clone with the runs gitignored, or
+    one file removed by hand, is enough.
+- **Now the reading names a missing run wherever the baseline or the register
+  records it.** After the heading: *"N run(s) named by the baseline or the
+  register were not read here: K before the first run read, M after the
+  last."* On each span that encloses one, and under each roll whose window
+  holds one, the count of those. `log --json` carries the same counts:
+  `on_record_not_read` on the reading, and `unread_on_record` on each span and
+  roll. Both are added keys, and `OUTPUT_VERSION` does not move. There is no
+  new read: `log` already read both artifacts.
+- **What it cannot see, and does not claim to.** A run neither the baseline nor
+  the register names leaves no trace, and still folds away. An empty
+  `on_record_not_read` does not mean nothing is missing. `silent_between`
+  counts runs *read*, and its `0` never meant the window held no run: the
+  docstrings and `docs/log.md` now say so.
+
 ## 0.25.0 — 2026-09-30
 
 digline **0.25.0**. The projection: the reference a software house commits
