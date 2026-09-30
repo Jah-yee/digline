@@ -8,6 +8,7 @@
   "git_commit": "8325f0cc605ee96de9f11ca5658883f1da3e77b5",
   "judge_config": {},
   "metadata": {},
+  "projected": false,
   "promoted_at": "2026-09-25T07:53:07.097121+00:00",
   "redacted": false,
   "results": [
@@ -318,7 +319,7 @@
       ]
     }
   ],
-  "schema_version": 17,
+  "schema_version": 18,
   "suite": "rag",
   "target_config": {},
   "tenant": "biblioteca",

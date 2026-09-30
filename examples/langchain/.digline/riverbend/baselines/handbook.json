@@ -16,6 +16,7 @@
   "git_commit": "920f358fb0ddaddd38c43834c1b7f28e8b076128-dirty",
   "judge_config": {},
   "metadata": {},
+  "projected": false,
   "redacted": false,
   "results": [
     {
@@ -341,7 +342,7 @@
       ]
     }
   ],
-  "schema_version": 17,
+  "schema_version": 18,
   "suite": "handbook",
   "target_config": {},
   "tenant": "riverbend"

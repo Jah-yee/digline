@@ -12,6 +12,7 @@
   "git_commit": "027438b532ca2ba4a8483a5d12804e8b43ab48e6-dirty",
   "judge_config": {},
   "metadata": {},
+  "projected": false,
   "redacted": false,
   "results": [
     {
@@ -280,7 +281,7 @@
       ]
     }
   ],
-  "schema_version": 17,
+  "schema_version": 18,
   "suite": "hire",
   "target_config": {},
   "tenant": "kestrel"

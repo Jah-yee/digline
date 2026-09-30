@@ -12,6 +12,7 @@
   "git_commit": "5aef241705bb5b7c48cdeb8c3e742671a576fa7a-dirty",
   "judge_config": {},
   "metadata": {},
+  "projected": false,
   "redacted": false,
   "results": [
     {
@@ -360,7 +361,7 @@
       ]
     }
   ],
-  "schema_version": 17,
+  "schema_version": 18,
   "suite": "support",
   "target_config": {
     "values": {

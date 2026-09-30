@@ -17,6 +17,7 @@
   "git_commit": "1e148b341fe5a4789a03e07e780a73175049b23b",
   "judge_config": {},
   "metadata": {},
+  "projected": false,
   "promoted_at": "2026-09-25T08:37:28.937125+00:00",
   "redacted": false,
   "results": [
@@ -382,7 +383,7 @@
       ]
     }
   ],
-  "schema_version": 17,
+  "schema_version": 18,
   "suite": "replies",
   "target_config": {
     "values": {
