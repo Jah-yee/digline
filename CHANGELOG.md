@@ -6,7 +6,21 @@ upgrading, and what deliberately did not move. The reasoning lives in
 read the [release titles](https://github.com/digline/digline/releases) — the
 notes under them are this file, verbatim.
 
-## Unreleased
+## 0.24.0 — unreleased
+
+digline **0.24.0**. One exit code moves, which is why this is a minor, and
+one addition comes with it. Nothing to migrate.
+
+- **The exit code.** A suite file whose import cannot be satisfied used to
+  crash with a traceback, and Python's exit status for that is `1` — the value
+  digline uses for *worse than the baseline*. It is now a refusal that names
+  the module, and exits `64`, like every other usage error. The new value is
+  the right one, and a pipeline that read `1` there reads something else now,
+  which is what the rule makes a minor.
+- **The addition is new surface, and on its own it would be a patch.**
+  `FileResultStore.name_table_dir` and `NAME_TABLE_DIRNAME`, and a reserved
+  `name-table/` directory in the tenant's layout. Nothing that worked on 0.23.0
+  stops working.
 
 ### Added — the name table's directory
 
