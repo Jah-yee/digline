@@ -6,7 +6,20 @@ upgrading, and what deliberately did not move. The reasoning lives in
 read the [release titles](https://github.com/digline/digline/releases) — the
 notes under them are this file, verbatim.
 
-## Unreleased
+## 0.25.1 — unreleased
+
+digline **0.25.1**. Repairs, and no new surface. Six come from the delta-pass
+over 0.25.0: its five findings on the projection, and the tenant's refusal
+beside them. Three are live defects that did not need a projection to hit:
+`--run latest` moved to an older run without a note, a library caller
+following `execute()`'s docstring could stamp two runs with one key, and `log`
+asserted a history that did not happen. Nothing to migrate. **One name is removed:**
+`digline.store.utc_now_iso`, which the API reference never listed. Import it
+from `digline.host`, as the reference always said.
+
+```sh
+uv add --upgrade digline
+```
 
 ### Fixed — `latest` says when a newer run is on record and not read (#286)
 
@@ -45,11 +58,11 @@ notes under them are this file, verbatim.
   open question of ADR 0036, and a test holds it as an expected failure that
   turns red the day it is answered.
 
-### Fixed — the resolver named every refusal, and read two rows for one name
+### Fixed — the resolver named every refusal, read two rows for one name, and asked twice
 
-Both reached through a table whose rows disagree with each other: edited by
-hand, or merged from two. A table the owning process wrote itself does
-neither.
+The first two are reached through a table whose rows disagree with each other:
+edited by hand, or merged from two. A table the owning process wrote itself
+does neither.
 
 - **`IncoherentRowsError`**, new in `digline.core` and in `host.REFUSALS`.
   `resolve_tokens` checked each row on its own, then rebuilt the `Run`. When
@@ -62,6 +75,9 @@ neither.
   be read, as a run with two cases of one id. It is the mirror of the refusal
   `project` already makes of one name given two tokens. Equal text in two
   kinds is still two names, and is read.
+- **`resolve_tokens` asks the lookup once per token**, as its comment said.
+  It asked once per place: 25 questions for 22 tokens on the test fixture, and
+  the last answer won. (Delta-pass over 0.25.0, F-5)
 
 ### Fixed — one clock, and `execute()` names it (#285)
 
@@ -85,7 +101,7 @@ neither.
   exception.** `store/` was allowed one for the removed function, and
   `tests/test_layering.py` no longer grants it.
 
-### Fixed — the tenant's refusal has a name, and the resolver asks once per token
+### Fixed — the tenant's refusal has a name
 
 - **`DifferentTenantsError`**, new in `digline.core` and in `host.REFUSALS`.
   `compare()` and `diff()` refused two tenants (fixed decision 8) with a bare
@@ -94,9 +110,6 @@ neither.
   caller that caught the builtin keeps working. `DifferentRegimesError` had
   copied the refusal from one line above it in `compare()`, and had been given
   its own name when it was copied.
-- **`resolve_tokens` asks the lookup once per token**, as its comment said.
-  It asked once per place: 25 questions for 22 tokens on the test fixture, and
-  the last answer won. (Delta-pass over 0.25.0, F-5)
 
 ### Fixed — `log` said a model never changed when a run was missing (#287)
 
