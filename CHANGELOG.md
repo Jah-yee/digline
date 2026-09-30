@@ -28,6 +28,28 @@ notes under them are this file, verbatim.
 - Over MCP nothing changes: the read tools already drop this note by design,
   and MCP has no tool that promotes or registers.
 
+### Fixed — one clock, and `execute()` names it (#285)
+
+- **`execute()`'s docstring sent a library caller to a clock that lost runs.**
+  It named `store.utc_now_iso()`, which truncated to the second. A run's key is
+  built from `created_at`, so two runs of one suite stamped in the same second
+  shared a key, and the second silently replaced the first. Measured: two runs
+  2 ms apart, one file on disk. The docstring now names
+  `digline.host.utc_now_iso()`, which keeps microseconds. The CLI, the MCP
+  server and pytest-digline always used that one, so no run they wrote was
+  affected.
+- **`digline.store.utc_now_iso` is removed.** It was never in the public API
+  (`docs/api.md` lists `utc_now_iso` under `digline.host` only), and nothing in
+  this repository's plugins or examples imports it. If your code does, import
+  it from `digline.host` instead: same name, microseconds kept. No reason for
+  the truncation was found. It predates the collision, and no reader parses a
+  stamp to the second.
+- **`digline view` now stamps `promoted_at` with microseconds**, like
+  `digline promote` always did. It was the one caller of the removed function.
+- **`digline.host` is now the only layer that reads the clock, with no
+  exception.** `store/` was allowed one for the removed function, and
+  `tests/test_layering.py` no longer grants it.
+
 ## 0.25.0 — 2026-09-30
 
 digline **0.25.0**. The projection: the reference a software house commits

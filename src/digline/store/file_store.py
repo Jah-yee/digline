@@ -26,7 +26,6 @@ import tempfile
 from collections.abc import Mapping, Sequence
 from contextlib import suppress
 from dataclasses import replace
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import cast
 
@@ -81,7 +80,6 @@ __all__ = [
     "FileJournal",
     "FileResultStore",
     "journal_key",
-    "utc_now_iso",
 ]
 
 STORE_DIRNAME = ".digline"
@@ -117,13 +115,6 @@ REGISTER_DIRNAME = "register"
 #: Nothing digline writes can land here, because every other path in the layout
 #: goes through `baselines/`, `runs/` or `register/`. (ADR 0036 §2)
 NAME_TABLE_DIRNAME = "name-table"
-
-
-def utc_now_iso() -> str:
-    """UTC timestamp truncated to the second. It lives here and not in the core
-    because reading the clock is I/O: the core stays pure and its tests stay
-    deterministic."""
-    return datetime.now(UTC).replace(microsecond=0).isoformat()
 
 
 def _check_name(value: str, kind: str) -> str:
