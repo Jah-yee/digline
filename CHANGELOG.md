@@ -66,6 +66,27 @@ notes under them are this file, verbatim.
   `CaseHistory.assertion_names` stay off the page: each is computed from
   `verdicts`, and a program that has `verdicts` does not need either.
 
+### Documented — three names a program outside digline already used (#279, #322, #347)
+
+- **`run_to_json` and `run_from_json` are on the API page.** They are the
+  only way between a projection and the file the software house commits:
+  `project` returns a `Run`, `resolve_tokens` takes one, and the page named
+  them only in an example's import. Reading the file with them is what keeps
+  `projected` verified on the way back in.
+  - **Text that is not JSON** raises `json.JSONDecodeError`, which is not in
+    `REFUSALS`. The page says so where the function is described.
+- **`suspension_snippet` is on the API page**, with its limits written
+  beside it:
+  - **On a projected document the line carries a token**, so it is usable as
+    it stands only where the store is in clear.
+  - **Only the reason is escaped.** A case id with a double quote, or a reason
+    with a line break, writes a line that does not parse.
+  - `suspend_page` stays internal, because its navigation is `digline view`'s.
+- **`Score`'s fields are on the API page**, as #336 did for a case's history:
+  `name` and `score`, which every table of results reads, and `sample_means`.
+  `Verdict.judged` is named beside them.
+- **Nothing in the code moved.** Every name was already exported.
+
 ## 0.25.3 — 2026-10-01
 
 digline **0.25.3**. The last two things a page served where the data is

@@ -23,10 +23,12 @@ motion.
 | `Run` `CaseResult` `compare` `redact` `config_hash` | |
 | `project` `project_served` `Minter` `TokenKind` `is_token` `ProjectionRefusedError` — [the projection](#the-projection) | |
 | `resolve_tokens` `Lookup` `NameRow` and five refusals — [the resolver](#the-resolver) | |
+| `run_to_json` `run_from_json` — [the committed file](#the-committed-file-run_to_json-and-run_from_json) | |
 
 The report lives in `digline.report` (`headline`, `render_html`, `Locale`,
-[`render_run_html`](#the-first-round-render_run_html) and
-[`case_history`](#one-case-across-runs-case_history)), the
+[`render_run_html`](#the-first-round-render_run_html),
+[`case_history`](#one-case-across-runs-case_history) and
+[`suspension_snippet`](#setting-a-case-aside-suspension_snippet)), the
 store in `digline.store` (`FileResultStore`, `RunRef`, and three methods by
 name: `FileResultStore.name_table_dir` — [below](#the-name-tables-directory) —
 and `read_run` and `read_baseline` —
@@ -1693,6 +1695,38 @@ It refuses, as `DifferentRegimesError`, two ways:
 **Runs in clear and an id with a token's form are not refused.** A case id is
 free text, and that form is a legal one.
 
+### Setting a case aside: `suspension_snippet`
+
+**`digline.report.suspension_snippet(case_id, reason)`** returns the line that
+suspends a case, `Case(id="...", suspended="...")`, for a person to add to the
+suite and commit (#279). It is the line `digline view` shows at
+`/suspend/<id>`. digline produces it and never applies it: `Case` is Python in
+the user's repository, and a suspension is a decision about the suite, so it
+goes through the review every other one goes through.
+
+```python
+from digline.report import suspension_snippet
+
+line = suspension_snippet(entry_case_id, "flaky since the 2026-09 model update")
+```
+
+- **The reason is escaped before it lands in the line**: backslashes first,
+  then double quotes. That is the reason to call this rather than build the
+  line by hand: a copy of the quoting is a copy of a rule about what reaches a
+  file under review.
+- **Only the reason is escaped, and only those two characters.** The case id
+  goes into the line as it is given, so an id with a double quote writes a
+  line that does not parse. So does a reason with a line break. Neither is
+  refused.
+- **On a projected document the line carries a token.** The `case_id` there
+  is the token the page's links carry, and the line puts it in the suite as
+  if it were the case's name. So the line is usable as it stands only where
+  the store is in clear. Where the runs are projected, the line names a case
+  no suite has.
+
+The page `digline view` serves the line on, `digline.report.pages.suspend_page`,
+stays internal: its navigation links to `digline view`'s own screens.
+
 ### The first round: `render_run_html`
 
 **`digline.report.render_run_html(run, *, locale)`** renders one run on its
@@ -1906,6 +1940,29 @@ default. An empty one is refused with `UnidentifiedVerdictError`, which is in
 pair verdicts that were never the same check. An assertion built on
 `AssertionBase` passes its `identity` and never meets it.
 
+`Verdict` and `Score` are frozen dataclasses. Beside the constructor's
+arguments, a **`Verdict`** has one field more:
+
+- `judged`: `True` when a model placed the score on its scale, meaning the
+  check's `KIND` is `judged`. The driver stamps it and an assertion never sets
+  it. It is a copy of a declaration, not a measurement: no comparison, gate or
+  exit code reads it, and it is outside `assertion_id` and `config_hash`.
+
+A verdict's **`Score`**, `verdict.score`, carries:
+
+- `name`: the check's name, never empty. It is what a table of results heads
+  a column with. On a projected run it is a token.
+- `score`: the number, between 0 and 1, or `None` when there is no score. A
+  `None` is never a pass: the verdict that carries it is `error`.
+- `metadata`: what the assertion measured
+  ([the keys sampling adds](#what-the-numbers-mean)).
+- `samples`, `sample_min` and `sample_max`: the per-sample scores and the
+  interval they span, empty and `None` with one sample
+  ([the interval](#the-interval-and-the-noise-floor)).
+- `sample_means`: `True` when each of `samples` is itself a mean of
+  judgements, as when a sampled suite runs a `Repeated` check. Never declared:
+  the fold stamps it, and only together with `samples`.
+
 `compare(run, baseline) -> Comparison` returns one `AssertionDelta` per verdict,
 with outcome `regressed`, `improved`, `unchanged`, `new`, `missing`, `errored`,
 plus one `ConfigDelta` per configuration parameter on either side — `field`,
@@ -2112,6 +2169,32 @@ reference would read as *Nothing got worse*. **This does not close the same
 failure between two projections minted from different tables.** Both declare
 `projected`, and nothing in a document says which table minted it. That is an
 open question of ADR 0036.
+
+### The committed file: `run_to_json` and `run_from_json`
+
+`project` returns a `Run`, and `resolve_tokens` takes one. Between them is the
+file the software house commits. These two functions are the way across: the
+one writes a projection to that file, the other reads the file back (#322).
+
+- **`run_to_json(run)`** returns the document as text: sorted keys, floats at
+  `FLOAT_PRECISION`, a trailing newline. Two equal runs give the same bytes, so
+  a projection made twice through one table diffs clean in a pull request. A
+  projection is already redacted, and it is written with the defaults. The two
+  keyword arguments, `redacted` and `disclosure`, redact a run in clear on the
+  way out, as `redact` does.
+- **`run_from_json(text)`** returns the `Run` the document describes. The
+  document is checked while the `Run` is built, so **`projected` is verified,
+  not believed**: a document that declares it and leaves a name in clear is
+  refused, with every other check listed above.
+- **A document this version cannot read is refused** as
+  `DocumentRefusedError`, in `REFUSALS`. That covers a `schema_version` other
+  than this release's, and a document that is not a run.
+- **Text that is not JSON is not refused that way.** It raises
+  `json.JSONDecodeError`, a `ValueError` that is not in `REFUSALS`.
+
+Parsing the file with code of your own skips those checks, which is why these
+two functions are on this page. They are the same functions the store reads
+and writes every run with.
 
 ## The resolver
 
