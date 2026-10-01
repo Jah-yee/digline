@@ -1636,6 +1636,96 @@ tag* updates it on every tag, and step 6 is what puts the capture's reading in
 it — including the sentence that says the capture ran and found nothing, which
 is the one a quiet log cannot supply.
 
+- **v0.25.3 — the capture caught its first divergence: inside the smoke
+  build, the wait saw the new page and pip, 1.4 seconds later, the old one.
+  Row one of the table: per-server luck, confirmed.** `publish`
+  (`36866404637`) passed on attempt 1, `github-release` included.
+  `docker-publish` (`36866404652`) failed on attempt 1 and passed on attempt 2.
+  `tools/tag_names.py "digline 0.25.3"` ran before the tag: one package, named.
+
+  **The reviewer gate, and why the counts before the click did not work.**
+  `/approvals` reads `approved` by `alexpran` on `pypi`, and the environment
+  reads `can_admins_bypass: false`. The session polled `pending_deployments`
+  every 3 seconds this time, and saw the run waiting at 13:10:03. The `pypi` job
+  started at 13:10:07. **So the window between the wait and the click was about
+  4 seconds**, and the counts, read job by job from the finished jobs' logs,
+  reached the approver after the click. It is the second time today: on
+  v0.25.2 the approval fell in an 11-second window that a 20-second poll never
+  saw. **Counts read out before the approval are not workable while the
+  approver clicks as soon as the gate shows.** A shorter poll does not fix that,
+  because the reading takes longer than the click. Nothing is ruled. The counts
+  were right, and they are recorded below for the record:
+  - 12 files built and 12 `twine check` `PASSED`;
+  - TestPyPI's selection 2 `publish` and 10 `skip`, the five plugins' files
+    each *already on the index*;
+  - `imported 6`, and the quickstart's 3 calls.
+
+  **The signatures' wait was answered on its first read again.** The uploads
+  answered `200 OK` at 13:10:30.2 (wheel) and 13:10:32.5 (sdist). The step ran
+  from 13:11:16.255 to 13:11:17.165, under a second for every read. No
+  `waiting` and no `served` line, and `release_bundles.py` prints `served` only
+  from the second read on. **So the first read fell about 44 to 45 seconds after
+  the last upload, and was answered.** Two bundles, both `OK`, and ten files
+  skipped with the tag that published each.
+  - **Against the earlier tags:** not served at 36 s (v0.23.0) and 43 s
+    (v0.22.0), before the loop existed. Served at 40 (v0.24.1), ~36–48
+    (v0.25.2), ~44–45 (here), 58.6 (v0.25.0) and 59 (v0.24.0). v0.25.1 was
+    absent until about 92 s and served at about 102.
+  - **What that sample says:** the first read lands where the job's start puts
+    it, 36 to 60 seconds after the upload. The page becomes available inside the
+    same band, before or after the read. One more answered first read says
+    nothing about v0.25.1's tail.
+
+  **`/simple/` caught up in 11 seconds**, the fifth tag in a row at 10 or 11:
+  one `waiting` line, then `every version is served (after 11s)`.
+
+  **`docker-publish`, attempt 1: the divergence, in two lines.** The runner's
+  wait printed `served digline==0.25.3 (after 210s)`. Then, inside the smoke
+  build (`#9`), in one `RUN`:
+
+      index-capture side=wait name=digline t=2026-10-01T13:11:29.1Z took=0.019s
+        status=200 variant=json serial=41686473 etag=YEWhj7TmO1LShn6KMPfBdw
+        age=- cache=MISS,HIT,HIT
+        via=cache-iad-khef600031-IAD,cache-iad-khef600031-IAD,cache-iad-khef600079-IAD,cache-pao-kpao1770024-PAO
+        versions=50 asked=0.25.3 served=yes
+      index-capture side=pip  name=digline t=2026-10-01T13:11:30.5Z took=0.003s
+        status=200 variant=json serial=41680881 etag=vDSQkATL4LOEwdCtRe4xCA
+        age=- cache=MISS,HIT,HIT
+        via=cache-iad-khef600020-IAD,cache-iad-khef600020-IAD,cache-iad-khef600079-IAD,cache-sjc10071-SJC
+        versions=- asked=- served=-
+
+  (One line each; wrapped here to fit.) pip then failed with *No matching
+  distribution found for digline==0.25.3*.
+  - **Read against the table:** the `via` chains differ at their first two
+    hops, `khef600031` against `khef600020`. The `serial` and the `etag` differ
+    too, and pip's serial is the **older** one: 41680881 is the page from before
+    0.25.3, the serial the v0.25.2 builds read.
+  - **That is row one: per-server luck, confirmed.** Two servers, and pip's held
+    the older object.
+  - **The first divergence the capture has recorded.** v0.15.0 and v0.20.1
+    failed the same way before it existed. The paragraphs below record
+    agreement for v0.25.0, v0.25.1 and v0.25.2. The tags between its building
+    and v0.25.0 were not read for this paragraph.
+  - **What the reading resolves to is the re-run** this file gives for this case
+    (`gh run rerun 36866404652 --failed`).
+
+  **Attempt 2 agreed everywhere.** Both builds (`#9` and `#15`) carry a
+  `side=wait` and a `side=pip` line for all four pins, with the same `serial` and
+  `etag` on both sides. For `digline` that is `41686473`. The runner's wait and
+  both in-build waits said `after 0s`. Both builds installed `digline-0.25.3`,
+  `digline-anthropic-0.5.3`, `digline-openai-0.5.2` and `digline-bedrock-0.5.1`.
+  The multi-arch amd64 layers `#10` to `#13` were `CACHED`. The three tags
+  resolve to one digest,
+  `sha256:439b590f1e632375555a0d036c5565f8e24b873a302331d25b56b73649f9e43e`.
+
+  **Elsewhere.** All seven example locks moved to 0.25.3 on the first pass, with
+  `--upgrade-package digline` (#342). The versions were read back from the
+  seven files.
+
+  **The next tag must show** the pair for every pin again. **And whether row one
+  recurs:** one divergence is a reading, and a second is what would make it a
+  pattern. What a pattern would oblige is not decided here.
+
 - **v0.25.2 — the signatures' wait was answered on its first read, between
   about 36 and 48 seconds after the upload, and the pair agreed for every
   pin.** `publish` (`36849970929`) and `docker-publish` (`36849970903`) both
