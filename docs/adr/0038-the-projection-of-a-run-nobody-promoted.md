@@ -14,7 +14,7 @@
   by default, and seeing a case in clear is a disclosure that is asked for,
   seen and recorded. No other record in this repository carries that ruling
   yet, so it is stated here, where it is used
-- Shipped: unreleased
+- Shipped: 0.25.2
 - Date: 2026-09-30
 - Opens: **nothing on landing.** No `SCHEMA_VERSION`, no `OUTPUT_VERSION`, no
   migration
