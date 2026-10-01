@@ -308,6 +308,13 @@ artifacts that today exists in none of the audited competitors.
     #234 open, and #259 left #256 and #232 open. Keep writing `Closes #N`
     anyway, because it still tells a reader which issues the pull request
     answers.
+    *Observed 2026-10-01, once, the other way.* #315 closed #276 through the
+    queue, two seconds after the merge, and its `closingIssuesReferences`
+    returned `[276]`. The keyword had the same shape in all three pull
+    requests: `Closes #N` in the description and in a commit message. So the
+    difference is not in how it was written, and it was not found. One against
+    two: the rule stands, and this is the third data point for whoever meets
+    the next one.
   - **It depends on `merge_group` in `ci.yml`**, which is the same failure as
     PR #82 in a new place. Without that trigger nothing starts on the queue's
     ref, and the queue waits on checks that never report. The trigger landed
