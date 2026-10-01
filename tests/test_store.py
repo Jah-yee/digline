@@ -1,8 +1,8 @@
 """The file-based store: `.digline/<tenant>/`, baseline versioned, runs not.
 
-The tenant is a directory rather than a field, so the separation between
-perimeters is something the filesystem enforces rather than something a
-document merely describes.
+The tenant is a directory rather than a field, so addressing is something the
+filesystem enforces rather than something a document merely describes. Not
+access: one OS user reads every tenant (fixed decision 8).
 """
 
 from __future__ import annotations
@@ -321,7 +321,7 @@ def test_comparing_across_tenants_is_refused(tmp_path: Path) -> None:
 
 def test_dangerous_names_are_rejected(tmp_path: Path) -> None:
     """`..` and `/` are the interesting ones: a name that could climb out of its
-    tenant directory would defeat the separation the layout exists to give."""
+    tenant directory would defeat the addressing the layout exists to give."""
     store = FileResultStore(tmp_path)
     for bad in ("../escape", "with/slash", "", "with space"):
         with pytest.raises(ValueError, match="invalid suite name"):
