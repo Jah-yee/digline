@@ -63,6 +63,7 @@ from digline.store.protocol import (
     JournalBusyError,
     JournalHeader,
     Listing,
+    NotAReferenceError,
     PathRefusedError,
     Pending,
     Register,
@@ -370,6 +371,15 @@ class FileResultStore:
             raise SuiteMismatchError(
                 f"the baseline at {path} declares suite {run.suite!r} but was "
                 f"read as {suite!r}"
+            )
+        if run.projected and (
+            not run.promoted_at or any(case.responses for case in run.results)
+        ):
+            raise NotAReferenceError(
+                f"the baseline at {path} is a projection of a run nobody "
+                "promoted: it carries no promotion time, or answers. A served "
+                "projection is for a page, and what stands here is the "
+                "projection of the reference promote_baseline returned"
             )
         return run
 
