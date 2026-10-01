@@ -644,8 +644,9 @@ gh api repos/digline/digline/dependabot/alerts --paginate \
 ```
 
 An open entry with a `fixed:` version is owed an `--upgrade-package` that names
-it, before the tag: the example locks' regeneration after the tag will not
-move it (*After the tag*, step 3, *This step moves digline and the plugins*).
+it, before the tag: neither Dependabot's version updates nor the example locks'
+regeneration after the tag will move it (*After the tag*, step 3, *Dependabot
+moves only what a manifest declares*).
 An entry with `fixed: none` stays open with its reason written on it.
 
 ## Before the tag: the site
@@ -3183,19 +3184,19 @@ grep -l 'name = "digline-anthropic"' examples/*/uv.lock
 This sentence named three of them by hand until 2026-09-22, and they were the
 right three. That is the point: so were the five above, until they were not.
 
-**This step moves digline and the plugins, and nothing else.** `uv lock
---upgrade-package <name>` moves the package it names and keeps every other pin
-in the lock where it was. So a *transitive* dependency of an example — one
-that no example's `pyproject.toml` declares — is never moved by this step. And
-nothing else moves it either: Dependabot's weekly version updates
-(`.github/dependabot.yml`) move only what a manifest declares, and its
-automated security updates are off for this repository (the
+**Dependabot moves only what a manifest declares, so a transitive dependency
+never moves on its own.** Its weekly version updates (`.github/dependabot.yml`)
+cover the root lock and every example lock, but they bump the packages a
+`pyproject.toml` names and nothing beneath them; its automated security
+updates, which would, are off for this repository (the
 `automated-security-fixes` endpoint reads `enabled: false`). Measured on
 urllib3: the release that fixed three advisories was on PyPI on 2026-09-15;
 the version updates of 2026-09-28 (#183, #184) moved `ruff`, `langchain` and
 the other declared packages and left urllib3 on the release before it, in the
-root lock and in two example locks, until the alerts raised nine entries on it. The root lock
-has the same gap for its own transitives, through the same two routes.
+root lock and in two example locks, for two weeks, until the alerts raised
+nine entries on it. This step does not close that gap and was never meant to:
+`uv lock --upgrade-package <name>` moves the package it names and keeps every
+other pin where it was, and it names only digline and the plugins.
 
 **An advisory on a transitive dependency therefore needs an
 `--upgrade-package` that names it, and whoever triages the alert runs it.**
