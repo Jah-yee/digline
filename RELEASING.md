@@ -2801,7 +2801,7 @@ each crosses the boundaries it is raised across, so the three questions below
 apply to it as to any field. What it does not earn is a second pass over what
 the earlier pass already read: that is the work it was born of.
 
-**New public surface is two kinds of thing, and both are listed.**
+**New public surface is three kinds of thing, and all three are listed.**
 - **The names in an `__all__`.** Diff every `__all__` between the last tag and
   the tree being tagged. Do not count them from memory: on 0.25.1 a count
   given from memory said five, and there were four.
@@ -2811,6 +2811,38 @@ the earlier pass already read: that is the work it was born of.
   beside the version it did not move, with its reason. On 0.25.1 that diff
   names `on_record_not_read` and `unread_on_record` (#287). The pass over
   0.25.1 left them out, because the rule then said *names*.
+- **The fields of every dataclass an `__all__` lists.** A dataclass is its
+  fields, so a field added to a class that was already public is new surface,
+  and the diff of the `__all__`s cannot see it: the class's name did not move.
+  `tools/public_fields.py` finds them, by importing each package and reading
+  `dataclasses.fields`. Run it in both trees and diff:
+
+  ```sh
+  uv run python tools/public_fields.py > /tmp/now.json
+  git worktree add --detach /tmp/last v<last>
+  (cd /tmp/last && uv sync -q --all-packages \
+     && uv run python <this checkout>/tools/public_fields.py > /tmp/then.json)
+  git worktree remove /tmp/last
+  uv run python tools/public_fields.py --diff /tmp/then.json /tmp/now.json
+  ```
+
+  It prints one line per class or field added or removed, and nothing when
+  nothing moved. **0.25.3 is why.** `SuiteRuns.unnamed` arrived on a class
+  public since 0.25.2, beside one new name, `run_exit_code`. The diff of the
+  `__all__`s found the name and not the field. The release entry counted
+  one name, and the field was found by asking before the tag. Measured across
+  all 92 public dataclasses between `v0.25.2` and the 0.25.3 tree: that field,
+  and nothing else.
+
+**Two gaps, declared rather than assumed.** Neither of these three diffs sees
+them:
+- **A class that is not a dataclass**, and first of all a `Protocol` and its
+  methods. `NameRow`, in `digline.core`, is one, so the gap is already
+  occupied. A method added to it, or a parameter added to a method, changes
+  what an implementer owes and moves no name and no field.
+- **A change inside a function that moves no name, no key and no field**: a
+  key renamed, removed or retyped inside a `wire/` builder, read by nobody
+  because no diff pointed at it. That is #312.
 
 **What holds that record, said here because it is weaker than the first.** An
 `__all__` is code, so a new name cannot be exported without appearing in it.
@@ -2825,7 +2857,8 @@ not its wire keys. Counted on 2026-10-01: nineteen `*_json` functions in
 appears there and not in `contract.py` is a record somebody owes, and it is
 still surface to pass over.
 
-Ruled 2026-10-01, the names in the morning and the keys the same day.
+Ruled 2026-10-01, the names in the morning, the keys the same day, and the
+fields of a listed dataclass that afternoon, before the tag of 0.25.3.
 `private/delta-pass-0.25.1.md` is the first pass run under the first half.
 
 The rule is here because 0.8.0 earned it in hours. That release added three
