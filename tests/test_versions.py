@@ -328,6 +328,13 @@ RECORDED: dict[str, dict[str, str]] = {
         "the lesson; moving the number would claim a later pass audited it",
     },
     "RELEASING.md": {
+        "0.25.2": (
+            "the release whose cut raised the open question on the version "
+            "criterion, and whose index-race status is recorded: the first read "
+            "of the signatures' wait answered, the pair agreeing for every pin, "
+            "the installed versions and the seven locks. Facts about a release "
+            "that shipped"
+        ),
         "0.25.1": (
             "the release before the one whose cut raised the version question, "
             "the tag it was diffed against, and the release the index-race "
@@ -880,7 +887,14 @@ RECORDED: dict[str, dict[str, str]] = {
         "to be one-sided, told as history beside the rule that is now symmetric. "
         "Moving the number would claim a later pass found it",
     },
+    "src/digline/host/listing.py": {
+        "0.25.2": "the delta-pass over 0.25.2 is the pass the projected "
+        "list's file-name rule came out of (F-1), and the number says which "
+        "pass it was",
+    },
     "src/digline/core/run.py": {
+        "0.25.2": "the delta-pass over 0.25.2 is the pass `is_run_key` came "
+        "out of (F-1), and the number says which pass it was",
         "0.25.0": (
             "'(Delta-pass over 0.25.0, F-n)': the pass over the 0.25.0 release that "
             "found what this file now does, told as history. Moving the number would "
