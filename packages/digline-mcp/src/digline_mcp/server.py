@@ -50,6 +50,7 @@ from digline.host import (
     read_pinned,
     read_run,
     resolve_key,
+    suite_runs,
     utc_now_iso,
 )
 from digline.report import diff as diff_report
@@ -215,19 +216,18 @@ def build_server(root: str, tenant: str | None, environment: str | None) -> MCPS
     @translated
     def list_runs(suite: str) -> dict[str, Any]:
         loaded_suite = loaded(suite)
-        listing = store.scan_runs(loaded_suite.tenant, loaded_suite.name)
-        baseline = store.read_baseline(loaded_suite.tenant, loaded_suite.name)
-        rows = [(ref.key, store.read_run(ref)) for ref in listing.runs]
+        # A run the store refuses is left out and counted, rather than failing
+        # the tool for every run beside it. (#314)
+        listed = suite_runs(store, loaded_suite.tenant, loaded_suite.name, mint=None)
         return runs_json(
-            rows,
+            listed.runs,
             tenant=loaded_suite.tenant,
             suite=loaded_suite.name,
-            baseline_key=(
-                None
-                if baseline is None
-                else key_of(baseline.created_at, baseline.config_hash)
-            ),
-            listing=listing,
+            baseline_key=listed.baseline_key,
+            listing=listed.listing,
+            note=listed.note(),
+            refused=len(listed.refused),
+            baseline_unreadable=bool(listed.baseline_refused),
         )
 
     @translated

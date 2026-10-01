@@ -200,6 +200,16 @@ __all__ = [
 #:    trace. They move no exit code. `log` has none that depends on its
 #:    reading. (#287)
 #:
+#:    `refused` on `log --json` and on MCP's `list_runs`, and
+#:    `baseline_unreadable` on `list_runs`: added keys, under the same rule, so
+#:    no bump. `refused` counts the runs the scan found and the store refused to
+#:    read; `baseline_unreadable` says that `baseline_key: null` is a baseline
+#:    that could not be read and not a suite with none. Wherever either would
+#:    have been non-zero, the reading used to fail whole, so no consumer has
+#:    ever parsed a response where these were anything but `0` and `false`.
+#:    What does change is that a response now arrives where an error used to.
+#:    (#314)
+#:
 #: **This record grows by an added key. No count of the keys is written, and no
 #: enumeration of a set that can be found by looking — but the criterion is
 #: narrower than either, and most counts in this repository are fine.**
