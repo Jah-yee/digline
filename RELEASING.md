@@ -1636,6 +1636,62 @@ tag* updates it on every tag, and step 6 is what puts the capture's reading in
 it — including the sentence that says the capture ran and found nothing, which
 is the one a quiet log cannot supply.
 
+- **v0.25.2 — the signatures' wait was answered on its first read, between
+  about 36 and 48 seconds after the upload, and the pair agreed for every
+  pin.** `publish` (`36849970929`) and `docker-publish` (`36849970903`) both
+  passed on attempt 1, `github-release` included. `/approvals` reads
+  `approved` by `alexpran` on `pypi`, and the environment reads
+  `can_admins_bypass: false`. The approval came between TestPyPI finishing
+  (10:36:39) and the `pypi` job starting (10:36:50): bounded by those two
+  times, since `/approvals` carries none of its own. The session polling
+  `pending_deployments` every 20 seconds again never saw it waiting, so the
+  counts were read after it and not at the `[GATE]`. The three tags resolve
+  to one digest,
+  `sha256:b786eae8840a58d8e475bd690a1451cb7406bcbd380ed19c0b0f8afef4a85680`.
+
+  **The signatures' wait, with its numbers.** Silent, and silent by design:
+  `release_bundles.py` prints a `served` line only from the second read on, so
+  no line means the first read was answered.
+  - The uploads answered `200 OK` at 10:37:17 and 10:37:19. The `github-release`
+    job started at 10:37:54 and printed `2 bundle(s)` at 10:38:05. So the
+    first read fell between about 36 and 48 seconds after the upload. The
+    window is bounded from the job's times, not measured by the script.
+  - It made two bundles and skipped ten files, each named with the tag that
+    published it. Both bundles verified `OK`.
+  - **Against v0.25.1's tail:** that tag was still absent at about 92 seconds.
+    This one was served at 48 or sooner. One more point for the distribution,
+    and it says nothing about the tail.
+
+  **`/simple/` caught up in 10 seconds**, the fourth tag in a row at 10 or 11:
+  one `waiting` line, then `every version is served (after 10s)`.
+
+  **Inside the builds, the pair agreed for every pin.**
+  - The smoke build (`#9`) and the multi-arch build (`#15`) each carry one
+    `side=wait` and one `side=pip` line for all four pins, with the same
+    `serial` and `etag` on both sides. For `digline` that is `41680881` and
+    `vDSQkATL4LOEwdCtRe4xCA`.
+  - The runner's wait for the smoke took 210 seconds. It started at 10:34:38,
+    before the `publish` run had built anything, so it waited for the whole
+    road to PyPI: the build, TestPyPI, the approval and the upload. The
+    in-build waits did not have to wait: `after 0s` in `#9`, and
+    `after 0s` and `after 1s` in `#15`.
+  - The last `via` hop differed within all eight pairs.
+  - pip's half printed 33 lines in each build.
+  - Both builds installed `digline-0.25.2`, `digline-anthropic-0.5.3`,
+    `digline-openai-0.5.2` and `digline-bedrock-0.5.1`.
+  - The multi-arch amd64 layers `#10` to `#13` were `CACHED`.
+
+  The capture ran, the pair was present for every pin, and it had nothing to
+  explain.
+
+  **Elsewhere.** All seven example locks moved to 0.25.2 on the first pass,
+  with `--upgrade-package digline`. The versions were read back from the seven
+  files.
+
+  **The next tag must show** the pair for every pin again, and the
+  signatures' wait's reads with their times. A first read answered says only
+  that the page can be served that early.
+
 - **v0.25.1 — the signatures' wait fired against a real index for the first
   time. The JSON page answered 404 six times and was served on the seventh
   read, about 100 seconds after the upload: the longest lag measured.**
