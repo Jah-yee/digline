@@ -634,6 +634,20 @@ An entry with a date after the last tag is the whole point of the step: judge
 it, then either fix it before tagging or dismiss it with a sentence. An entry
 older than the tag has already been judged — leave it.
 
+The Dependabot alerts are a second list, and nothing else in the release reads
+them:
+
+```sh
+gh api repos/digline/digline/dependabot/alerts --paginate \
+  -q '.[] | select(.state == "open")
+      | "\(.dependency.package.name)  \(.dependency.manifest_path)  \(.security_advisory.ghsa_id)  fixed: \(.security_vulnerability.first_patched_version.identifier // "none")"'
+```
+
+An open entry with a `fixed:` version is owed an `--upgrade-package` that names
+it, before the tag: the example locks' regeneration after the tag will not
+move it (*After the tag*, step 3, *This step moves digline and the plugins*).
+An entry with `fixed: none` stays open with its reason written on it.
+
 ## Before the tag: the site
 
 The gates above check this repository. This one checks the **other** one, and it
@@ -3169,6 +3183,35 @@ grep -l 'name = "digline-anthropic"' examples/*/uv.lock
 
 This sentence named three of them by hand until 2026-09-22, and they were the
 right three. That is the point: so were the five above, until they were not.
+
+**This step moves digline and the plugins, and nothing else.** `uv lock
+--upgrade-package <name>` moves the package it names and keeps every other pin
+in the lock where it was. So a *transitive* dependency of an example — one
+that no example's `pyproject.toml` declares — is never moved by this step. And
+nothing else moves it either: Dependabot's weekly version updates
+(`.github/dependabot.yml`) move only what a manifest declares, and its
+automated security updates are off for this repository (the
+`automated-security-fixes` endpoint reads `enabled: false`). Measured on
+urllib3: the release that fixed three advisories was on PyPI on 2026-09-15;
+the version updates of 2026-09-28 (#183, #184) moved `ruff`, `langchain` and
+the other declared packages and left urllib3 on the release before it, in the
+root lock and in two example locks, until the alerts raised nine entries on it. The root lock
+has the same gap for its own transitives, through the same two routes.
+
+**An advisory on a transitive dependency therefore needs an
+`--upgrade-package` that names it, and whoever triages the alert runs it.**
+In its own pull request, as soon as the alert is judged — not riding the next
+release, which would not move it — in every lock the alert lists:
+
+```sh
+uv lock --upgrade-package <dependency>   # in the root and in each example the alert names
+```
+
+Only the named package should move; read the diff before committing. When no
+fixed release exists yet (nltk, GHSA-8mgp-746c-j5xp), or a parent's bound
+refuses it, there is nothing to name — say so on the alert and leave it open.
+*Before the tag: the alert list* is the backstop: an open Dependabot alert
+with a fixed version is judged there, before the tag, if nobody did it sooner.
 
 *(Worth trying next release: regenerate the locks **before** the tag.
 They cannot resolve a version PyPI does not have yet, so it probably has to stay
