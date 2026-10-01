@@ -389,6 +389,18 @@ def key_of(created_at: str, config_hash: str) -> str:
     return f"{re.sub(r'[^0-9A-Za-z]+', '-', created_at).strip('-')}-{config_hash}"
 
 
+def is_run_key(text: str) -> bool:
+    """Whether `text` has the form `key_of` gives a key: a slugged time and a
+    digest, and nothing else.
+
+    **A check of form**, the one a projected document's `rejudged_from` is
+    held to. It says the text names nothing, not that a run is filed under it.
+    Not in `__all__`: the host reads it to decide whether a file's name may be
+    shown on a page that names nothing (#332). (Delta-pass over 0.25.2, F-1)
+    """
+    return bool(_RUN_KEY.fullmatch(text))
+
+
 def identity_of(provider: str, model: str) -> str:
     """The label for one instrument: `anthropic/claude-haiku-4-5`.
 
