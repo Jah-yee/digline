@@ -6,7 +6,7 @@ upgrading, and what deliberately did not move. The reasoning lives in
 read the [release titles](https://github.com/digline/digline/releases) — the
 notes under them are this file, verbatim.
 
-## 0.25.2 — unreleased
+## 0.25.2 — 2026-10-01
 
 digline **0.25.2**. A page served where the data is can now be built from
 documented names. There is a projection of a run nobody promoted
@@ -21,6 +21,10 @@ version the index serves.
 on 0.25.1 stops working. The entry was first opened as 0.26.0 with no reason
 recorded. Whether a capability opened where it was refused before should move
 the minor is an open question there, not ruled by this release.
+
+**The browser walkthrough was not owed.** Nothing in the launch key, the
+hand-over or the promote form changed since 0.25.1: `src/digline/cli/` and
+`src/digline/report/pages.py` are unchanged between `v0.25.1` and this tag.
 
 ### Added — a projection for a page (ADR 0038)
 
