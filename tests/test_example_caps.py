@@ -187,6 +187,7 @@ RELEASED: dict[str, int] = {
     # because a reader that ignored it would read a projection as a document
     # that names things.
     "0.25.0": 18,
+    "0.25.1": 18,
 }
 
 #: `digline>=0.4,<0.5` → the `0.5`. Only the upper bound: the floor is a
