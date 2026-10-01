@@ -1,10 +1,12 @@
-"""The projection: a promoted reference with every name replaced by a token.
+"""The projection: a run with every name replaced by a token.
 
-The committed file, when the store lives with the end company, is a
-projection of a promotion that already happened (ADR 0034 §2). It is produced
-inside the process that owns the name table (ADR 0036 §7), which is not
-digline's: this module is what that process calls, and it is handed the minting
-function rather than a table.
+Two ways in, for two documents. `project` makes **the committed file**: when
+the store lives with the end company, that file is a projection of a promotion
+that already happened (ADR 0034 §2). `project_served` makes **what a page
+served at the data owner's side shows**, which may be a run nobody promoted
+(ADR 0038 §1). Both are produced inside the process that owns the name table
+(ADR 0036 §7), which is not digline's: this module is what that process calls,
+and it is handed the minting function rather than a table.
 """
 
 from __future__ import annotations
@@ -18,7 +20,7 @@ from digline.core.run import CaseResult, Run, SystemConfig, redact
 from digline.core.tokens import Minter, TokenKind, is_token
 from digline.core.types import NOTHING_EXTRA, ConfigValue, Verdict
 
-__all__ = ["ProjectionRefusedError", "project"]
+__all__ = ["ProjectionRefusedError", "project", "project_served"]
 
 
 class ProjectionRefusedError(ValueError):
@@ -32,6 +34,62 @@ class ProjectionRefusedError(ValueError):
 def project(run: Run, mint: Minter) -> Run:
     """`run` as the software house may commit it: redacted, then every name
     replaced by the token `mint` returns for it.
+
+    **`project_served` with the two refusals of a reference in front.** What
+    it produces, and everything else it refuses, is `project_served`'s, so the
+    two cannot drift: for a reference, both return the same document.
+
+    **Refused**, as `ProjectionRefusedError`, before anything else:
+
+    - a run that is already projected, first, so that this sentence and not
+      the next one is what a projected document meets;
+    - a run that is not a promoted reference. **This is checked from what the
+      document says, and nothing more**: `promoted_at` must be set and no
+      recorded answer may remain. A `Run` built by hand with a stamp and no
+      answers passes. Nothing on the value says that `promote_baseline`
+      returned it, and nothing here can.
+
+    **Why these two are this function's and not `project_served`'s.** Their
+    reason is ADR 0034 §2's: start from a promotion, and inherit its refusals
+    for free, so that a non-reference is not committed. A page that is served
+    commits nothing, and that reason does not reach it (ADR 0038 §1). They are
+    refused unconditionally here, not by a parameter: a parameter would make the
+    committed file's protection a default, and a default is what no test of a
+    flag exercises.
+    """
+    if run.projected:
+        raise ProjectionRefusedError(
+            "this run is already projected: its names are tokens, and "
+            "projecting it again would mint tokens for tokens"
+        )
+    if not run.promoted_at:
+        raise ProjectionRefusedError(
+            "this run was not promoted: a projection to commit starts from the "
+            "reference promote_baseline returns, which carries the time it was "
+            "signed off, and this carries none. A page that shows it uses "
+            "project_served"
+        )
+    if any(case.responses for case in run.results):
+        raise ProjectionRefusedError(
+            "this run still carries the target's recorded answers, and a "
+            "promoted reference carries none: project the run promote_baseline "
+            "returned. A page that shows it uses project_served"
+        )
+    return project_served(run, mint)
+
+
+def project_served(run: Run, mint: Minter) -> Run:
+    """`run` as a page served at the data owner's side may show it: redacted,
+    then every name replaced by the token `mint` returns for it. **Promoted or
+    not.** (ADR 0038 §1)
+
+    **It carries what a projected reference carries, and no more**, plus what a
+    run has that a reference does not (ADR 0038 §2). Recorded answers become
+    `RecordedResponse(withheld=True)`, so their **count** crosses, as every
+    number crosses a projection today, under ADR 0034 §4's open axis. An
+    errored verdict keeps its status and loses its reason, and its string
+    metadata goes with redaction. Promotion's refusals are not applied: the
+    runs they refuse are the ones a reviewer most needs to see.
 
     **The order is the definition.** The projection is `redact(run)` first and
     tokenisation after it, never the reverse. Redaction withholds the
@@ -49,8 +107,15 @@ def project(run: Run, mint: Minter) -> Run:
     That is a narrowing, and `projected` declares it.
 
     Where each name goes, by kind, is `rename`'s list: one map, which the
-    resolver reads in the other direction. Numbers are left as they are: ADR
-    0034 §4 has not decided them.
+    resolver reads in the other direction. **Through one table**, a served run
+    and a projected reference pair case by case, so `compare()` can be run on
+    the two projections (ADR 0038 §3, shape B).
+
+    **What tells its document from a projected reference** is what the
+    document already says: a reference carries `promoted_at` and no answer, and
+    a run nobody promoted carries no `promoted_at`. `read_baseline` refuses a
+    projected document that is not a reference, so a served projection cannot
+    stand where a reference belongs.
 
     It returns a `Run`. It writes nothing, commits nothing, and knows neither
     the store nor where the document goes. `run_to_json` serializes it.
@@ -58,18 +123,13 @@ def project(run: Run, mint: Minter) -> Run:
     **Refused**, as `ProjectionRefusedError`:
 
     - a run that is already projected;
-    - a run that is not a promoted reference. **This is checked from what the
-      document says, and nothing more**: `promoted_at` must be set and no
-      recorded answer may remain. A `Run` built by hand with a stamp and no
-      answers passes. Nothing on the value says that `promote_baseline`
-      returned it, and nothing here can;
     - a token that is not a token: `mint` answered something without a
       token's form, gave one (kind, text) two tokens within this call, or
       gave two (kind, text) one token. **The check on a token is of its form**:
       a minter that echoed a 22-character name of the token alphabet back
       would pass;
     - an identity on the target side, which no kind covers. It is empty
-      whenever digline wrote the run.
+      whenever digline wrote the run;
     - a verdict whose `assertion_id` is not a digest: an assertion that
       overrides `identity` with readable text, which a projection would carry
       in clear. `dataclass_identity` derives one that projects.
@@ -81,18 +141,6 @@ def project(run: Run, mint: Minter) -> Run:
         raise ProjectionRefusedError(
             "this run is already projected: its names are tokens, and "
             "projecting it again would mint tokens for tokens"
-        )
-    if not run.promoted_at:
-        raise ProjectionRefusedError(
-            "this run was not promoted: a projection starts from the reference "
-            "promote_baseline returns, which carries the time it was signed "
-            "off, and this carries none"
-        )
-    if any(case.responses for case in run.results):
-        raise ProjectionRefusedError(
-            "this run still carries the target's recorded answers, and a "
-            "promoted reference carries none: project the run promote_baseline "
-            "returned"
         )
     if run.target_config.identities:
         raise ProjectionRefusedError(
