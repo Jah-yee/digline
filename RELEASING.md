@@ -2725,11 +2725,34 @@ finding in the pass over 0.25.0, and a release made only of repairs reads as
 having nothing to pass over. It has the names. Each one is a new message, and
 each crosses the boundaries it is raised across, so the three questions below
 apply to it as to any field. What it does not earn is a second pass over what
-the earlier pass already read: that is the work it was born of. **How to list
-them:** diff every `__all__` between the last tag and the tree being tagged.
-Do not count them from memory: on 0.25.1 a count given from memory said five,
-and there were four. Ruled 2026-10-01. `private/delta-pass-0.25.1.md` is the
-first pass run under it.
+the earlier pass already read: that is the work it was born of.
+
+**New public surface is two kinds of thing, and both are listed.**
+- **The names in an `__all__`.** Diff every `__all__` between the last tag and
+  the tree being tagged. Do not count them from memory: on 0.25.1 a count
+  given from memory said five, and there were four.
+- **The keys of the JSON contract**, which a pipeline parses as surely as a
+  program imports a name. Diff `src/digline/wire/contract.py` between the two
+  tags: every key added without a bump of `OUTPUT_VERSION` is recorded there,
+  beside the version it did not move, with its reason. On 0.25.1 that diff
+  names `on_record_not_read` and `unread_on_record` (#287). The pass over
+  0.25.1 left them out, because the rule then said *names*.
+
+**What holds that record, said here because it is weaker than the first.** An
+`__all__` is code, so a new name cannot be exported without appearing in it.
+The record in `contract.py` is prose that whoever adds a key writes by hand,
+and no test reads it. A golden key set would force it, and only one command
+has one: `COMPARE_KEYS` in `tests/test_cli.py`, for `compare --json`. The
+other commands' builders in `src/digline/wire/` are pinned partly or not at
+all. `tests/test_log.py`, for one, pins the fields of `log`'s types, which are
+not its wire keys. Counted on 2026-10-01: nineteen `*_json` functions in
+`wire/`, and one golden set. So the control on `contract.py` is the diff of
+`src/digline/wire/` between the same two tags, read for added keys. A key that
+appears there and not in `contract.py` is a record somebody owes, and it is
+still surface to pass over.
+
+Ruled 2026-10-01, the names in the morning and the keys the same day.
+`private/delta-pass-0.25.1.md` is the first pass run under the first half.
 
 The rule is here because 0.8.0 earned it in hours. That release added three
 surfaces, and the pass over them found that `resolved_model` travelled in clear
