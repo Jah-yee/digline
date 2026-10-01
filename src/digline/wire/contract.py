@@ -7,7 +7,8 @@ module, so `from digline.cli import EXIT_OK, OUTPUT_VERSION` keeps working.
 
 from __future__ import annotations
 
-from digline.report import Headline
+from digline.core import Run, scale_lost
+from digline.report import Headline, unjudged_cases
 
 __all__ = [
     "EXIT_OK",
@@ -16,6 +17,7 @@ __all__ = [
     "EXIT_WORSE",
     "OUTPUT_VERSION",
     "exit_code",
+    "run_exit_code",
 ]
 
 #: The shape of what `--json` prints, and nothing to do with `SCHEMA_VERSION`.
@@ -291,5 +293,27 @@ def exit_code(head: Headline) -> int:
         # approved. A regression still outranks it: both stop the pipeline and
         # the sentence names both, so ordering the quieter one first would only
         # hide the louder. (ADR 0029 §6)
+        return EXIT_UNJUDGED
+    return EXIT_OK
+
+
+def run_exit_code(run: Run) -> int:
+    """The exit code of a run with nothing to compare it against: a first
+    round, before any baseline.
+
+    **`exit_code`'s rule, restricted to what a lone run can say.** `1` needs a
+    relation: a check got worse, a canary moved, a pin drifted from the
+    reference. None of these has a meaning without a reference, so this
+    never returns `1`. What remains is `2`, for a case that could not be judged
+    or a calibration case outside its band. Both are read from the run alone,
+    by the same two functions `headline()` reads them with.
+
+    **One function, so the rule has one place.** It was written inline twice,
+    behind `digline report` and `digline explain`. The two copies agreed only
+    because neither had moved yet (#318). `tests/test_run_exit_code.py` holds
+    it to `exit_code`: for any run, this equals `exit_code` of the run compared
+    with itself, which is the comparison with no relation in it.
+    """
+    if unjudged_cases(run) or scale_lost(run):
         return EXIT_UNJUDGED
     return EXIT_OK

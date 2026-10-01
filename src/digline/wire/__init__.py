@@ -23,6 +23,7 @@ from digline.wire.contract import (
     EXIT_WORSE,
     OUTPUT_VERSION,
     exit_code,
+    run_exit_code,
 )
 from digline.wire.diff import check_json, diff_json, interval_json
 from digline.wire.explain import explain_json, fact_json
@@ -43,6 +44,7 @@ __all__ = [
     "delta_json",
     "diff_json",
     "exit_code",
+    "run_exit_code",
     "explain_json",
     "fact_json",
     "interval_json",

@@ -34,8 +34,6 @@ from digline.report import (
     identity_log,
     render_html,
     render_run_html,
-    scale_lost,
-    unjudged_cases,
 )
 from digline.run import Suite
 from digline.store import (
@@ -44,7 +42,7 @@ from digline.store import (
     RegisterRefusedError,
     ResultStore,
 )
-from digline.wire import EXIT_OK, EXIT_UNJUDGED, exit_code
+from digline.wire import exit_code, run_exit_code
 
 __all__ = ["Explained", "Reported", "explained", "history", "instant", "reported"]
 
@@ -80,8 +78,7 @@ def explained(store: ResultStore, suite: Suite, key: str) -> Explained:
     if baseline is None:
         # A lost scale needs no reference either: it compares a score with a
         # declared band, not with a past. (ADR 0024 §4.5)
-        code = EXIT_UNJUDGED if unjudged_cases(run) or scale_lost(run) else EXIT_OK
-        return Explained(run, None, facts(run), "run", code)
+        return Explained(run, None, facts(run), "run", run_exit_code(run))
     comparison = compare(run, baseline)
     head = headline(comparison, run, baseline, locale="en")
     return Explained(
@@ -188,8 +185,7 @@ def _reported_single(
     document = render_run_html(run, locale=locale)
     # And so does a lost scale: a band is declared, not referenced. (ADR 0024
     # §4.5)
-    code = EXIT_UNJUDGED if unjudged_cases(run) or scale_lost(run) else EXIT_OK
-    return Reported(document, code, read, None)
+    return Reported(document, run_exit_code(run), read, None)
 
 
 def history(
