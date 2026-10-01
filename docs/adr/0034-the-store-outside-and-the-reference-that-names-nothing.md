@@ -430,6 +430,15 @@ going down the wrong road."*
 *count* as well as the responses, because withheld placeholders are truthy. So
 it is **promote, then project**, and never the reverse.
 
+*Narrowed 2026-10-01 by
+[ADR 0038](0038-the-projection-of-a-run-nobody-promoted.md) §1; the paragraphs
+above are kept as written.* **The refusal to start from anything but a
+promotion is the committed file's.** Its reason is to inherit promotion's
+refusals so that a non-reference is not committed. A page served at the data
+owner's side commits nothing, so the reason does not reach it, and such a page
+may project a run nobody promoted. **The refusal of a `Comparison` stands for a
+served page as it does for the file** (ADR 0038 §3).
+
 ### 3. Who produces the file, who commits it, and how many approvals there are
 
 **The projection is produced where the whole value and the name table are**,
