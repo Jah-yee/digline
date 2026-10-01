@@ -8,6 +8,20 @@ notes under them are this file, verbatim.
 
 ## 0.25.2 — unreleased
 
+digline **0.25.2**. A page served where the data is can now be built from
+documented names. There is a projection of a run nobody promoted
+(`project_served`, ADR 0038). There is a read that lists a suite's runs
+(`suite_runs`), a history of one case across them (`case_history`), and the
+document of a first round (`render_run_html`). A projected report now says in
+its header that its names were replaced. Nothing to migrate, no schema change,
+and no public name removed. Only the core moves, and every plugin stays at the
+version the index serves.
+
+**A patch and not a minor, by the rule in `RELEASING.md`:** nothing that worked
+on 0.25.1 stops working. The entry was first opened as 0.26.0 with no reason
+recorded. Whether a capability opened where it was refused before should move
+the minor is an open question there, not ruled by this release.
+
 ### Added — a projection for a page (ADR 0038)
 
 - **`digline.core.project_served(run, mint)`** projects a run for a page
