@@ -253,14 +253,24 @@ def _open(spec: str, config: pytest.Config) -> _Opened:
     purpose: a suite with no baseline yet, or a path with a typo, must not
     collect zero rows and let a green run mean "nothing to check". That is the
     vacuously green assertion fixed decision 3 refuses.
+
+    **Every refusal in `digline.host.REFUSALS` takes the same road**, by
+    naming the tuple rather than its members, as `digline-mcp` does: a
+    document the store refuses, a comparison across tenants or across the
+    projection. Each is digline declining the request, and before this each
+    one reached pytest as `INTERNALERROR` and exit 3, which reads as a crash of
+    pytest or of this plugin. The class is named in the message, as the CLI
+    names it. (Delta-pass over 0.25.1)
     """
-    from digline.host import UsageError
+    from digline.host import REFUSALS, UsageError
 
     root = Path(config.getoption("digline_root") or config.rootpath)
     try:
         return _opened(spec, root, run_first=bool(config.getoption("digline_run")))
     except UsageError as exc:
         raise pytest.UsageError(f"digline: {exc}") from exc
+    except REFUSALS as exc:
+        raise pytest.UsageError(f"digline: {type(exc).__name__}: {exc}") from exc
 
 
 def _opened(spec: str, root: Path, *, run_first: bool) -> _Opened:

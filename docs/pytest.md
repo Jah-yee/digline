@@ -73,6 +73,11 @@ separately, `-rE` lists the errored rows on their own, and `--junit-xml` keeps
 them apart. A job that needs `1` versus `2` runs `digline compare`, which is one
 command away.
 
+**A refusal is carried.** When digline declines the request — no baseline, a
+document it refuses, a comparison across tenants or across the projection —
+the session stops as pytest's usage error, exit `4`, and the message names the
+refusal, as `digline compare` names it and exits `64`.
+
 One counting note: the headline sentence counts unjudged **cases**, while the
 rows are **checks**. A case with two errored checks reads as "1 case could not
 be judged" beside two `E`s. Both are right.

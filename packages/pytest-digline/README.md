@@ -61,6 +61,11 @@ for either. The distinction survives in the report — `F` and `E` are counted
 separately, `-rE` lists the errored rows — and in `--junit-xml`. A job that
 needs `1` versus `2` runs `digline compare`, which is one command away.
 
+One exit code it does carry: a **refusal**. When digline declines the request
+— no baseline, a document it refuses, a comparison across tenants or across
+the projection — the session stops as pytest's usage error, exit `4`, and the
+message names the refusal, as `digline compare` names it and exits `64`.
+
 ## Naming a suite
 
 Nothing is discovered by convention: a suite is a file that *executes*, and a
