@@ -74,6 +74,22 @@ notes under them are this file, verbatim.
   - **What a program cannot do yet** is compute the first round's exit code:
     the names it comes from are not public. That is #318.
 
+### Fixed — a projected document says that its names were replaced (#313)
+
+- **The header of both reports reads `projected` as well as `redacted`.**
+  Until now a projected page said only *"produced from redacted data"*, which
+  is true of a document in clear too, and the 22-character strings on it were
+  explained nowhere.
+  - A projected document now carries a second line, **beside** the redacted
+    one, in both locales: its names stand replaced by strings, numbers,
+    outcomes and dates are as measured, and the names are kept by the data
+    owner, who is the one to ask.
+  - It does not say that one name is one string across documents. That holds
+    only while the data owner keeps one table, and nothing checks it.
+- **Still open:** a configuration parameter withheld at the perimeter shows a
+  string and *not included*, even when it is one of digline's own words. That
+  touches fixed decision 9, and it is #323.
+
 ## pytest-digline 0.2.1 — 2026-10-01
 
 Published by its own tag, `pytest-digline-v0.2.1`. The core does not move.

@@ -336,6 +336,10 @@ above is kept as written.*
 - **Two projections minted from different tables**: ADR 0036's question.
 - **How `render_html` renders a document whose names are tokens.** It reads
   `redacted` and says so in its header. Nothing else about it was measured.
+  *Written 2026-10-01 (#313): both renderers now read `projected` too, and a
+  projected document says in its header, beside the redacted line, that its
+  names were replaced and that the data owner keeps them. The withheld
+  configuration keys are #323. The bullet is kept as written.*
 - **Where the disclosure's record lives, whether a disclosed case stays
   disclosed, and whether the client is told.** These are open in the ruling of
   2026-09-30, and this record does not reach them.

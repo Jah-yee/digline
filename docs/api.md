@@ -1671,11 +1671,11 @@ else:
 - **`locale` is mandatory**, for `render_html`'s reason: the document has a
   recipient.
 - **On a projected page, project first**: `project_served(run, mint)`, or
-  `suite_runs(..., mint=...)`. The document names nothing. It says it is
-  redacted. **It does not say that its names are tokens, or that the answers
-  were withheld**: how a document of tokens reads is still open
-  ([ADR 0038](adr/0038-the-projection-of-a-run-nobody-promoted.md),
-  *Not decided here*).
+  `suite_runs(..., mint=...)`. The document names nothing. Its header says
+  it is redacted, and **beside that, that its names were replaced by strings
+  and are kept by the data owner** (#313). A configuration parameter whose
+  value was kept back still shows as a string and *not included*, even where
+  the parameter is one of digline's own: that is #323.
 
 It is not a way to skip the reference. A run with a baseline can be rendered
 on its own, and that is a look at the run, not a comparison.
