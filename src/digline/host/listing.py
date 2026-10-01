@@ -53,7 +53,9 @@ class SuiteRuns:
     """What `suite_runs` read, and what it could not.
 
     `runs` is `runs_page`'s input as it stands: `(key, run)` pairs, in key
-    order, which is chronological. `baseline_key` is `None` in two situations,
+    order, which is chronological where digline named the files. A key is the
+    stored file's name; see `suite_runs` for what that means on a projected
+    list. `baseline_key` is `None` in two situations,
     and `baseline_refused` tells them apart: empty when the suite has no
     baseline yet, a sentence when one is there and could not be read. A page
     must not say *no baseline yet* about a baseline it failed to read.
@@ -115,9 +117,15 @@ def suite_runs(
     handed.
 
     **A run that cannot be projected is left out, never shown in clear.** It is
-    named in `refused` by key, which crosses a projection as it is: `rename`
-    leaves `created_at` and `config_hash` alone, so a run's key is the same on
-    both sides.
+    named in `refused` by key.
+
+    **A key is the name of the file the run is stored in, and nothing here
+    checks it against the document.** Where digline wrote the file, the name
+    is `key_of(created_at, config_hash)`: a time and a digest, which `rename`
+    leaves alone, so it names nothing on either side. A file somebody named
+    otherwise keeps that name, in `runs` and in `refused`, **on a projected
+    list too**, and in `note()`, control characters included. That is F-1 of
+    the delta-pass over 0.25.2, and its repair is not ruled.
 
     Raised, for the whole call:
 

@@ -6,6 +6,17 @@ upgrading, and what deliberately did not move. The reasoning lives in
 read the [release titles](https://github.com/digline/digline/releases) — the
 notes under them are this file, verbatim.
 
+## Unreleased
+
+### Fixed — a sentence that promised what `suite_runs` does not do
+
+- **`docs/api.md` and the docstring of `suite_runs` said a run's key "crosses
+  a projection as it is".** That is true only of a file digline named. A key
+  is the stored file's name, and nothing checks it against the document, so a
+  file named after a person keeps that name on a projected list. Both now say
+  so. The behaviour is unchanged, and its repair is not ruled: this corrects
+  the claim, not the code. Found by the delta-pass over 0.25.2.
+
 ## 0.25.2 — 2026-10-01
 
 digline **0.25.2**. A page served where the data is can now be built from
