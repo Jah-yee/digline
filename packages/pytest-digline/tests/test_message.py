@@ -141,3 +141,57 @@ def test_a_suite_that_does_not_exist_refuses_by_name(
     result = pytester.runpytest_subprocess("--digline-suite", "nope/suite.py")
     assert result.ret == pytest.ExitCode.USAGE_ERROR
     result.stderr.fnmatch_lines(["*no such file*"])
+
+
+def _rewrite_baseline(root: Path, edit: Callable[[str], str]) -> None:
+    (stored,) = root.glob(".digline/*/baselines/*.json")
+    stored.write_text(edit(stored.read_text(encoding="utf-8")), encoding="utf-8")
+
+
+def _projected(document: str) -> str:
+    import secrets
+
+    from digline.core import project, run_from_json, run_to_json
+
+    rows: dict[tuple[str, str], str] = {}
+    return run_to_json(
+        project(
+            run_from_json(document),
+            lambda kind, text: rows.setdefault((kind, text), secrets.token_urlsafe(16)),
+        )
+    )
+
+
+def _unidentified(document: str) -> str:
+    import json
+
+    raw = json.loads(document)
+    raw["results"][0]["verdicts"][0]["assertion_id"] = ""
+    return json.dumps(raw)
+
+
+@pytest.mark.parametrize(
+    ("edit", "named"),
+    [
+        pytest.param(_projected, "DifferentRegimesError", id="compare-refuses"),
+        pytest.param(_unidentified, "UnidentifiedVerdictError", id="read-refuses"),
+    ],
+)
+def test_a_refusal_from_digline_is_a_usage_error_not_a_crash(
+    pytester: pytest.Pytester,
+    baseline: Baseline,
+    edit: Callable[[str], str],
+    named: str,
+) -> None:
+    """Every refusal in `digline.host.REFUSALS` is the front end declining the
+    request, which is pytest's exit 4, as `UsageError` already was. Was:
+    `INTERNALERROR` and exit 3, which reads as a crash of pytest or of this
+    plugin. (Delta-pass over 0.25.1)"""
+    path = baseline(FINE, FINE)
+    _rewrite_baseline(pytester.path, edit)
+
+    result = pytester.runpytest_subprocess("--digline-suite", str(path))
+
+    assert result.ret == pytest.ExitCode.USAGE_ERROR
+    result.stderr.fnmatch_lines([f"*digline: {named}:*"])
+    assert "INTERNALERROR" not in result.stdout.str() + result.stderr.str()
