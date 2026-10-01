@@ -25,7 +25,8 @@ motion.
 | `resolve_tokens` `Lookup` `NameRow` and five refusals — [the resolver](#the-resolver) | |
 
 The report lives in `digline.report` (`headline`, `render_html`, `Locale`,
-and [`case_history`](#one-case-across-runs-case_history)), the
+[`render_run_html`](#the-first-round-render_run_html) and
+[`case_history`](#one-case-across-runs-case_history)), the
 store in `digline.store` (`FileResultStore`, `RunRef`, and three methods by
 name: `FileResultStore.name_table_dir` — [below](#the-name-tables-directory) —
 and `read_run` and `read_baseline` —
@@ -1638,6 +1639,46 @@ It refuses, as `DifferentRegimesError`, two ways:
 
 **Runs in clear and an id with a token's form are not refused.** A case id is
 free text, and that form is a legal one.
+
+### The first round: `render_run_html`
+
+**`digline.report.render_run_html(run, *, locale)`** renders one run on its
+own: the document `digline report` writes when the suite has no baseline yet
+(#277). `read_baseline` answers `None` on a first round, and `render_html`
+cannot take that `None`.
+
+```python
+from digline.core import compare
+from digline.report import render_html, render_run_html
+
+baseline = store.read_baseline(tenant, suite)
+if baseline is None:
+    document = render_run_html(run, locale="en")  # look first, then promote
+else:
+    document = render_html(compare(run, baseline), run, baseline, locale="en")
+```
+
+- **It is the same document as `render_html` wherever a section is about the
+  run**: the header, the aggregates, the files under test, what answered and
+  what judged. Where a section was about two runs, it says there is no
+  reference, and groups the cases by what each verdict is.
+- **It is not a verdict.** There is no headline, because "worse" is a relation
+  and there is nothing to be worse than.
+  - `digline report` still exits `2` on a first round with an unjudged case or
+    a lost scale. **The names that number comes from are not on this page**,
+    so a program can show the document and cannot yet compute that code.
+    That is #318.
+- **`locale` is mandatory**, for `render_html`'s reason: the document has a
+  recipient.
+- **On a projected page, project first**: `project_served(run, mint)`, or
+  `suite_runs(..., mint=...)`. The document names nothing. It says it is
+  redacted. **It does not say that its names are tokens, or that the answers
+  were withheld**: how a document of tokens reads is still open
+  ([ADR 0038](adr/0038-the-projection-of-a-run-nobody-promoted.md),
+  *Not decided here*).
+
+It is not a way to skip the reference. A run with a baseline can be rendered
+on its own, and that is a look at the run, not a comparison.
 
 ### Promoting: `promote`, and why not `promote_baseline`
 
