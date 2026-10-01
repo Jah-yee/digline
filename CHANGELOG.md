@@ -33,6 +33,24 @@ notes under them are this file, verbatim.
   two ways, the file's name and `key_of`, and `--run latest` fails on a
   renamed newest run for the same reason. That is #332, and an ADR is owed.
 
+### Added — the exit code, for a program (#318)
+
+- **`digline.wire.run_exit_code(run)`** gives the exit code of a first round,
+  with no baseline: `2` for a case that could not be judged or a calibration
+  case outside its band, and `0` otherwise. It never gives `1`, because
+  *worse* needs a reference.
+  - **It was a rule written twice**, inline, behind `digline report` and
+    `digline explain`. The two agreed only because neither had moved yet. Both
+    now call this one function, and a test holds it to `exit_code`: for any
+    run, it equals `exit_code` of the run compared with itself.
+- **`digline.wire.exit_code(head)` is now on the API page**, beside it. It was
+  exported, and the page said only that `digline.wire` holds *"the exit codes"*
+  and that *"nothing but a front end needs"* it. That sentence is corrected: a
+  program that has to say whether a run passes needs it too.
+- **Nothing moves for the CLI or MCP.** Their codes are the same numbers,
+  computed through the same function. No JSON key changes, and
+  `OUTPUT_VERSION` does not move.
+
 ## 0.25.2 — 2026-10-01
 
 digline **0.25.2**. A page served where the data is can now be built from
