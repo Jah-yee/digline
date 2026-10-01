@@ -62,6 +62,21 @@ TEXT: Mapping[Locale, Mapping[str, str]] = {
         ),
         "header.redacted": "Contents omitted",
         "header.redacted.value": "This report was produced from redacted data.",
+        # Beside the line above, not instead of it: a projected document is
+        # redacted too. This one says what the 22-character strings are, to a
+        # reader who has never met a token, and where the names are, which is
+        # what tells them what to do. It does not say that one name is one
+        # string across documents: that holds only while the data owner keeps
+        # one table, and nothing checks it (ADR 0036). (#313)
+        "header.projected": "Names replaced",
+        "header.projected.value": (
+            "The names in this report (of cases, checks, groups, files, "
+            "configuration parameters and their text values, and the judge) "
+            "are replaced by strings of 22 characters. Numbers, outcomes and "
+            "dates are as measured. The names are kept by the data owner, and "
+            "only there can a string be turned back into the name it stands "
+            "for: to learn one, ask the data owner."
+        ),
         # Named in the header rather than only in the sentence: a reader who
         # scrolls past the first screen must still be able to see that the
         # answers came from a stored run, and which one.
@@ -1208,6 +1223,15 @@ TEXT: Mapping[Locale, Mapping[str, str]] = {
         ),
         "header.redacted": "Contenuti omessi",
         "header.redacted.value": "Questo rapporto è prodotto da dati redatti.",
+        "header.projected": "Nomi sostituiti",
+        "header.projected.value": (
+            "I nomi in questo rapporto (di casi, controlli, gruppi, file, "
+            "parametri di configurazione e loro valori testuali, e del giudice) "
+            "sono sostituiti da stringhe di 22 caratteri. Numeri, esiti e date "
+            "sono come misurati. I nomi sono conservati dal titolare dei dati, "
+            "e solo lì una stringa può tornare al nome che rappresenta: per "
+            "conoscerne uno, va chiesto al titolare dei dati."
+        ),
         "header.promoted": "Riferimento approvato",
         "header.baseline_key": "Chiave del riferimento",
         "summary.against": "tenant {tenant}, rispetto alla baseline {reference}",
