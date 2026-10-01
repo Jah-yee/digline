@@ -25,7 +25,8 @@
   anything but a promotion is the committed file's. *Made 2026-10-01, in the
   change that accepted this record.*
 - Owes: ADR 0036 §7 a sentence about **serving a page writes the table** (§4).
-  It is named here, not resolved here
+  It is named here, not resolved here. *Written 2026-10-01, as a dated
+  amendment under [ADR 0036](0036-the-name-table-and-the-process-that-owns-it.md) §7, which in turn names what it owes ADR 0035*
 - Assumes: [ADR 0002](0002-three-worlds-and-where-the-data-lives.md) §4 (a
   `Comparison` does not cross a boundary) and §8 (promotion's conditions);
   [ADR 0015](0015-the-recorded-output-and-the-declared-re-judge.md) §5 (a
@@ -249,6 +250,14 @@ that projects a run mints a token for every name no earlier projection met
 **The sentence that settles it is owed to ADR 0036**, which owns the table and
 its writers. This record makes no amendment there.
 
+*Noted 2026-10-01: the sentence is written, as a dated amendment under
+[ADR 0036](0036-the-name-table-and-the-process-that-owns-it.md) §7.
+It adds what this section did not see. The table grows with the distinct
+names in the runs somebody looked at, not with the number of views. And ADR
+0035's ledger names a row by a token that, for a row minted by viewing, no
+committed document may carry, which it leaves owed to ADR 0035. The section
+above is kept as written.*
+
 ## Consequences
 
 - **ADR 0034 §2 carries the narrowing beside the sentence it narrows**, as a
@@ -258,7 +267,7 @@ its writers. This record makes no amendment there.
   line that points here. Nothing the decision said was false. It governs a
   thing it did not name, and a reader of that file alone would not know the
   thing exists.
-- **ADR 0036 §7 is owed a sentence** (§4).
+- **ADR 0036 §7 is owed a sentence** (§4). *Written 2026-10-01.*
 - **Issues #277 and #278 can now be answered in substance.** Each renders a run
   that public digline could not project, and §1 permits the projection. They
   still wait on the second way in.
@@ -295,6 +304,7 @@ its writers. This record makes no amendment there.
   served projection is told apart from a projected reference (§1).
 - **Shape C** of §3.
 - **What ADR 0036 §7 says about the table's writer on page views** (§4).
+  *Written 2026-10-01 in ADR 0036 §7. The bullet is kept as written.*
 - **Numbers**, the response count included: ADR 0034 §4's open axis.
 - **The keys of a verdict's metadata**, which are in no class yet.
 - **Two projections minted from different tables**: ADR 0036's question.
