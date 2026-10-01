@@ -21,7 +21,7 @@ motion.
 | `Disclosure` — what may leave the perimeter | `Mapper` `default_mapper` |
 | `Verdict` `Score` `Status` `Message` | |
 | `Run` `CaseResult` `compare` `redact` `config_hash` | |
-| `project` `Minter` `TokenKind` `is_token` `ProjectionRefusedError` — [the projection](#the-projection) | |
+| `project` `project_served` `Minter` `TokenKind` `is_token` `ProjectionRefusedError` — [the projection](#the-projection) | |
 | `resolve_tokens` `Lookup` `NameRow` and five refusals — [the resolver](#the-resolver) | |
 
 The report lives in `digline.report` (`headline`, `render_html`, `Locale`), the
@@ -1544,7 +1544,11 @@ except REFUSALS as refused:
   read.
 - **`FileResultStore.read_baseline(tenant, suite)`** returns the baseline, or
   `None` when the suite has none yet in that perimeter. The first round is not
-  an error. It refuses the way `read_run` does.
+  an error. It refuses the way `read_run` does, and one way more:
+  **`NotAReferenceError`** for a projected document that is not a reference,
+  one with no `promoted_at` or with answers. That is a served projection
+  standing where a reference belongs
+  ([ADR 0038](adr/0038-the-projection-of-a-run-nobody-promoted.md) §1).
 
 `scan_runs` is not documented and stays internal. What a program needs from a
 scan is the newest run, and `resolve_key(store, suite, "latest")` gives it,
@@ -1839,6 +1843,36 @@ across under tokens, and nothing on the projected document could see it.
   lets `identity` be any string, and one written by hand as readable text
   would cross the projection in clear. The refusal says to derive it with
   `dataclass_identity`, which is what `AssertionBase` does.
+
+### A page, not a commit: `project_served`
+
+**`project_served(run, mint)`** projects a run for a page served at the data
+owner's side, **promoted or not**
+([ADR 0038](adr/0038-the-projection-of-a-run-nobody-promoted.md)). It is the
+same projection, made the same way, without the two refusals that belong to
+the committed file: a run nobody promoted is projected, and recorded answers
+become withheld placeholders, so their count crosses. Promotion's refusals are
+not applied either, because an errored, replayed or unreconciled run is what a
+reviewer most needs to see.
+
+```python
+from digline.core import project, project_served
+
+shown = project_served(store.read_run(ref), mint)  # a page
+reference = project(store.read_baseline(tenant, suite), mint)  # a commit
+```
+
+- **`project` is `project_served` with those two refusals in front.** For a
+  reference, both return the same document.
+- **It refuses everything else `project` refuses**: a run already projected, a
+  target-side identity, a readable `assertion_id`, and a minter that answers
+  wrong.
+- **What tells its document from a projected reference** is what the document
+  says: a reference carries `promoted_at` and no answer. `read_baseline`
+  refuses the other where a reference belongs, as `NotAReferenceError`.
+- **Through one table, a served run and a projected reference pair case by
+  case**, so `compare()` holds the two projections against each other and
+  finds a regression. Two tables do not, and nothing detects it (below).
 
 **`Run.projected` is verified, not believed**, like `redacted`. A run that
 declares it is refused unless it is redacted, every name listed above is a

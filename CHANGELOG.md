@@ -6,6 +6,32 @@ upgrading, and what deliberately did not move. The reasoning lives in
 read the [release titles](https://github.com/digline/digline/releases) — the
 notes under them are this file, verbatim.
 
+## 0.26.0 — unreleased
+
+### Added — a projection for a page (ADR 0038)
+
+- **`digline.core.project_served(run, mint)`** projects a run for a page
+  served at the data owner's side, **promoted or not**. ADR 0038 §1 narrowed
+  ADR 0034 §2's refusal to the committed file, and this is the way in that
+  record required.
+  - It is `project` without the two refusals that belong to the reference.
+    A run nobody promoted is projected, and recorded answers become withheld
+    placeholders, so their count crosses, as every number crosses a projection
+    today. Promotion's refusals are not applied.
+  - Everything else `project` refuses, it refuses: a run already projected, a
+    target-side identity, a readable `assertion_id`, a minter that answers
+    wrong.
+  - **`project` is now those two refusals in front of `project_served`**, so
+    for a reference both give the same document, and a test holds that.
+  - **Both renderers read a projected document**, in both locales:
+    `render_run_html` and `render_html` show tokens and no name. Nothing had
+    measured that before, and now tests hold it.
+- **`NotAReferenceError`**, from `read_baseline`, and in `host.REFUSALS`. A
+  projected baseline with no `promoted_at`, or with answers, is a served
+  projection standing where a reference belongs, and comparing against it
+  would hold a run against a document nobody approved. A baseline in clear
+  without a stamp is read as before.
+
 ## pytest-digline 0.2.1 — 2026-10-01
 
 Published by its own tag, `pytest-digline-v0.2.1`. The core does not move.

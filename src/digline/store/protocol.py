@@ -209,6 +209,30 @@ class SuiteMismatchError(ValueError):
     `digline.host.REFUSALS`, which a test holds complete."""
 
 
+class NotAReferenceError(ValueError):
+    """Raised when a projected document stands where a reference belongs and
+    is not one.
+
+    A served projection may be of a run nobody promoted (ADR 0038 §1). It is
+    meant for a page, and nothing reads a page back. **Written as the condition
+    it rests on**: a served projection reaches a baseline's place only if
+    something writes it there, by hand or by a commit. If that ever happens,
+    `compare()` would hold a run against a document nobody approved, and read
+    green. So the place where a reference is read refuses it.
+
+    **What tells the two apart is what the document already says**: a
+    projected reference carries `promoted_at` and no recorded answer, and a
+    served projection of a run nobody promoted carries no `promoted_at`, and may
+    carry answers as withheld placeholders. Both fields are verified on a
+    projected document, the stamp for its form. Like `project`, this reads what
+    the document says and nothing more: a document built by hand with a stamp
+    and no answers passes.
+
+    Only a projected document is held to it. A baseline in clear without a
+    stamp is one written before promotion stamped its time, and is read as it
+    always was."""
+
+
 class BaselineMovedError(Exception):
     """Raised when a promotion would replace a baseline other than the one the
     run was compared against.
@@ -362,7 +386,11 @@ class ResultStore(Protocol):
 
     def read_baseline(self, tenant: str, suite: str) -> Run | None:
         """`None` when the suite has no baseline yet in that perimeter — the
-        first round is not an error."""
+        first round is not an error.
+
+        A projected document that is not a reference is refused, as
+        `NotAReferenceError`: a served projection must not stand where a
+        reference belongs (ADR 0038 §1)."""
         ...
 
     def promote_baseline(
