@@ -38,7 +38,10 @@ Two more, for anything that drives digline rather than declares a suite.
 `suite_runs` and `SuiteRuns`, `promote` and `REFUSALS`.
 `digline.wire` is the machine surface: `OUTPUT_VERSION`, the exit codes, and the
 functions that build every `--json` and every MCP response. A script that loads
-a suite imports the first; nothing but a front end needs the second.
+a suite imports the first. A front end imports the second, and so does **a
+program that needs the number a run exits with**: two functions in it,
+[`exit_code` and `run_exit_code`](#the-exit-code-exit_code-and-run_exit_code),
+give that number without a front end.
 
 **These moved in 0.6.0.** `load_suite` and its neighbours used to live in
 `digline.cli.loader`, which was two layers wearing one name — the host, and the
@@ -1680,9 +1683,8 @@ else:
 - **It is not a verdict.** There is no headline, because "worse" is a relation
   and there is nothing to be worse than.
   - `digline report` still exits `2` on a first round with an unjudged case or
-    a lost scale. **The names that number comes from are not on this page**,
-    so a program can show the document and cannot yet compute that code.
-    That is #318.
+    a lost scale. A program gets the same number from
+    [`run_exit_code(run)`](#the-exit-code-exit_code-and-run_exit_code).
 - **`locale` is mandatory**, for `render_html`'s reason: the document has a
   recipient.
 - **On a projected page, project first**: `project_served(run, mint)`, or
@@ -1694,6 +1696,44 @@ else:
 
 It is not a way to skip the reference. A run with a baseline can be rendered
 on its own, and that is a look at the run, not a comparison.
+
+### The exit code: `exit_code` and `run_exit_code`
+
+The number `digline compare`, `report` and `explain` exit with, for a program
+that shows a run and has to say whether it passes (#318). Both are in
+`digline.wire`, both are pure, and neither needs a store or a suite:
+
+```python
+from digline.core import compare
+from digline.report import headline
+from digline.wire import exit_code, run_exit_code
+
+baseline = store.read_baseline(tenant, suite)
+if baseline is None:
+    code = run_exit_code(run)  # a first round
+else:
+    code = exit_code(headline(compare(run, baseline), run, baseline, locale="en"))
+```
+
+| Code | Constant | Means |
+|---|---|---|
+| `0` | `EXIT_OK` | proceed |
+| `1` | `EXIT_WORSE` | a check got worse, or a canary moved |
+| `2` | `EXIT_UNJUDGED` | a case could not be judged, a calibration case left its band, or a pinned file drifted from the reference |
+
+- **`exit_code(head)` is the rule**, read from a `Headline`. A regression or a
+  moved canary outranks the causes of `2`. A suspension never fails. The
+  headline's `locale` does not change the number.
+- **`run_exit_code(run)` is the same rule with nothing to compare against.**
+  It never returns `1`, because *worse*, a moved canary and a drifted pin are
+  relations. What is left is `2` for an unjudged case or a lost scale, read
+  from the run alone.
+  - **It is held to `exit_code` by a test**: for any run, it equals `exit_code`
+    of the run compared with itself, in clear, redacted and projected.
+  - `digline report` and `digline explain` compute their first-round code
+    through it, so a program and the CLI cannot disagree.
+- **On the wire**, `compare --json` and `explain --json` already carry the
+  same number as `exit_code`, and MCP's `compare` and `explain` tools too.
 
 ### Promoting: `promote`, and why not `promote_baseline`
 
