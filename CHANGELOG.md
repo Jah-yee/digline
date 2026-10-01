@@ -17,6 +17,22 @@ notes under them are this file, verbatim.
   so. The behaviour is unchanged, and its repair is not ruled: this corrects
   the claim, not the code. Found by the delta-pass over 0.25.2.
 
+### Fixed — a projected list no longer shows a file name that is not a run key
+
+- **`suite_runs` with a minter shows a file name only where it names
+  nothing.** A readable run is listed only if its file name is its
+  `key_of(created_at, config_hash)`. A refused file is named only if its name
+  has a run key's form. Anything else is counted in the new
+  **`SuiteRuns.unnamed`** and named nowhere. Before this, a run filed as
+  `rossi-mario-….json` was listed under that name, in clear, on a list where
+  every other name was a token, and a hostile file name put raw control
+  characters into `note()`. Found by the delta-pass over 0.25.2 (F-1).
+- **A list in clear is unchanged.** It shows the file name, because that is
+  what `read_run` needs.
+- **The cause is not repaired here.** The store answers *what is a run's key*
+  two ways, the file's name and `key_of`, and `--run latest` fails on a
+  renamed newest run for the same reason. That is #332, and an ADR is owed.
+
 ## 0.25.2 — 2026-10-01
 
 digline **0.25.2**. A page served where the data is can now be built from
