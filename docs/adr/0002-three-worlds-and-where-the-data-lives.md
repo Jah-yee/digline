@@ -102,6 +102,15 @@ than something a document merely describes" — and [ADR 0011](0011-the-mcp-serv
 in a document somebody could get wrong". Both are true of addressing and neither is corrected
 by this note.*
 
+*Corrected 2026-10-01 (#140). Both now say addressing, and so do three more that this list
+did not name: `tests/test_store.py`'s module docstring, `ResultStore`'s class docstring in
+`store/protocol.py`, and `examples/operator/journal.py`. "Two more places" was a count of
+what one search found, not of the repository, and the last two were missed in two different
+ways. `protocol.py` says *"the filesystem then enforces"*, which no pattern of the sweep
+matched; `CONTRIBUTING.md`'s sweep bullet records it. `journal.py` was matched: replayed at
+the commit that reported it (`6ef90d4`), ADR 0034 §13's sweep returns it for *enforced by
+the filesystem*, and §13 lists three sites without it. Why it was dropped is not known.*
+
 *The decision itself does not move. The tenant stays a directory, for the reason the
 paragraph above gives. What changes is the claim made for it.*
 
@@ -592,6 +601,11 @@ a change to the configuration — visible in `config_hash` and in a pull request
   Pseudonymised data is still personal data. The Consequences bullet above gives the
   correction in full; this is the same correction, at the second place the word was
   written.*
+
+  *Owed to ADR 0023, 2026-10-01. "A generated `case_id`" is superseded in substance by
+  [ADR 0023](0023-capture.md) §6, which amends this record's §5 with the identifier's
+  recipe. ADR 0023 is proposed, and by its own rule what it amends waits for its
+  acceptance, so these words stand until then and are rewritten when it is accepted.*
 - The build order is deliberate: **nothing online before the report.** The report is what
   world 3 sees, and it is the only one of the three artifacts that today exists in none of
   the audited competitors.

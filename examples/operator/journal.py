@@ -37,8 +37,9 @@ DECISIONS_DIRNAME = "decisions"
 def journal_path(root: Path, tenant: str = "", suite: str = "") -> Path:
     """Where the decisions of one suite live.
 
-    The tenant is a directory, here as everywhere: the perimeter is enforced by
-    the filesystem rather than described by a field inside a file.
+    The tenant is a directory, here as everywhere: the perimeter is *addressed*
+    by the filesystem rather than described by a field inside a file. Addressing,
+    not access: one OS user reads every tenant (digline's fixed decision 8).
     """
     if tenant and suite:
         return root / ".digline" / tenant / DECISIONS_DIRNAME / f"{suite}.jsonl"
