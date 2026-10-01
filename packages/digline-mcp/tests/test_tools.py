@@ -17,6 +17,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import CallToolResult
 from tests._helpers import cli, run_key, write_suite
 
+from digline.core.run import SCHEMA_VERSION
 from digline.store import PENDING_DIRNAME
 from digline_mcp.server import build_server
 
@@ -498,3 +499,45 @@ def test_list_runs_reports_what_it_could_not_read(repo: Path) -> None:
     assert listing["skipped"] == {"2": 1}
     assert "1 run(s) at schema 2" in str(listing["note"])
     assert listing["unreadable"] == 0
+
+
+def not_a_run(path: Path) -> None:
+    """A document the scan keeps, because its schema is current, and the store
+    refuses, because nothing else about it is a run."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"schema_version": SCHEMA_VERSION}), encoding="utf-8")
+
+
+def test_list_runs_leaves_a_refused_run_out_and_counts_it(promoted: Path) -> None:
+    """Until #314 one such document failed the tool for every run beside it."""
+    not_a_run(promoted / ".digline" / "acme-bank" / "runs" / "qa" / "a.json")
+
+    listing = call(promoted, "list_runs", suite=str(promoted / "suite_qa.py"))
+
+    assert len(listing["runs"]) == 1
+    assert listing["refused"] == 1
+    assert "refused: 1 run(s): a (" in str(listing["note"])
+    assert listing["baseline_unreadable"] is False
+
+
+def test_list_runs_does_not_report_an_unreadable_baseline_as_none(
+    promoted: Path,
+) -> None:
+    """`baseline_key: null` alone would read as *no baseline yet*."""
+    not_a_run(promoted / ".digline" / "acme-bank" / "baselines" / "qa.json")
+
+    listing = call(promoted, "list_runs", suite=str(promoted / "suite_qa.py"))
+
+    assert listing["baseline_key"] is None
+    assert listing["baseline_unreadable"] is True
+    assert "the baseline could not be read" in str(listing["note"])
+
+
+def test_log_reads_past_a_refused_run_and_matches_the_cli(promoted: Path) -> None:
+    not_a_run(promoted / ".digline" / "acme-bank" / "runs" / "qa" / "a.json")
+
+    shown = cli(promoted, "log", "--suite", "suite_qa.py", "--json")
+    answered = call(promoted, "log", suite=str(promoted / "suite_qa.py"))
+
+    assert answered["refused"] == 1
+    assert answered == json.loads(shown.stdout)

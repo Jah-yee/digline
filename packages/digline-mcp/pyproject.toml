@@ -69,7 +69,22 @@ dependencies = [
     # this floor and `INTRODUCED` in tests/test_plugin_floors.py move together,
     # and this package takes its own release, since a floor is a thing users
     # rely on.
-    "digline>=0.20.0",
+    #
+    # Raised to 0.25.2 by name: `list_runs` reads through `suite_runs`, which
+    # first ships in 0.25.2, so a run the store refuses is left out and counted
+    # rather than failing the tool (#314).
+    #
+    # **Owed at the cut, by hand, and the gate cannot see it.** `list_runs` also
+    # passes `note`, `refused` and `baseline_unreadable` to `runs_json`, which
+    # arrive in the core release after 0.25.3. That is a widened signature, not
+    # a new name, the half `test_plugin_floors.py` is blind to. Against 0.25.2
+    # or 0.25.3 the call raises `TypeError`. The release that carries #314 moves
+    # this floor and `INTRODUCED` to its own number, and this package takes a
+    # release of its own: a floor may not name a release that does not exist
+    # yet, so it cannot be written before the cut. RELEASING.md carries the
+    # row the cut reads, in *Before the tag: moving the number*, and
+    # `test_plugin_floors.py` refuses this paragraph without that row.
+    "digline>=0.25.2",
     # Both halves matter. Unpinned, a resolver could hand somebody 1.x, where
     # `MCPServer` does not exist and `mcp.server.fastmcp` raises on import: the
     # 2.0 release renamed FastMCP, and every example written before it is wrong.

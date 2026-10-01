@@ -1043,6 +1043,12 @@ TEXT: Mapping[Locale, Mapping[str, str]] = {
         "log.window.open": "…",
         "log.not_read.schema": "{count} run(s) at schema {version} were not read.",
         "log.not_read.unreadable": "{count} file(s) could not be read.",
+        # A run the scan passed and the store refused. `digline list` names
+        # each one and why; this reading only counts them. (#314)
+        "log.not_read.refused": (
+            "{count} run(s) were refused by the store and not read: "
+            "`digline list` names them."
+        ),
         # A run the baseline or the register names, and the scan did not read:
         # absent or unreadable, never said to be removed. Only said where one
         # of the two records it — a run neither names leaves no trace. (#287)
@@ -2136,6 +2142,10 @@ TEXT: Mapping[Locale, Mapping[str, str]] = {
             "{count} esecuzioni allo schema {version} non sono state lette."
         ),
         "log.not_read.unreadable": "{count} file non si sono potuti leggere.",
+        "log.not_read.refused": (
+            "{count} esecuzioni sono state rifiutate dall'archivio e non lette: "
+            "`digline list` le nomina."
+        ),
         "log.not_read.on_record": (
             "{count} esecuzioni nominate dal riferimento o dal registro non sono "
             "state lette qui: {before} prima della prima letta, {after} dopo "
