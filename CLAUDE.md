@@ -308,12 +308,17 @@ artifacts that today exists in none of the audited competitors.
     #234 open, and #259 left #256 and #232 open. Keep writing `Closes #N`
     anyway, because it still tells a reader which issues the pull request
     answers.
-    *Observed 2026-10-01, twice, the other way.* #315 closed #276 and #316
-    closed #278 through the queue, one or two seconds after each merge, and
-    each pull request's `closingIssuesReferences` returned its issue. The
-    keyword had the same shape in all four pull requests: `Closes #N` in the
+    *Observed 2026-10-01, three times, the other way.* #315 closed #276, #316
+    closed #278 and #319 closed #277 through the queue, one or two seconds
+    after each merge, and each pull request's `closingIssuesReferences`
+    returned its issue. **All three closes were on 2026-10-01, and that day
+    nothing failed to close.** Both misses were on 2026-09-30. So the count,
+    three against two, does not show a queue that closes half the time: it
+    splits by day, and something may have changed between the two. The
+    keyword had the same shape in all five pull requests: `Closes #N` in the
     description and in a commit message. So the difference is not in how it
-    was written, and it was not found. Two against two: the rule stands.
+    was written, and it was not found. The rule stands, because closing by
+    hand costs nothing.
   - **It depends on `merge_group` in `ci.yml`**, which is the same failure as
     PR #82 in a new place. Without that trigger nothing starts on the queue's
     ref, and the queue waits on checks that never report. The trigger landed
