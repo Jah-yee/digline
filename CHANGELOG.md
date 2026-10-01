@@ -32,6 +32,22 @@ notes under them are this file, verbatim.
   would hold a run against a document nobody approved. A baseline in clear
   without a stamp is read as before.
 
+### Added — a documented read that lists a suite's runs (#276)
+
+- **`digline.host.suite_runs(store, tenant, suite, *, mint)`** returns every
+  readable run of a suite with its key, and the key of its baseline, as a
+  **`SuiteRuns`**. That is the list `digline view` opens on, for a program that
+  shows it elsewhere. Until now nothing on the API page listed runs, and the
+  baseline's key could only be spelt by hand.
+  - **`mint` is mandatory.** `None` lists in clear. A minter lists projected,
+    with every run through `project_served` and one check on the minter across
+    the whole list, so one name is one token on every row.
+  - **One unreadable run is left out and named**, and the others are listed.
+    A run that cannot be projected is never shown in clear. A baseline that
+    cannot be read is said to be unreadable, not reported as absent.
+  - **The four callers that build this list by hand do not use it yet**, and
+    still fail the whole list on one run the store refuses. That is #314.
+
 ## pytest-digline 0.2.1 — 2026-10-01
 
 Published by its own tag, `pytest-digline-v0.2.1`. The core does not move.
