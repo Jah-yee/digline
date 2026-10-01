@@ -212,6 +212,25 @@ from the code would be a guess. This step is the only thing that sees it. It
 was missed for 0020, 0021, 0022 and 0024, which read `proposed` for over a
 week after 0.13.0 and 0.14.0 shipped them.
 
+**And one more that no test reddens: raise the floors owed to this release.**
+`tests/test_plugin_floors.py` computes a plugin's floor from the names it
+imports. It cannot see a widened signature: a plugin that passes a new argument
+to a function it already imported needs the release that added the argument,
+and the gate still reads the old floor as enough. A floor may not name a release
+that does not exist yet (*A floor names a core version*, below), so the pull
+request that creates the need cannot write it. It writes a row here instead,
+and the cut that settles the row deletes it.
+
+| Package | Owed because | Raise to | Then |
+|---|---|---|---|
+| `digline-mcp` | `list_runs` passes `note`, `refused` and `baseline_unreadable` to `runs_json` (#314, #349). Against any core released before them the call raises `TypeError`. | this release | replace the *Owed at the cut* paragraph beside the floor with the reason the floor moved, and give `digline-mcp` a release of its own on this tag |
+
+**An empty table is the normal state.** `test_plugin_floors.py` refuses a
+package whose `pyproject.toml` says *Owed at the cut* while this table has no
+row naming it, so the two cannot drift apart in that direction. The other
+direction is this step's job: a row left here after its floor moved is a row
+nobody finished.
+
 ### The six that stay red until you have done all four
 
 Run the gates once after the bump and read them as a checklist rather than as
