@@ -33,7 +33,7 @@ and `read_run` and `read_baseline` —
 Two more, for anything that drives digline rather than declares a suite.
 `digline.host` is the layer that touches the world — `load_suite`, `Loaded`,
 `load_target`, `read_artifacts`, `git_commit`, `utc_now_iso`, `resolve_key`,
-`promote` and `REFUSALS`.
+`suite_runs` and `SuiteRuns`, `promote` and `REFUSALS`.
 `digline.wire` is the machine surface: `OUTPUT_VERSION`, the exit codes, and the
 functions that build every `--json` and every MCP response. A script that loads
 a suite imports the first; nothing but a front end needs the second.
@@ -1550,9 +1550,57 @@ except REFUSALS as refused:
   standing where a reference belongs
   ([ADR 0038](adr/0038-the-projection-of-a-run-nobody-promoted.md) §1).
 
-`scan_runs` is not documented and stays internal. What a program needs from a
-scan is the newest run, and `resolve_key(store, suite, "latest")` gives it,
-together with a note on what the scan could not read.
+### Listing: `suite_runs`
+
+**`suite_runs(store, tenant, suite, *, mint)`** returns a suite's runs and
+the key of its baseline: the list the first screen of `digline view` shows, for
+a program that shows it somewhere else (#276). It returns a **`SuiteRuns`**:
+
+- `runs`: `(key, run)` pairs in key order, which is chronological. A key is
+  what `RunRef(tenant=..., suite=..., key=key)` takes, so `read_run` needs
+  nothing more.
+- `baseline_key`: the key the baseline is known by, the one a row is marked
+  with. `None` when there is no baseline, **or** when one is there and could
+  not be read. `baseline_refused` tells the two apart. It is empty for the
+  first and holds what refused the read for the second.
+- `listing`: the scan, with what it skipped by schema and what it could not
+  parse.
+- `refused`: `(key, what refused it)` for each run the scan found and the read
+  did not show. **One run the store refuses does not take the others down.**
+- `note()`: one line naming everything above that was left out, and a
+  baseline whose run is not in the list. Empty when there is nothing to say.
+  **An empty note does not mean nothing is missing**: a run removed from the
+  store is named only where the baseline remembers it, as with `resolve_key`.
+
+**It opens every document.** Aggregates are in the run, and the store keeps no
+index, so every stored run is parsed in full. That is what `digline view` pays
+for the same screen.
+
+**`mint` is mandatory, with no default.** `None` lists in clear. A
+[`Minter`](#the-projection) lists projected: every run goes through
+`project_served`, and through **one check on the minter for the whole list**.
+One name gets one token on every row, which is what lets a row's aggregates be
+held against the baseline's by name.
+
+- **A run that cannot be projected is left out and named by its key, never
+  shown in clear.** A key crosses a projection as it is, since the projection
+  leaves `created_at` and `config_hash` alone.
+- **On a projected list, `refused` and `baseline_refused` carry the refusal's
+  type, not its sentence**, because a sentence can quote a name.
+- **A minter that answers wrong refuses the whole call**, as
+  `ProjectionRefusedError`: an answer without a token's form, one name given
+  two tokens, or two names given one, anywhere in the list. So does anything
+  the minter raises. digline never opens the table; it calls what it is handed
+  ([ADR 0036](adr/0036-the-name-table-and-the-process-that-owns-it.md) §2).
+- **One minter is not proved to be one table.** Nothing on a projected
+  document says which table minted it, and that is ADR 0036's open question.
+
+`PathRefusedError` is raised when `tenant` or `suite` is not one safe name.
+A suite with no runs is an empty list, not a refusal.
+
+`scan_runs` and `list_runs` stay internal. `suite_runs` is the read for a
+program that shows runs. `resolve_key(store, suite, "latest")` is the one for a
+program that needs only the newest.
 
 ### Promoting: `promote`, and why not `promote_baseline`
 
