@@ -1675,7 +1675,7 @@ else:
   redacted. **It does not say that its names are tokens, or that the answers
   were withheld**: how a document of tokens reads is still open
   ([ADR 0038](adr/0038-the-projection-of-a-run-nobody-promoted.md),
-  *Not decided here*).
+  *Not decided here*), and the header that would say so is #313.
 
 It is not a way to skip the reference. A run with a baseline can be rendered
 on its own, and that is a look at the run, not a comparison.
