@@ -1966,6 +1966,11 @@ def _meta(comparison: Comparison, run: Run, baseline: Run, locale: Locale) -> st
         pairs.append(("header.rejudged", run.rejudged_from))
     if run.redacted or baseline.redacted:
         pairs.append(("header.redacted", phrase(locale, "header.redacted.value")))
+    # Read beside `redacted`, never folded into it: a projected document is
+    # redacted too, and "redacted data" does not say that its names are
+    # strings standing for names kept elsewhere. (#313)
+    if run.projected or baseline.projected:
+        pairs.append(("header.projected", phrase(locale, "header.projected.value")))
     return "".join(
         f"<dt>{escape(phrase(locale, key))}</dt><dd>{escape(value)}</dd>"
         for key, value in pairs
@@ -2410,6 +2415,9 @@ def _run_meta(run: Run, locale: Locale) -> str:
         pairs.append(("header.rejudged", run.rejudged_from))
     if run.redacted:
         pairs.append(("header.redacted", phrase(locale, "header.redacted.value")))
+    # As in `_meta`, for the same reason. (#313)
+    if run.projected:
+        pairs.append(("header.projected", phrase(locale, "header.projected.value")))
     return "".join(
         f"<dt>{escape(phrase(locale, key))}</dt><dd>{escape(value)}</dd>"
         for key, value in pairs
