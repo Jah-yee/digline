@@ -1585,8 +1585,13 @@ One name gets one token on every row, which is what lets a row's aggregates be
 held against the baseline's by name.
 
 - **A run that cannot be projected is left out and named by its key, never
-  shown in clear.** A key crosses a projection as it is, since the projection
-  leaves `created_at` and `config_hash` alone.
+  shown in clear.**
+- **A key is the name of the file the run is stored in, and nothing checks it
+  against the document.** Where digline wrote the file, the name is a time and
+  a digest, which the projection leaves alone, so it names nothing. **A file
+  somebody named otherwise keeps that name on a projected list too**: in
+  `runs`, in `refused` and in `note()`, control characters included. That is
+  not repaired yet.
 - **On a projected list, `refused` and `baseline_refused` carry the refusal's
   type, not its sentence**, because a sentence can quote a name.
 - **A minter that answers wrong refuses the whole call**, as
