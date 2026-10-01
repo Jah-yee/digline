@@ -48,6 +48,20 @@ notes under them are this file, verbatim.
   - **The four callers that build this list by hand do not use it yet**, and
     still fail the whole list on one run the store refuses. That is #314.
 
+### Added — one case across runs, documented (#278)
+
+- **`digline.report.case_history`, `CaseHistory` and `CaseEntry`** are now on
+  the API page. They were exported and undocumented, so they were internal by
+  the page's own rule. Their input is `suite_runs(...).runs`.
+- **It refuses, as `DifferentRegimesError`**, runs of which some are projected
+  and some are not, and **projected runs asked for a case id that is not a
+  token**. Until now the second returned a history in which the case was
+  absent from every run, a wrong answer with no error. Runs in clear with an id
+  that looks like a token are not refused, because a case id is free text.
+- **The history covers only the runs it was given.** Its docstring and the API
+  page now say that whoever shows it shows `SuiteRuns.note()` beside it.
+  `digline view`'s case screen still drops that note, which is #314.
+
 ## pytest-digline 0.2.1 — 2026-10-01
 
 Published by its own tag, `pytest-digline-v0.2.1`. The core does not move.
