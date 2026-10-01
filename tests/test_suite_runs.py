@@ -100,13 +100,13 @@ def test_one_run_the_store_refuses_does_not_take_the_others_down(
     refuse it. Every caller that read the scan by hand failed the whole list on
     it."""
     store = stored(tmp_path, current(T1), current(T2))
-    broken(store, "2026-09-29T11-00-00-00-00-deadbeef")
+    broken(store, "2026-09-29T11-00-00-00-00-deadbeefdeadbeef")
 
     listed = suite_runs(store, TENANT, SUITE, mint=None)
 
     assert len(listed.runs) == 2
     [(refused_key, why)] = listed.refused
-    assert refused_key == "2026-09-29T11-00-00-00-00-deadbeef"
+    assert refused_key == "2026-09-29T11-00-00-00-00-deadbeefdeadbeef"
     assert "redacted" in why  # the store's own sentence, in clear
     assert refused_key in listed.note()
 
@@ -228,12 +228,12 @@ def test_a_run_that_cannot_be_projected_is_left_out_not_shown_in_clear(
 
 def test_a_refusal_on_a_projected_list_carries_no_sentence(tmp_path: Path) -> None:
     store = stored(tmp_path, current(T1))
-    broken(store, "2026-09-29T11-00-00-00-00-deadbeef")
+    broken(store, "2026-09-29T11-00-00-00-00-deadbeefdeadbeef")
 
     listed = suite_runs(store, TENANT, SUITE, mint=Table())
 
     assert listed.refused == (
-        ("2026-09-29T11-00-00-00-00-deadbeef", "DocumentRefusedError"),
+        ("2026-09-29T11-00-00-00-00-deadbeefdeadbeef", "DocumentRefusedError"),
     )
 
 
@@ -288,3 +288,98 @@ def test_a_minter_giving_two_names_one_token_refuses_the_whole_call(
 def test_what_it_raises_is_a_refusal() -> None:
     assert ProjectionRefusedError in REFUSALS
     assert PathRefusedError in REFUSALS
+
+
+# --------------------------------------------------------------------------- #
+# A file name that is not a run key (delta-pass over 0.25.2, F-1)
+# --------------------------------------------------------------------------- #
+
+PERSON = "rossi-mario-IT60X0542811101"
+
+
+def renamed(store: FileResultStore, run: Run, name: str) -> None:
+    """File `run` under `name` instead of the key digline gives it."""
+    directory = store.runs_dir(TENANT) / SUITE
+    (directory / f"{key(run)}.json").rename(directory / f"{name}.json")
+
+
+def test_a_run_filed_under_a_persons_name_is_not_named_on_a_projected_list(
+    tmp_path: Path,
+) -> None:
+    kept, moved = current(T1), current(T2)
+    store = stored(tmp_path, kept, moved)
+    renamed(store, moved, PERSON)
+
+    listed = suite_runs(store, TENANT, SUITE, mint=Table())
+
+    assert [k for k, _ in listed.runs] == [key(kept)]
+    assert listed.unnamed == 1
+    assert listed.refused == ()
+    assert PERSON not in listed.note()
+    assert "left out without a name: 1" in listed.note()
+
+
+def test_in_clear_the_same_run_is_listed_under_its_file_name(tmp_path: Path) -> None:
+    """The owner's own list addresses the file as the store does."""
+    kept, moved = current(T1), current(T2)
+    store = stored(tmp_path, kept, moved)
+    renamed(store, moved, PERSON)
+
+    listed = suite_runs(store, TENANT, SUITE, mint=None)
+
+    assert sorted(k for k, _ in listed.runs) == sorted([key(kept), PERSON])
+    assert listed.unnamed == 0
+
+
+def test_a_run_filed_under_another_runs_key_is_not_listed_projected(
+    tmp_path: Path,
+) -> None:
+    """A run key's form is not enough: a readable run is listed only under its
+    own `key_of`."""
+    moved = current(T2)
+    store = stored(tmp_path, moved)
+    renamed(store, moved, key(current(T1)))
+
+    listed = suite_runs(store, TENANT, SUITE, mint=Table())
+
+    assert listed.runs == ()
+    assert listed.unnamed == 1
+
+
+def test_a_refused_file_named_after_a_person_is_counted_not_named(
+    tmp_path: Path,
+) -> None:
+    store = stored(tmp_path, current(T1))
+    broken(store, PERSON)
+
+    listed = suite_runs(store, TENANT, SUITE, mint=Table())
+
+    assert listed.refused == ()
+    assert listed.unnamed == 1
+    assert PERSON not in listed.note()
+
+
+def test_control_characters_in_a_file_name_do_not_reach_a_projected_note(
+    tmp_path: Path,
+) -> None:
+    hostile = "x\x1b[31mred\x9b"
+    store = stored(tmp_path, current(T1))
+    broken(store, hostile)
+
+    listed = suite_runs(store, TENANT, SUITE, mint=Table())
+
+    assert listed.unnamed == 1
+    assert "\x1b" not in listed.note() and "\x9b" not in listed.note()
+
+
+def test_a_refused_file_with_a_run_keys_form_is_still_named(tmp_path: Path) -> None:
+    """A run key names nothing, so a refusal under one stays legible."""
+    store = stored(tmp_path, current(T1))
+    broken(store, "2026-09-29T11-00-00-00-00-deadbeefdeadbeef")
+
+    listed = suite_runs(store, TENANT, SUITE, mint=Table())
+
+    assert listed.unnamed == 0
+    assert [k for k, _ in listed.refused] == [
+        "2026-09-29T11-00-00-00-00-deadbeefdeadbeef"
+    ]

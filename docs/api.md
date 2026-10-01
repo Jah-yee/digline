@@ -1569,6 +1569,9 @@ a program that shows it somewhere else (#276). It returns a **`SuiteRuns`**:
   parse.
 - `refused`: `(key, what refused it)` for each run the scan found and the read
   did not show. **One run the store refuses does not take the others down.**
+- `unnamed`: on a projected list, how many files were left out **without a
+  name**, because their only name is a file name that is not a run key. Always
+  0 in clear.
 - `note()`: one line naming everything above that was left out, and a
   baseline whose run is not in the list. Empty when there is nothing to say.
   **An empty note does not mean nothing is missing**: a run removed from the
@@ -1586,12 +1589,19 @@ held against the baseline's by name.
 
 - **A run that cannot be projected is left out and named by its key, never
   shown in clear.**
-- **A key is the name of the file the run is stored in, and nothing checks it
-  against the document.** Where digline wrote the file, the name is a time and
-  a digest, which the projection leaves alone, so it names nothing. **A file
-  somebody named otherwise keeps that name on a projected list too**: in
-  `runs`, in `refused` and in `note()`, control characters included. That is
-  not repaired yet.
+- **A key is the name of the file the run is stored in.** Where digline wrote
+  the file, the name is a time and a digest, which the projection leaves
+  alone, so it names nothing. A file somebody named otherwise is treated two
+  ways:
+  - **in clear**, it is listed and refused under its file name, which is what
+    `read_run` needs to read it;
+  - **projected**, a file name is shown only where it names nothing. A readable
+    run is listed only if its file name is its `key_of`. A refused file is
+    named only if its name has a run key's form. Everything else is counted in
+    `unnamed` and named nowhere, control characters included.
+- **That repairs the page, not the store.** The store answers *what is a run's
+  key* two ways, the file's name and `key_of`, and `--run latest` fails on a
+  renamed newest run for that reason. That is #332, and an ADR is owed.
 - **On a projected list, `refused` and `baseline_refused` carry the refusal's
   type, not its sentence**, because a sentence can quote a name.
 - **A minter that answers wrong refuses the whole call**, as

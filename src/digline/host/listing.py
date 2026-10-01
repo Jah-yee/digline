@@ -25,6 +25,7 @@ from digline.core import (
     key_of,
     project_served,
 )
+from digline.core.run import is_run_key
 from digline.store import (
     Listing,
     NotAReferenceError,
@@ -64,6 +65,11 @@ class SuiteRuns:
     read did not show. **On a projected listing, what refused it is the
     refusal's type and not its sentence**: a refusal can quote a name, and the
     page it is shown on names none.
+
+    `unnamed` counts what a projected listing left out **without naming it**,
+    because the only name it had was a file name that is not a run key: a
+    readable run filed under a name other than its `key_of`, or a refused file
+    whose name has no run key's form. Always 0 on a listing in clear.
     """
 
     runs: tuple[tuple[str, Run], ...]
@@ -71,6 +77,7 @@ class SuiteRuns:
     baseline_refused: str
     listing: Listing
     refused: tuple[tuple[str, str], ...]
+    unnamed: int
 
     def note(self) -> str:
         """One line naming what was left out, or empty when nothing was.
@@ -86,6 +93,11 @@ class SuiteRuns:
         if self.refused:
             keys = ", ".join(f"{key} ({why})" for key, why in self.refused)
             parts.append(f"refused: {len(self.refused)} run(s): {keys}")
+        if self.unnamed:
+            parts.append(
+                f"left out without a name: {self.unnamed} file(s) whose name is "
+                "not a run key, which this list may not show"
+            )
         if self.baseline_refused:
             parts.append(f"the baseline could not be read: {self.baseline_refused}")
         elif self.baseline_key is not None and self.baseline_key not in {
@@ -119,13 +131,23 @@ def suite_runs(
     **A run that cannot be projected is left out, never shown in clear.** It is
     named in `refused` by key.
 
-    **A key is the name of the file the run is stored in, and nothing here
-    checks it against the document.** Where digline wrote the file, the name
-    is `key_of(created_at, config_hash)`: a time and a digest, which `rename`
-    leaves alone, so it names nothing on either side. A file somebody named
-    otherwise keeps that name, in `runs` and in `refused`, **on a projected
-    list too**, and in `note()`, control characters included. That is F-1 of
-    the delta-pass over 0.25.2, and its repair is not ruled.
+    **A key is the name of the file the run is stored in.** Where digline
+    wrote the file, the name is `key_of(created_at, config_hash)`: a time and
+    a digest, which `rename` leaves alone, so it names nothing on either side.
+    A file somebody named otherwise is another matter, and the two listings
+    treat it differently:
+
+    - **In clear**, it is listed and refused under its file name, as the store
+      addresses it. That name is what `read_run` needs.
+    - **Projected**, a file name is shown only where it names nothing. A
+      readable run is listed only if its file name is its `key_of`. A refused
+      file is named only if its name has a run key's form. Anything else is
+      counted in `unnamed` and named nowhere, so control characters in a file
+      name do not reach `note()` either. (Delta-pass over 0.25.2, F-1)
+
+    **That repairs the page, not the split.** The store answers *what is a
+    run's key* two ways, the file's name and `key_of`. That is #332, and an ADR
+    is owed before it is closed.
 
     Raised, for the whole call:
 
@@ -147,6 +169,7 @@ def suite_runs(
 
     runs: list[tuple[str, Run]] = []
     refused: list[tuple[str, str]] = []
+    unnamed = 0
     for ref in listing.runs:
         try:
             run = store.read_run(ref)
@@ -155,12 +178,21 @@ def suite_runs(
         except ProjectionRefusedError as exc:
             if table is not None and table.faulted:
                 raise
-            refused.append((ref.key, _why(exc, projected=table is not None)))
-            continue
+            why = _why(exc, projected=table is not None)
         except _DOCUMENT_REFUSALS as exc:
-            refused.append((ref.key, _why(exc, projected=table is not None)))
+            why = _why(exc, projected=table is not None)
+        else:
+            # `rename` leaves `created_at` and `config_hash` alone, so the key
+            # is the same before and after the projection.
+            if table is not None and ref.key != key_of(run.created_at, run.config_hash):
+                unnamed += 1
+            else:
+                runs.append((ref.key, run))
             continue
-        runs.append((ref.key, run))
+        if table is not None and not is_run_key(ref.key):
+            unnamed += 1
+        else:
+            refused.append((ref.key, why))
 
     baseline_key: str | None = None
     baseline_refused = ""
@@ -178,6 +210,7 @@ def suite_runs(
         baseline_refused=baseline_refused,
         listing=listing,
         refused=tuple(refused),
+        unnamed=unnamed,
     )
 
 
