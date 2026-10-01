@@ -14,7 +14,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
-from digline.core import Run, Verdict
+from digline.core import DifferentRegimesError, Run, Verdict, is_token
 
 __all__ = ["CaseEntry", "CaseHistory", "case_history"]
 
@@ -83,7 +83,44 @@ def case_history(runs: Sequence[tuple[str, Run]], case_id: str) -> CaseHistory:
     two runs recorded in the same microsecond still order deterministically —
     a table whose row order changed between two renderings would be unusable
     for exactly the comparison it exists to support.
+
+    **The history covers the runs it was given, and only those.** A run that
+    was never read is not an absent entry, it is no entry: the rows on each
+    side of it close up, and the gap reads as continuity. That is the shape of
+    #287, where `log` folded a missing run away. What the read left out exists
+    on the read, in `SuiteRuns.note()`, and nowhere here. **So whoever shows
+    this history shows that note beside it.** It is the step that gets
+    forgotten, which is why it is written on the fold and not only beside the
+    read.
+
+    **Refused**, as `DifferentRegimesError`, two ways:
+
+    - runs of which some are projected and some are not. One names its cases
+      by token and the other by text, so the case would be found in half of
+      them and read as absent from the rest;
+    - projected runs and a `case_id` that is not a token. A name in clear
+      matches no token, so every entry would read `present=False`: *this case
+      is in no run*, which is a wrong answer given in silence. The sentence
+      does not quote the id, because the page a refusal reaches may be one
+      that names nothing.
+
+    **The other direction is not refused**: runs in clear and an id with a
+    token's form. A case id is free text, and 22 characters of url-safe base64
+    is a legal one.
     """
+    regimes = {run.projected for _, run in runs}
+    if len(regimes) > 1:
+        raise DifferentRegimesError(
+            "cannot fold one case across runs of which some are projected and "
+            "some are not: one names its cases by token and the other by text, "
+            "so the case would read as absent from half of them"
+        )
+    if regimes == {True} and not is_token(case_id):
+        raise DifferentRegimesError(
+            "the runs are projected and the case id is not a token: a name in "
+            "clear matches no token, so the case would read as absent from "
+            "every run. Ask for the case by the token its links carry"
+        )
     entries: list[CaseEntry] = []
     for key, run in sorted(runs, key=lambda pair: (pair[1].created_at, pair[0])):
         found = next((c for c in run.results if c.case_id == case_id), None)

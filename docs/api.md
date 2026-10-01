@@ -24,7 +24,8 @@ motion.
 | `project` `project_served` `Minter` `TokenKind` `is_token` `ProjectionRefusedError` — [the projection](#the-projection) | |
 | `resolve_tokens` `Lookup` `NameRow` and five refusals — [the resolver](#the-resolver) | |
 
-The report lives in `digline.report` (`headline`, `render_html`, `Locale`), the
+The report lives in `digline.report` (`headline`, `render_html`, `Locale`,
+and [`case_history`](#one-case-across-runs-case_history)), the
 store in `digline.store` (`FileResultStore`, `RunRef`, and three methods by
 name: `FileResultStore.name_table_dir` — [below](#the-name-tables-directory) —
 and `read_run` and `read_baseline` —
@@ -1601,6 +1602,42 @@ A suite with no runs is an empty list, not a refusal.
 `scan_runs` and `list_runs` stay internal. `suite_runs` is the read for a
 program that shows runs. `resolve_key(store, suite, "latest")` is the one for a
 program that needs only the newest.
+
+### One case across runs: `case_history`
+
+**`digline.report.case_history(runs, case_id)`** folds `(key, run)` pairs
+into one case's history, oldest first, as a **`CaseHistory`** of
+**`CaseEntry`** rows. It is the table `digline view` shows at `/case/<id>`, and
+its input is the list `suite_runs` returns (#278):
+
+```python
+from digline.host import suite_runs
+from digline.report import case_history
+
+listed = suite_runs(store, tenant, suite, mint=None)
+history = case_history(listed.runs, case_id)
+print(listed.note())  # what the history does not cover
+```
+
+- **The order is the rule:** `created_at`, then the key, so two renderings of
+  one history put the rows in the same order.
+- **A run the case is not in is a row with `present=False`**, not a missing
+  row. A case added or removed shows as a gap.
+- **The history covers the runs it was given, and only those.** A run the
+  read left out is no row at all, and the rows around it close up, so the gap
+  reads as continuity. What was left out is in `SuiteRuns.note()`. **Whoever
+  shows a history shows that note beside it.**
+
+It refuses, as `DifferentRegimesError`, two ways:
+
+- runs of which some are projected and some are not;
+- projected runs and a `case_id` that is not a token. A name in clear matches
+  no token, so every row would read `present=False`, which says *this case is
+  in no run*. On a projected page, ask for the case by the token its links
+  carry. A caller holding the name gets the token from its own minter.
+
+**Runs in clear and an id with a token's form are not refused.** A case id is
+free text, and that form is a legal one.
 
 ### Promoting: `promote`, and why not `promote_baseline`
 
