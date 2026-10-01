@@ -62,6 +62,18 @@ notes under them are this file, verbatim.
   page now say that whoever shows it shows `SuiteRuns.note()` beside it.
   `digline view`'s case screen still drops that note, which is #314.
 
+### Added — the first round, documented (#277)
+
+- **`digline.report.render_run_html(run, *, locale)`** is now on the API
+  page. It renders one run on its own, which is what `digline report` writes
+  when the suite has no baseline yet. A program outside digline had a
+  documented `None` from `read_baseline`, and no documented way to render the
+  run behind it.
+  - A test holds the documented chain to the document `digline report`
+    writes, in both locales, and a projected first round to naming nothing.
+  - **What a program cannot do yet** is compute the first round's exit code:
+    the names it comes from are not public. That is #318.
+
 ## pytest-digline 0.2.1 — 2026-10-01
 
 Published by its own tag, `pytest-digline-v0.2.1`. The core does not move.
