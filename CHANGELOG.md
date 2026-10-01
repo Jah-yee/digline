@@ -6,7 +6,7 @@ upgrading, and what deliberately did not move. The reasoning lives in
 read the [release titles](https://github.com/digline/digline/releases) — the
 notes under them are this file, verbatim.
 
-## 0.26.0 — unreleased
+## 0.25.2 — unreleased
 
 ### Added — a projection for a page (ADR 0038)
 
