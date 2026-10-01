@@ -6,6 +6,31 @@ upgrading, and what deliberately did not move. The reasoning lives in
 read the [release titles](https://github.com/digline/digline/releases) — the
 notes under them are this file, verbatim.
 
+## pytest-digline 0.2.1 — unreleased
+
+Published by its own tag, `pytest-digline-v0.2.1`. The core does not move.
+
+### Fixed — a refusal from digline is a usage error, not a crash
+
+- **Every refusal in `digline.host.REFUSALS` now stops the session as
+  pytest's usage error, exit 4**, the way a missing baseline always did. The
+  plugin translated `UsageError` alone, so every other refusal reached pytest
+  as `INTERNALERROR` and exit **3**, which reads as a crash of pytest or of
+  this plugin. That covers a document the store refuses, a comparison across
+  tenants, and a comparison across the projection. Two were measured:
+  0.25.1's `DifferentRegimesError`, with a projected baseline, and 0.25.0's
+  `UnidentifiedVerdictError`, with a baseline whose verdict carries an empty
+  `assertion_id`. The message names the class, as `digline compare` does:
+  *digline: DifferentRegimesError: …*. Found by the delta-pass over 0.25.1.
+- **The floor moves to `digline>=0.20.0`**, where `digline.host.REFUSALS`
+  arrived. `tests/test_plugin_floors.py` computes it from the imports and
+  refuses `>=0.19.0`.
+- **Rides along: a change that alters nothing that runs.** `plugin.py` has
+  imported `ResultStore` under `TYPE_CHECKING`, and annotated one private
+  function with it, since `1653ce6`. The module has `from __future__ import
+  annotations`, so 0.2.0 on PyPI and this tree behaved the same. It was
+  carried in `RELEASING.md`'s list until this real release.
+
 ## 0.25.1 — 2026-09-30
 
 digline **0.25.1**. Repairs, and no new surface. Six come from the delta-pass
