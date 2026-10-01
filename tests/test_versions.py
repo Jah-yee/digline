@@ -328,6 +328,11 @@ RECORDED: dict[str, dict[str, str]] = {
         "the lesson; moving the number would claim a later pass audited it",
     },
     "RELEASING.md": {
+        "0.2.1": (
+            "pytest-digline's version that 1653ce6's type-only change rode, "
+            "told as the moment the carried list emptied. It names a plugin "
+            "release, not the core's"
+        ),
         "0.25.0": (
             "the release whose index-race status is recorded: the pair agreeing for "
             "every pin, the smoke build's in-build wait waiting 15 seconds for the new"
@@ -1153,13 +1158,7 @@ HEADING = r"^##[ \t]+{name}{version}[ \t]+—[ \t]+(\S+)"
 #: sentence somebody writes and somebody reads, which is the point. What it
 #: must not become is the way to make this red go away: the red it exists for
 #: is `v0.17.0` publishing two plugins and leaving both declared unreleased.
-UNRELEASED_ON_PURPOSE: dict[str, str] = {
-    "pytest-digline": (
-        "0.2.1 waits for its own tag, pytest-digline-v0.2.1, which goes on the "
-        "merge commit of its release pull request; that pull request dates the "
-        "heading and removes this entry"
-    ),
-}
+UNRELEASED_ON_PURPOSE: dict[str, str] = {}
 
 
 def heading_of(changelog: str, name: str | None, version: str) -> str | None:
