@@ -1580,6 +1580,18 @@ a program that shows it somewhere else (#276). It returns a **`SuiteRuns`**:
   **An empty note does not mean nothing is missing**: a run removed from the
   store is named only where the baseline remembers it, as with `resolve_key`.
 
+Each `run` in `runs` is a `Run`, a frozen dataclass. These are the fields a
+list of runs reads:
+
+- `created_at`: when the run was made, an ISO 8601 UTC timestamp with
+  microseconds. Where digline wrote the run's file, its key begins with it.
+- `environment`: where inside the perimeter the run was made, as the suite
+  declared it ([`Suite`](#suite)).
+- `results`: one `CaseResult` per case the run holds.
+- `aggregate`: the verdicts about the run as a whole
+  ([aggregates](#aggregates-the-verdict-on-the-run)), each a
+  [`Verdict`](#verdicts-and-comparison). Empty when the suite declares none.
+
 **It opens every document.** Aggregates are in the run, and the store keeps no
 index, so every stored run is parsed in full. That is what `digline view` pays
 for the same screen.
@@ -1637,6 +1649,29 @@ listed = suite_runs(store, tenant, suite, mint=None)
 history = case_history(listed.runs, case_id)
 print(listed.note())  # what the history does not cover
 ```
+
+Both are frozen dataclasses. A **`CaseHistory`** carries:
+
+- `case_id`: the case it follows, as it was asked for: a name in clear, or a
+  token on projected runs.
+- `entries`: one `CaseEntry` per run given, oldest first.
+
+A **`CaseEntry`** is how one run judged the case:
+
+- `run_key`: the key the run was given under, the one `suite_runs` lists it
+  by. `RunRef(tenant=..., suite=..., key=entry.run_key)` reads that run, so a
+  row is tied to its run by this field and not by its position. It is the key
+  as given: `case_history` does not check it against the run.
+- `created_at`, `environment`, `config_hash` and `git_commit`: the run's own,
+  copied from it. `git_commit` is `None` where the run was made with no git.
+- `verdicts`: the case's verdicts in that run, each a
+  [`Verdict`](#verdicts-and-comparison). Empty when the run had the case and
+  judged nothing, and when the run does not have the case.
+- `suspended`: why the case was set aside in that run, or `None` when it was
+  not. On a redacted or projected run the reason is withheld, and a
+  placeholder stands in its place. This is what tells an empty row apart: a
+  case that was suspended, and not merely unjudged.
+- `present`: `False` when the run does not contain the case at all.
 
 - **The order is the rule:** `created_at`, then the key, so two renderings of
   one history put the rows in the same order.

@@ -6,6 +6,26 @@ upgrading, and what deliberately did not move. The reasoning lives in
 read the [release titles](https://github.com/digline/digline/releases) — the
 notes under them are this file, verbatim.
 
+## Unreleased
+
+### Documented — the fields of a case's history, and of a listed run (#336)
+
+- **`CaseHistory` and `CaseEntry` now have their fields on the API page.**
+  `case_history` was documented in 0.25.2, and the page named one field of
+  what it returns, `present`. A dataclass is its fields, so the rest were
+  public without being on the page. They are named now: `case_id` and
+  `entries`, then `run_key`, `created_at`, `environment`, `config_hash`,
+  `git_commit`, `verdicts` and `suspended`.
+  - **`run_key` is what ties a row to its run.** Without it on the page, a
+    program had to call `case_history` once per run to know which run a row
+    came from.
+- **The four fields of `Run` a list of runs reads** are named beside
+  `SuiteRuns`: `created_at`, `environment`, `results` and `aggregate`.
+- **Nothing in the code moved.** Every field was already there, on classes
+  `digline.report` and `digline.core` already export. `CaseHistory.scores` and
+  `CaseHistory.assertion_names` stay off the page: each is computed from
+  `verdicts`, and a program that has `verdicts` does not need either.
+
 ## 0.25.3 — 2026-10-01
 
 digline **0.25.3**. The last two things a page served where the data is
