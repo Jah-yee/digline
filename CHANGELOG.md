@@ -8,6 +8,46 @@ notes under them are this file, verbatim.
 
 ## Unreleased
 
+### Changed — one run the store refuses no longer fails the whole list (#314)
+
+- **`digline list`, `digline log`, `digline view`, and MCP's `list_runs` and
+  `log` now show the rest of the list** when one stored file is at the current
+  schema but is not a run the store will read: a mandatory field missing, or a
+  document filed under another suite or tenant. The scan reads only
+  `schema_version`, so it passed such a file, and the bare read after it raised
+  for the whole list. `list` and `log` exited 64, `view` answered 400 on its
+  first screen and on every case page, and the two MCP tools returned an error.
+  - **This is a change you can see**: where you got a refusal you now get a
+    list with a row missing, and the missing row named. `list` and `view` print
+    `refused: N run(s): <key> (<why>)` beside what the scan skipped. `log`
+    counts them: `N run(s) were refused by the store and not read`.
+  - **A baseline the store cannot read no longer fails `list`, `view` or
+    `list_runs` either.** They say *the baseline could not be read*, and do not
+    mark a run as the baseline. `log` still refuses on it: its reading needs the
+    baseline's run, not only its key.
+  - All four read through `suite_runs` (0.25.2), which already did this.
+    **No run is opened that was not opened before**: every one of them already
+    read every stored run in full. What is added is one read of the baseline,
+    a single file, on `view`'s case page and on `log`. The case page never
+    read it before, and `log` now reads it twice, because its reading needs
+    the baseline's run and `suite_runs` keeps only its key.
+- **Two added keys, and no `OUTPUT_VERSION` bump.** `refused`, a count, on
+  `log --json` and on `list_runs`; `baseline_unreadable` on `list_runs`, so
+  that `baseline_key: null` cannot read as *no baseline yet*. They are added
+  keys, the rule `digline.wire.contract` has followed since version 1. Wherever
+  either would have been non-zero, the response used to be an error.
+- **`--run latest` did not change, on purpose.** It still refuses when such a
+  file is in the store. A document that cannot be read has no `created_at` to
+  trust, so nothing can say whether it was newer than the run `latest` would
+  pick. Picking past it could compare or promote the wrong run without saying
+  so.
+- **`digline-mcp` needs this core.** `list_runs` passes the new arguments to
+  `runs_json`. Its floor reads `>=0.25.2` until the cut, because a floor may not
+  name a release that does not exist yet. The release that carries this raises
+  it to its own number and ships `digline-mcp` beside it. A `digline-mcp`
+  already published keeps working against this core: the three new arguments
+  have defaults, and for a caller that predates them the defaults are true.
+
 ### Documented — the fields of a case's history, and of a listed run (#336)
 
 - **`CaseHistory` and `CaseEntry` now have their fields on the API page.**

@@ -313,6 +313,12 @@ class IdentityLog:
     replays: tuple[Replay, ...]
     skipped: Mapping[int, int] = field(default_factory=dict[int, int])
     unreadable: int = 0
+    #: Runs the scan found and the store refused to read: a document at the
+    #: current schema that is not a run, or one filed under another suite or
+    #: tenant. Counted beside `unreadable` and not inside it, because a file
+    #: that does not open and a document the store refuses are two different
+    #: things to go and fix. (#314)
+    refused: int = 0
     reference: Reference | None = None
     register: tuple[RegisterEntry, ...] = ()
     register_torn: bool = False
@@ -646,6 +652,7 @@ def identity_log(
     until: str = "",
     skipped: Mapping[int, int] | None = None,
     unreadable: int = 0,
+    refused: int = 0,
     baseline: tuple[str, Run] | None = None,
     register: Sequence[RegisterEntry] = (),
     register_torn: bool = False,
@@ -738,6 +745,7 @@ def identity_log(
         replays=replays,
         skipped=dict(skipped or {}),
         unreadable=unreadable,
+        refused=refused,
         reference=reference,
         # The same window, over the moment each disposition was recorded.
         register=tuple(
@@ -986,6 +994,8 @@ def log_text(log: IdentityLog, *, locale: Locale) -> tuple[str, ...]:
         )
     if log.unreadable:
         lines.append(phrase(locale, "log.not_read.unreadable", count=log.unreadable))
+    if log.refused:
+        lines.append(phrase(locale, "log.not_read.refused", count=log.refused))
     if log.on_record_not_read:
         unread = log.on_record_not_read
         lines.append(

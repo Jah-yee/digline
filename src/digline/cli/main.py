@@ -65,6 +65,7 @@ from digline.host import (
     record,
     reported,
     resolve_key,
+    suite_runs,
     utc_now_iso,
 )
 from digline.report import (
@@ -621,21 +622,21 @@ def cmd_list(args: argparse.Namespace) -> int:
     """
     suite, _loaded, store = _load(args)
 
-    baseline = store.read_baseline(suite.tenant, suite.name)
-    baseline_key = (
-        None if baseline is None else key_of(baseline.created_at, baseline.config_hash)
-    )
-
-    listing = store.scan_runs(suite.tenant, suite.name)
-    rows = [store.read_run(ref) for ref in listing.runs]
+    # A run the store refuses, or a baseline it cannot read, is left out and
+    # named in the note below the table. Until #314 either one failed the whole
+    # listing, so one bad file hid every good run beside it.
+    listed = suite_runs(store, suite.tenant, suite.name, mint=None)
+    baseline_key = listed.baseline_key
+    rows = [run for _key, run in listed.runs]
     # Sorted on the recorded fact, not on the filename that encodes it.
     rows.sort(key=lambda run: run.created_at, reverse=True)
+    note = listed.note()
 
     if not rows:
         say(f"no runs for suite {suite.name!r} in tenant {suite.tenant!r}")
-        if listing.skipped or listing.unreadable:
-            say(listing.note())
-            for line in listing.advice():
+        if note:
+            say(note)
+            for line in listed.listing.advice():
                 say(line)
         return EXIT_OK
 
@@ -679,13 +680,13 @@ def cmd_list(args: argparse.Namespace) -> int:
         say()
         for line in legend:
             say(line)
-    if listing.skipped or listing.unreadable:
+    if note:
         # Below the table, because it is about what is *not* in it. Never
         # silent: a listing that quietly drops history reads exactly like a
         # listing of a shorter history.
         say()
-        say(listing.note())
-        for line in listing.advice():
+        say(note)
+        for line in listed.listing.advice():
             say(line)
     _warn_if_ahead(*rows)
     return EXIT_OK

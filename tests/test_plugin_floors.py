@@ -74,6 +74,9 @@ PACKAGES = ROOT / "packages"
 #: is the first release, and anything claiming it should be a name that has
 #: been there from the start.
 INTRODUCED: dict[str, str] = {
+    # 0.25.2 — the list a program that shows runs reads (#276, `44e64ee`,
+    # `v0.25.2~9^2`). digline-mcp's `list_runs` reads through it since #314.
+    "suite_runs": "0.25.2",
     # 0.20.0 — the core classifies its own refusals, and a front end catches
     # the classification rather than a list of its own (friction 59). Assumed
     # number: `--replacing` makes the release a minor (ADR 0031); whoever cuts

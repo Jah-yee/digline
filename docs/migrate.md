@@ -29,6 +29,17 @@ The first version of the listing raised on the first foreign file, which made
 `--run latest` fail the morning after a release for a reason that had nothing to
 do with the run being asked for.
 
+**A document at the current schema that is not a run passes the scan.** The
+scan reads only `schema_version`, so it is the read after it that refuses the
+document: a run with a mandatory field missing, or one filed under another
+suite or tenant. `digline list`, `digline log` and `digline view` leave that run
+out and name it beside what the scan skipped: `refused: 1 run(s): <key>
+(<why>)`. Until #314 they failed whole on it. **`--run latest` still refuses**,
+and on purpose: a document that cannot be read has no `created_at` anyone can
+trust, so nothing can say whether it was newer than the run `latest` would
+otherwise pick, and comparing or promoting the wrong run in silence is worse
+than stopping.
+
 ## Migrating
 
 `--dry-run` says what would happen and writes nothing:
