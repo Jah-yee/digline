@@ -436,6 +436,65 @@ condition without needing an accident.
   works: the line resolves by token alone, without carrying a kind.
 - **The erasure** removes rows (§9).
 
+*Amended 2026-10-01: the sentence
+[ADR 0038](0038-the-projection-of-a-run-nobody-promoted.md) §4 named as owed
+here. The section above is kept as written.* **The projection also mints the
+tokens of a run nobody promoted, whenever a page served at the data owner's
+side shows that run** (ADR 0038 §1). It is still the projection, and there are
+still three writers. What changed is what the projection projects, and when it
+runs.
+
+**What this section said about *when*, and what it did not say.** It names who
+writes and where, and never when. The projection's bullet ties the writer to
+its object, a reference, and a reference is projected once, when it is
+promoted. So until ADR 0038 the table grew only when somebody promoted or
+elected. A round that ran and was never promoted wrote nothing to it.
+
+**So the table now grows with reading, not only with promoting and electing.**
+Look-up-or-mint (§6) mints only for a (kind, text) the table does not hold. A
+page shown twice therefore writes once. The table grows with the distinct names
+in the runs somebody looked at, not with the number of views. Some of those
+names no reference will ever carry:
+- a case added and dropped before any promotion;
+- a check renamed between two rounds;
+- a configuration value one round reported and the next did not.
+
+Until now, a row named something that had been in a promoted reference or in an
+election. **Now a row may name something that was only ever on a screen.**
+
+**Nothing in this record assumed the table stops growing. One of its
+conditions now reads differently.** No size is set anywhere here: §9 says
+*"nothing counts toward one"*. But §9's condition, that assisted erasure holds
+*"for as long as a suite stays small enough to be read in full by the person
+erasing"*, is measured in the suite, while the person erasing reads the table's
+rows.
+- **While only references were projected**, every row named something
+  promoted from the suite or elected into it.
+- **Rows minted by viewing are bounded by what was viewed.** For the
+  configuration kinds, the suite's size does not bound that.
+
+**Written as the condition it rests on:** this is the projection writer inside
+the owning process, **for as long as the process that serves the page is the
+process that owns the table**. A page served by any other process that minted
+tokens would be the outside writer §6's condition excludes. Inside the process,
+§6 already counts *"two reviewers at a served page"* among the minters its
+lock serves.
+
+**The erasure path, owed to [ADR 0035](0035-the-record-of-a-deletion.md) and not
+resolved here.** An erasure removes rows (§9), and ADR 0035 records each
+removal by the row's token.
+- **ADR 0035 §4 rests that on a ground a row minted by viewing may not meet.**
+  It says the committed projections *"already hold it for as long as git keeps
+  them"*. A row minted by viewing can have a token that no committed document
+  carries: it was on a page, and it is in the table.
+- **For such a row, an entry naming its token is the only record digline knows
+  of** that the token existed outside the table.
+- **Owed to ADR 0035:** whether an entry still names such a row by its token,
+  and what the ledger says about a token that never left.
+- **ADR 0035 §8's paragraph on an expired token makes the same assumption.**
+  It says *"the software house's git still carries it in old projections"*, and
+  it is owed the same reading.
+
 **Whether the three are one component or several is not decided.** Where they
 run is.
 
