@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import secrets
 from dataclasses import replace
+from pathlib import Path
 
 import pytest
 from tests.test_projection import CASE, CHECK, LEAKS, NAMES, Table, promoted, verdict
@@ -32,7 +33,9 @@ from digline.core import (
     run_from_json,
     run_to_json,
 )
+from digline.host import REFUSALS
 from digline.report import Locale, headline, render_html, render_run_html
+from digline.store import FileResultStore, NotAReferenceError
 from digline.store.promotion import refusals_for
 
 ANSWER = "Dear Mario Rossi, your IBAN IT60X0542811101 is overdrawn"
@@ -227,3 +230,55 @@ def test_a_served_run_renders_against_the_reference_and_names_nothing(
     for name in LEAKED:
         assert name not in html, name
     assert table.token("case_id", CASE) in html
+
+
+# --------------------------------------------------------------------------- #
+# Where a reference is read, a served projection is refused (ADR 0038 §1)
+# --------------------------------------------------------------------------- #
+
+
+def stored_as_baseline(tmp_path: Path, document: Run) -> FileResultStore:
+    store = FileResultStore(tmp_path)
+    store.ensure_layout(document.tenant)
+    path = store.baseline_path(document.tenant, document.suite)
+    path.write_text(run_to_json(document), encoding="utf-8")
+    return store
+
+
+def test_a_served_projection_where_a_reference_belongs_is_refused(
+    tmp_path: Path,
+) -> None:
+    served = project_served(unpromoted(), Table())
+    store = stored_as_baseline(tmp_path, served)
+    with pytest.raises(NotAReferenceError, match="nobody promoted"):
+        store.read_baseline("acme", "support")
+
+
+def test_a_stamped_projection_still_carrying_answers_is_refused(
+    tmp_path: Path,
+) -> None:
+    """The stamp alone is not enough: a reference carries no answer either."""
+    stamped = replace(unpromoted(), promoted_at="2026-10-01T10:00:00+00:00")
+    store = stored_as_baseline(tmp_path, project_served(stamped, Table()))
+    with pytest.raises(NotAReferenceError):
+        store.read_baseline("acme", "support")
+
+
+def test_a_projected_reference_is_read(tmp_path: Path) -> None:
+    reference = project(promoted(), Table())
+    store = stored_as_baseline(tmp_path, reference)
+    assert store.read_baseline("acme", "support") == reference
+
+
+def test_a_baseline_in_clear_without_a_stamp_is_read_as_it_always_was(
+    tmp_path: Path,
+) -> None:
+    """Only a projected document is held to it: a clear baseline written
+    before promotion stamped its time is not a served projection."""
+    legacy = promoted(promoted_at="")
+    store = stored_as_baseline(tmp_path, legacy)
+    assert store.read_baseline("acme", "support") == legacy
+
+
+def test_the_refusal_is_classified() -> None:
+    assert NotAReferenceError in REFUSALS
