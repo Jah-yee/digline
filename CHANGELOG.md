@@ -68,6 +68,20 @@ notes under them are this file, verbatim.
   already published keeps working against this core: the three new arguments
   have defaults, and for a caller that predates them the defaults are true.
 
+### Fixed — the suspension line parses whatever the case id and reason hold (#352)
+
+- **`suspension_snippet` writes both strings through `repr`.** It used to
+  escape backslashes and double quotes in the reason, and nothing in the case
+  id. So a case id with a double quote, or a reason with a line break, gave a
+  line that did not parse. #279 put the function on the API page so that
+  nobody would copy that quoting by hand, and the original had the same
+  defect. `digline view`'s `/suspend/<id>` serves the same line, so it is
+  fixed there too.
+  - **What you see changes**: the line now reads
+    `Case(id='a', suspended='...')`, in single quotes, which is how `repr`
+    writes a string. A formatter such as `ruff format` turns them into double
+    quotes once the line is in your suite.
+
 ### Documented — the fields of a case's history, and of a listed run (#336)
 
 - **`CaseHistory` and `CaseEntry` now have their fields on the API page.**
@@ -95,12 +109,10 @@ notes under them are this file, verbatim.
   `projected` verified on the way back in.
   - **Text that is not JSON** raises `json.JSONDecodeError`, which is not in
     `REFUSALS`. The page says so where the function is described.
-- **`suspension_snippet` is on the API page**, with its limits written
-  beside it:
+- **`suspension_snippet` is on the API page**, with its limit written beside
+  it:
   - **On a projected document the line carries a token**, so it is usable as
     it stands only where the store is in clear.
-  - **Only the reason is escaped.** A case id with a double quote, or a reason
-    with a line break, writes a line that does not parse.
   - `suspend_page` stays internal, because its navigation is `digline view`'s.
 - **`Score`'s fields are on the API page**, as #336 did for a case's history:
   `name` and `score`, which every table of results reads, and `sample_means`.
