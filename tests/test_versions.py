@@ -328,6 +328,15 @@ RECORDED: dict[str, dict[str, str]] = {
         "the lesson; moving the number would claim a later pass audited it",
     },
     "RELEASING.md": {
+        "0.25.2": (
+            "the release whose cut raised the open question on the version "
+            "criterion: a fact about when it was asked, not a claim about now"
+        ),
+        "0.26.0": (
+            "the number 0.25.2's heading was first opened under with no reason "
+            "recorded, told as the start of the open question: a number that "
+            "was never released"
+        ),
         "0.2.1": (
             "pytest-digline's version that 1653ce6's type-only change rode, "
             "told as the moment the carried list emptied. It names a plugin "

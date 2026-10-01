@@ -19,6 +19,23 @@ new public name, subcommand or option — as 0.10.1, 0.12.1 and 0.13.3 did.
 Check it by diffing the public names, the CLI and `SCHEMA_VERSION` between the
 last tag and `main`, not from memory.
 
+**Open, not ruled: whether the criterion measures only what breaks.** Raised
+on 2026-10-01, cutting 0.25.2. Its heading had been opened as
+`0.26.0 — unreleased` with no reason recorded. The diff against `v0.25.1`
+showed:
+- no schema change and no CLI change;
+- no public name removed, and three added;
+- two new refusals, each on input that public digline could not produce
+  before.
+
+The rule above made it a patch, and it shipped as one. The question it left is
+about the rule itself. **The rule measures only whether something stops
+working, and `project_served` opens a capability that was refused before**:
+projecting a run nobody promoted, which ADR 0034 §2 refused until ADR 0038
+narrowed it. Whether a capability opened that way should move the minor is not
+decided here. It is to be ruled on its own, away from a release, and not while
+cutting one.
+
 ## Two rituals, and mapping one of them is how you get surprised
 
 **A schema bump is two rituals, not one.** Moving `SCHEMA_VERSION` obliges the
