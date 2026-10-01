@@ -2705,6 +2705,19 @@ anyone is told about it.** Not the whole threat model again — the *delta*: wha
 this release made reachable that was not reachable before, and what a hostile
 value in each new field would do at each boundary it can cross.
 
+**A new public name earns the pass, even when a pass is where it came from, and
+the pass covers the new names, not the whole surface.** A release of repairs
+can still add names: 0.25.1's four refusal classes were each the fix of a
+finding in the pass over 0.25.0, and a release made only of repairs reads as
+having nothing to pass over. It has the names. Each one is a new message, and
+each crosses the boundaries it is raised across, so the three questions below
+apply to it as to any field. What it does not earn is a second pass over what
+the earlier pass already read: that is the work it was born of. **How to list
+them:** diff every `__all__` between the last tag and the tree being tagged.
+Do not count them from memory: on 0.25.1 a count given from memory said five,
+and there were four. Ruled 2026-10-01. `private/delta-pass-0.25.1.md` is the
+first pass run under it.
+
 The rule is here because 0.8.0 earned it in hours. That release added three
 surfaces, and the pass over them found that `resolved_model` travelled in clear
 out of a redacted run from a compatible endpoint, beside a `base_url` withheld
