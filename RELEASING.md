@@ -1147,12 +1147,11 @@ text: a release has to be earned by a change a user can meet.
 Ruled 2026-09-30, after four releases in a row had given the same answer to
 the same diff: v0.22.0, v0.23.0, v0.24.0 and v0.24.1.
 
-Carried today:
-- **`pytest-digline` 0.2.0**, published by `v0.19.0`. `1653ce6` changed
-  `plugin.py` on two lines: `FileResultStore` became `ResultStore`, in an
-  import under `TYPE_CHECKING` and in one annotation. The module has
-  `from __future__ import annotations`. It rides `pytest-digline`'s next real
-  release, and it comes out of this list then.
+Carried today: **nothing.** The list's first entry was `pytest-digline` 0.2.0,
+published by `v0.19.0`: `1653ce6` changed `plugin.py` on two lines, an import
+under `TYPE_CHECKING` and one annotation. It rode `pytest-digline` 0.2.1, a
+real release for the refusals the delta-pass over 0.25.1 found, and came out
+of this list then, as the entry said it would.
 
 ### A floor names a core version, so the core publishes first
 
