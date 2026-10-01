@@ -136,7 +136,7 @@ names the run:
 
 | # | What the document shows | What the line says |
 |---|---|---|
-| 1 | a file the scan could not read at all | `N run(s) at schema K were not read.` / `N file(s) could not be read.` |
+| 1 | a file the scan could not read at all, or a run the store refused to read after the scan passed it | `N run(s) at schema K were not read.` / `N file(s) could not be read.` / ``N run(s) were refused by the store and not read: `digline list` names them.`` |
 | 2 | the side recorded no configuration | `declared no configuration` |
 | 3 | several instruments on the judge side | `several judges; no single answering model` |
 | 4 | `resolved_model` withheld at a named endpoint | `the answering model is withheld at a named endpoint` |
@@ -359,7 +359,7 @@ $ digline log --suite suite.py --json
 
 emits the same reading for a program: `spans`, `rolls`, `replays`, `spread`,
 `spread_absence`, `reference`, `register`, the `window`, the counts `runs`,
-`skipped` and `unreadable`, and `on_record_not_read`: the `created_at` of each
+`skipped`, `unreadable` and `refused`, and `on_record_not_read`: the `created_at` of each
 run the baseline or the register names that was not read. Each span and each
 roll carries `unread_on_record`, the same runs counted inside it. `spread_absence` is why `spread` is empty, counted
 by cause — a consumer reading `[]` could not tell a store with no runs from a

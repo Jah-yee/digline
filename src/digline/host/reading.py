@@ -24,6 +24,7 @@ from typing import Literal
 
 from digline.core import Run, compare, key_of, redact, withhold_artifacts
 from digline.host.errors import UsageError
+from digline.host.listing import suite_runs
 from digline.host.resolve import read_run
 from digline.report import (
     Fact,
@@ -194,14 +195,21 @@ def history(
     """Every readable run of the suite, folded into the identity reading.
 
     What the scan could not read is passed on as counts, so the reading can say
-    *N runs were not read* instead of describing a shorter history.
+    *N runs were not read* instead of describing a shorter history. So is what
+    the store refused to read after the scan passed it: the runs come through
+    `suite_runs`, and until #314 one such run failed the whole reading.
+
+    **A baseline that cannot be read still refuses the reading**, as it did
+    before #314. The fold needs the baseline's run, not only its key, to count
+    the run it names among those not read, and `suite_runs` keeps only the key.
+    So it is read again here, bare.
 
     The register rides along (ADR 0021 §8). A register that cannot be read is
     not a reason to refuse the reading of the runs: it is passed on as a flag,
     and the reading says so rather than showing an empty register.
     """
-    listing = store.scan_runs(suite.tenant, suite.name)
-    rows = [(ref.key, store.read_run(ref)) for ref in listing.runs]
+    listed = suite_runs(store, suite.tenant, suite.name, mint=None)
+    listing = listed.listing
     baseline = store.read_baseline(suite.tenant, suite.name)
     try:
         register = store.read_register(suite.tenant, suite.name)
@@ -209,13 +217,14 @@ def history(
     except RegisterRefusedError:
         register, register_unreadable = Register(), True
     return identity_log(
-        rows,
+        listed.runs,
         tenant=suite.tenant,
         suite=suite.name,
         since=since,
         until=until,
         skipped=listing.skipped,
         unreadable=len(listing.unreadable),
+        refused=len(listed.refused),
         baseline=(
             None
             if baseline is None

@@ -74,6 +74,9 @@ PACKAGES = ROOT / "packages"
 #: is the first release, and anything claiming it should be a name that has
 #: been there from the start.
 INTRODUCED: dict[str, str] = {
+    # 0.25.2 — the list a program that shows runs reads (#276, `44e64ee`,
+    # `v0.25.2~9^2`). digline-mcp's `list_runs` reads through it since #314.
+    "suite_runs": "0.25.2",
     # 0.20.0 — the core classifies its own refusals, and a front end catches
     # the classification rather than a list of its own (friction 59). Assumed
     # number: `--replacing` makes the release a minor (ADR 0031); whoever cuts
@@ -341,3 +344,40 @@ def test_a_dated_name_still_exists_in_the_public_surface(plugin: Path) -> None:
             "that moved it, the way the host names are — or it is gone and the "
             "entry has to go with it."
         )
+
+
+#: Where `RELEASING.md` lists the floors owed to the next cut, between these two
+#: sentences. Both are required: a reworded heading must fail here, not leave
+#: the check below reading an empty section and passing.
+OWED_OPENS = "raise the floors owed to this release."
+OWED_CLOSES = "**An empty table is the normal state.**"
+OWED_MARKER = "Owed at the cut"
+
+
+def owed_section() -> str:
+    text = (ROOT / "RELEASING.md").read_text(encoding="utf-8")
+    start, end = text.find(OWED_OPENS), text.find(OWED_CLOSES)
+    assert 0 <= start < end, (
+        "RELEASING.md no longer has the step that lists the floors owed at the "
+        f"cut, opening with {OWED_OPENS!r} and closing with {OWED_CLOSES!r}."
+    )
+    return text[start:end]
+
+
+@pytest.mark.parametrize("plugin", plugins(), ids=lambda p: p.name)
+def test_a_floor_owed_at_the_cut_is_where_the_cut_reads(plugin: Path) -> None:
+    """The half this file cannot compute. A plugin that passes a new argument to
+    a name it already imported needs a newer core than its imports say, and a
+    floor may not name a release that does not exist yet, so the floor is
+    written by hand at the cut. A note beside the floor is read by nobody
+    cutting a release, so the note has to be in the step the cut walks through.
+    (#314)"""
+    pyproject = (plugin / "pyproject.toml").read_text(encoding="utf-8")
+    if OWED_MARKER not in pyproject:
+        return
+    assert f"| `{plugin.name}` |" in owed_section(), (
+        f"{plugin.name}'s pyproject.toml says its floor is {OWED_MARKER!r}, and "
+        "RELEASING.md's table of floors owed to this release has no row for "
+        "it. Add the row, or the release will ship this package on a floor "
+        "that cannot run it."
+    )

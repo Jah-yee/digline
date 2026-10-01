@@ -215,6 +215,9 @@ def log_json(log: IdentityLog) -> dict[str, object]:
             ],
             "skipped": {str(version): n for version, n in sorted(log.skipped.items())},
             "unreadable": log.unreadable,
+            # Added key: the runs the scan found and the store refused to read,
+            # counted beside `unreadable` rather than inside it. (#314)
+            "refused": log.refused,
             # Added key: the `created_at` of every run the baseline or the
             # register name that was not read here, inside the window. Empty
             # does not mean nothing is missing: a run neither names leaves no

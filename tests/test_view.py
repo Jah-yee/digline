@@ -848,11 +848,19 @@ def test_a_promotion_that_happened_says_so_when_the_list_cannot_be_drawn(
     and a promotion of a *good* run wrote the baseline and then answered with a
     closed connection: the list is re-read after the write, and that read raised.
     A promotion that looks failed and is not. The outcome must arrive whatever
-    the list does."""
+    the list does.
+
+    **What breaks the list changed with #314.** A malformed run did, until the
+    list read through `suite_runs`, which leaves such a run out and names it.
+    What still fails the list whole is the scan itself: `scan_runs` reads
+    `schema_version` with `int()` outside its handler, so a version that is not
+    a number raises out of it. That is a defect of its own, and the day it is
+    fixed this test needs another way to break the list, or the fallback has
+    none left."""
     base, key, cookie = served_promoting
     baseline = repo / ".digline" / "acme-bank" / "baselines" / "qa.json"
     before = json.loads(baseline.read_text(encoding="utf-8"))["promoted_at"]
-    plant(repo, key, "zz-malformed", results=7)
+    plant(repo, key, "zz-malformed", schema_version="not-a-version")
 
     status, page = post_page(
         base, f"run={key}&replacing={key}&locale=en", cookie=cookie
@@ -879,7 +887,8 @@ def test_the_page_that_says_what_a_promotion_did_writes_no_control_character(
     document = json.loads(baseline.read_text(encoding="utf-8"))
     document["promoted_at"] = "\x1b[2K\r\u202eFORGED\x9bEND"
     baseline.write_text(json.dumps(document), encoding="utf-8")
-    plant(repo, key, "zz-malformed", results=7)
+    # What still breaks the list whole: see the test above. (#314)
+    plant(repo, key, "zz-malformed", schema_version="not-a-version")
 
     # `none` over a baseline that exists: refused, naming what it found.
     status, page = post_page(base, f"run={key}&replacing=none&locale=en", cookie=cookie)

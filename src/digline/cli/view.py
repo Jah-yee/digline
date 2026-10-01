@@ -71,7 +71,7 @@ from pathlib import Path
 
 from digline.cli.output import say
 from digline.core import key_of
-from digline.host import REFUSALS, promote_priced, utc_now_iso
+from digline.host import REFUSALS, SuiteRuns, promote_priced, suite_runs, utc_now_iso
 from digline.report import Locale, case_history, escape, pages
 from digline.run import Suite
 from digline.store import ResultStore, RunRef
@@ -451,16 +451,11 @@ class ViewHandler(BaseHTTPRequestHandler):
 
     # -- reading the store -------------------------------------------------- #
 
-    def _runs(self) -> tuple[list[tuple[str, object]], str]:
-        listing = self.store.scan_runs(self.suite.tenant, self.suite.name)
-        rows = [(ref.key, self.store.read_run(ref)) for ref in listing.runs]
-        return list(rows), listing.note()
-
-    def _baseline_key(self) -> str | None:
-        baseline = self.store.read_baseline(self.suite.tenant, self.suite.name)
-        if baseline is None:
-            return None
-        return key_of(baseline.created_at, baseline.config_hash)
+    def _runs(self) -> SuiteRuns:
+        # In clear: this server serves the unredacted store to world 1. A run
+        # the store refuses is left out and named, rather than answering 400
+        # for the whole page. (#314)
+        return suite_runs(self.store, self.suite.tenant, self.suite.name, mint=None)
 
     # -- the screens -------------------------------------------------------- #
 
@@ -513,17 +508,17 @@ class ViewHandler(BaseHTTPRequestHandler):
             self._error(400, str(exc))
 
     def _screen_runs(self, locale: Locale, message: str = "") -> None:
-        runs, ignored = self._runs()
+        listed = self._runs()
         self._send(
             200,
             pages.runs_page(
-                runs,  # pyright: ignore[reportArgumentType]
-                baseline_key=self._baseline_key(),
+                listed.runs,
+                baseline_key=listed.baseline_key,
                 config_hash=self.suite.config_hash(pricing=self.pricing),
                 locale=locale,
                 suite=self.suite.name,
                 allow_promote=self.allow_promote,
-                ignored=ignored,
+                ignored=listed.note(),
                 message=message,
             ),
         )
@@ -599,8 +594,7 @@ class ViewHandler(BaseHTTPRequestHandler):
         )
 
     def _screen_case(self, locale: Locale, case_id: str) -> None:
-        runs, _ignored = self._runs()
-        history = case_history(runs, case_id)  # pyright: ignore[reportArgumentType]
+        history = case_history(self._runs().runs, case_id)
         self._send(200, pages.case_page(history, locale=locale, suite=self.suite.name))
 
     def _screen_suspend(

@@ -108,6 +108,9 @@ def runs_json(
     suite: str,
     baseline_key: str | None,
     listing: Listing,
+    note: str | None = None,
+    refused: int = 0,
+    baseline_unreadable: bool = False,
 ) -> dict[str, object]:
     """Every stored run of a suite, newest first, with the baseline marked.
 
@@ -127,6 +130,23 @@ def runs_json(
     `unreadable` is a **count and not a list of paths**: a path under
     `.digline/` is this machine's fact, and the count is what a caller needs in
     order to say something true. (ADR 0011 §4)
+
+    `note` is the caller's whole sentence about what was left out:
+    `SuiteRuns.note()` where the rows came from `suite_runs`, because the scan's
+    skips are one part of it and the runs the read refused and a baseline that
+    could not be read are the others. `refused` counts the runs the scan found
+    and the store refused to read, for the reason `unreadable` is a count.
+    `baseline_unreadable` is what keeps `baseline_key: null` from reading as *no
+    baseline yet* about a baseline that is there and could not be read. Both
+    are added keys, under the same `OUTPUT_VERSION`. (#314)
+
+    **The three have defaults, and the defaults are true for every caller that
+    omits them.** A caller written before #314 read each run and the baseline
+    bare, so any refusal raised out of it and never reached this function: for
+    it nothing was refused, and its note was the scan's. They exist so that a
+    `digline-mcp` already published keeps working against this core: a core
+    that broke a published caller of its own has had to ship a repair for it
+    once already.
     """
     ordered = sorted(rows, key=lambda row: row[1].created_at, reverse=True)
     return neutralised(
@@ -165,7 +185,7 @@ def runs_json(
                 }
                 for key, run in ordered
             ],
-            "note": listing.note(),
+            "note": listing.note() if note is None else note,
             # What to do about what was left out, in the direction the versions say
             # — a list, because a store can owe both sentences at once. Beside the
             # note rather than inside it: the note is what happened, this is what
@@ -175,6 +195,8 @@ def runs_json(
                 str(version): n for version, n in sorted(listing.skipped.items())
             },
             "unreadable": len(listing.unreadable),
+            "refused": refused,
+            "baseline_unreadable": baseline_unreadable,
         }
     )
 
