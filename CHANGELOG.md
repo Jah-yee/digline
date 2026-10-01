@@ -6,7 +6,7 @@ upgrading, and what deliberately did not move. The reasoning lives in
 read the [release titles](https://github.com/digline/digline/releases) — the
 notes under them are this file, verbatim.
 
-## 0.25.3 — unreleased
+## 0.25.3 — 2026-10-01
 
 digline **0.25.3**. The last two things a page served where the data is
 needed from documented names. A projected list of runs no longer shows a file
@@ -14,8 +14,19 @@ name that names somebody (F-1 of the delta-pass over 0.25.2). And a program
 can compute the exit code of a run, a first round included, with
 `run_exit_code`: before this, the rule behind `digline report` and
 `digline explain` existed only as two inline copies. Nothing to migrate, no
-schema change, `OUTPUT_VERSION` unchanged, and no public name removed: one
-added. Only the core moves.
+schema change, `OUTPUT_VERSION` unchanged, and nothing public removed.
+
+**Two additions to the public surface, not one:** the function
+`digline.wire.run_exit_code`, and the field `SuiteRuns.unnamed`. A dataclass is
+its fields, so a field added to a public class is new surface as much as a new
+name. This entry first counted only the name: a diff of the `__all__`s cannot
+see a field. `RELEASING.md` now lists the fields of a listed dataclass as a
+third kind of surface, with `tools/public_fields.py` to find them. Only the
+core moves.
+
+**The browser walkthrough was not owed.** Nothing in the launch key, the
+hand-over or the promote form changed since 0.25.2: `src/digline/cli/` and
+`src/digline/report/pages.py` are unchanged between `v0.25.2` and this tag.
 
 ### Fixed — a sentence that promised what `suite_runs` does not do
 
