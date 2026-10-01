@@ -8,6 +8,26 @@ notes under them are this file, verbatim.
 
 ## Unreleased
 
+### Documented — the tenant directory gives addressing, not access (#140); the resolver's row (#354)
+
+- **Five more places said the filesystem enforces the *separation* between
+  tenants.** It enforces **addressing**: filing or reading one client's history
+  as another's is refused. It is not access control, because one OS user reads
+  every tenant. They say so now: `store/file_store.py`'s module docstring,
+  `ResultStore`'s class docstring, `tests/test_store.py`, ADR 0011 §8 under a
+  dated note, and `examples/operator/journal.py`. ADR 0002 §1 and fixed
+  decision 8 were corrected on 2026-09-26; these repeated the old claim. The
+  dated note under ADR 0002 §1 says how the last two escaped the sweep that
+  listed the others.
+- **ADR 0002's bridge bullet says its generated `case_id` is owed to ADR
+  0023**, the way the line above it already says its anonymisation was
+  corrected. The words stay until ADR 0023 is accepted.
+- **`docs/api.md`'s import table no longer counts the resolver's refusals.** It
+  said five, and the section lists seven: two arrived in #291 and the row was
+  not updated. It now says *its refusals* and points at the section, which is
+  the one place that names them.
+- Nothing in the code moved. Every change is a docstring or a document.
+
 ### Changed — one run the store refuses no longer fails the whole list (#314)
 
 - **`digline list`, `digline log`, `digline view`, and MCP's `list_runs` and

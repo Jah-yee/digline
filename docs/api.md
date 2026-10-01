@@ -22,7 +22,7 @@ motion.
 | `Verdict` `Score` `Status` `Message` | |
 | `Run` `CaseResult` `compare` `redact` `config_hash` | |
 | `project` `project_served` `Minter` `TokenKind` `is_token` `ProjectionRefusedError` — [the projection](#the-projection) | |
-| `resolve_tokens` `Lookup` `NameRow` and five refusals — [the resolver](#the-resolver) | |
+| `resolve_tokens` `Lookup` `NameRow` and its refusals — [the resolver](#the-resolver) | |
 | `run_to_json` `run_from_json` — [the committed file](#the-committed-file-run_to_json-and-run_from_json) | |
 
 The report lives in `digline.report` (`headline`, `render_html`, `Locale`,

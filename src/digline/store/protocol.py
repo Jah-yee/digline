@@ -344,8 +344,11 @@ class ResultStore(Protocol):
     reviewable and two branches stop being comparable.
 
     The tenant is a directory rather than a field inside the file because the
-    filesystem then enforces the separation that a field could only describe:
-    one end customer's results cannot be read by pointing at another's path.
+    filesystem then enforces the addressing that a field could only describe:
+    one end customer's results cannot be filed or read *as* another's, and a
+    document that says otherwise is refused (`TenantMismatchError`). That is
+    addressing, not access: one OS user reads every tenant's path, and keeping
+    them apart is the operator's job (fixed decision 8).
     """
 
     def write_run(self, run: Run) -> RunRef:

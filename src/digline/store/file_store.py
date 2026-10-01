@@ -11,9 +11,12 @@
 The verdict and its history are an artifact of the project: read in a code
 review, anchored to a commit, moving with the repository.
 
-The tenant is a directory and not a field inside the file, so the separation
-between perimeters is something the filesystem enforces rather than something a
-document merely describes.
+The tenant is a directory and not a field inside the file, so **addressing** is
+something the filesystem enforces rather than something a document merely
+describes: filing or reading one client's history as another's is a refused
+mistake. It is not access control. Nothing here sets or inspects a mode, and one
+OS user reads every tenant; separating access is the operator's job (fixed
+decision 8).
 """
 
 from __future__ import annotations
@@ -122,7 +125,7 @@ def _check_name(value: str, kind: str) -> str:
     """Reject anything that is not a single safe path segment.
 
     `..` and `/` are the interesting rejections: a tenant is a directory, so a
-    name that could climb out of it would defeat the separation the layout
+    name that could climb out of it would defeat the addressing the layout
     exists to provide.
     """
     if not _NAME_RE.match(value):

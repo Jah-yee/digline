@@ -809,6 +809,14 @@ every tenant on the machine in one place. `.digline/<tenant>/` puts the
 perimeter in the filesystem precisely so that it is not a field in a document
 somebody could get wrong; a registry would put it back into a document.
 
+*Corrected 2026-10-01 (#140). "Puts the perimeter in the filesystem" is true of
+**addressing**: the directory makes filing or reading one client's history as
+another's a refused mistake. It is not access control. digline sets and
+inspects no mode, and one OS user reads every tenant. [ADR 0002](0002-three-worlds-and-where-the-data-lives.md)
+§1 gives the correction in full; this is the same correction, where this record
+repeated the claim. The argument against a registry does not move: it rests on
+the address, and the address is what the directory holds.*
+
 **Transport is stdio.** The client launches the process; there is no bound port
 and no listening socket. The SDK also offers SSE and streamable-HTTP, and
 neither is wired here: fixed decision 5 is about network calls the user did not
