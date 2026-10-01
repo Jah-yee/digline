@@ -87,6 +87,10 @@ correct its structural mistakes and are not negotiable.
    and no adversary is addressed by them, because the reference and the suite
    share a repository (ADR 0034 §12). That ruling holds only while a reference
    cannot reach a place the suite does not.
+   *Added 2026-10-01 (ADR 0038).* A page served to the software house shows a
+   **served projection**: a run, promoted or not, projected the same way. It
+   carries what a projected reference carries, plus what a current run adds,
+   which is a response count and digline's own vocabulary, never a name.
 
 ## Structure
 

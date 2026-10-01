@@ -254,6 +254,10 @@ its writers. This record makes no amendment there.
 - **ADR 0034 §2 carries the narrowing beside the sentence it narrows**, as a
   dated note, so that a reader who meets the refusal meets its limit in the
   same place.
+- **`CLAUDE.md`'s fixed decision 9 names the served projection** in one dated
+  line that points here. Nothing the decision said was false. It governs a
+  thing it did not name, and a reader of that file alone would not know the
+  thing exists.
 - **ADR 0036 §7 is owed a sentence** (§4).
 - **Issues #277 and #278 can now be answered in substance.** Each renders a run
   that public digline could not project, and §1 permits the projection. They
