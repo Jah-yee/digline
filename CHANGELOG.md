@@ -6,7 +6,16 @@ upgrading, and what deliberately did not move. The reasoning lives in
 read the [release titles](https://github.com/digline/digline/releases) — the
 notes under them are this file, verbatim.
 
-## Unreleased
+## 0.25.3 — unreleased
+
+digline **0.25.3**. The last two things a page served where the data is
+needed from documented names. A projected list of runs no longer shows a file
+name that names somebody (F-1 of the delta-pass over 0.25.2). And a program
+can compute the exit code of a run, a first round included, with
+`run_exit_code`: before this, the rule behind `digline report` and
+`digline explain` existed only as two inline copies. Nothing to migrate, no
+schema change, `OUTPUT_VERSION` unchanged, and no public name removed: one
+added. Only the core moves.
 
 ### Fixed — a sentence that promised what `suite_runs` does not do
 
