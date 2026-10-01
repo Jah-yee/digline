@@ -6,7 +6,7 @@ upgrading, and what deliberately did not move. The reasoning lives in
 read the [release titles](https://github.com/digline/digline/releases) — the
 notes under them are this file, verbatim.
 
-## pytest-digline 0.2.1 — unreleased
+## pytest-digline 0.2.1 — 2026-10-01
 
 Published by its own tag, `pytest-digline-v0.2.1`. The core does not move.
 
