@@ -946,9 +946,13 @@ def suspension_snippet(case_id: str, reason: str) -> str:
     the reason would land outside the review where every other decision about
     the suite is made. So the page hands over the edit and the developer
     commits it.
+
+    Both strings go in through `repr`, which writes a literal Python reads
+    back as the same string, whatever it holds. Escaping by hand covered two
+    characters of the reason and none of the case id, so a quote in the id or
+    a line break in the reason wrote a line that did not parse (#352).
     """
-    quoted = reason.replace("\\", "\\\\").replace('"', '\\"')
-    return f'Case(id="{case_id}", suspended="{quoted}")'
+    return f"Case(id={case_id!r}, suspended={reason!r})"
 
 
 def suspend_page(

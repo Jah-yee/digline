@@ -20,6 +20,7 @@ and go on passing with the origin check deleted. (ADR 0033)
 
 from __future__ import annotations
 
+import ast
 import http.client
 import json
 import re
@@ -319,14 +320,14 @@ def test_the_suspension_page_produces_the_edit() -> None:
     page = suspend_page("a", reason="provider is down", locale="en", suite="brief")
     # Unescaped for the assertion: the page escapes its quotes, as it must, and
     # what the developer copies out of the browser is the unescaped line.
-    assert 'Case(id="a", suspended="provider is down")' in unescape(page)
+    assert "Case(id='a', suspended='provider is down')" in unescape(page)
 
 
 def test_the_snippet_escapes_a_quoted_reason() -> None:
     """The reason goes into a Python string literal. A quote that closed it
     early would produce a snippet that does not parse — pasted, then debugged."""
     snippet = suspension_snippet("a", 'the "flaky" provider')
-    assert snippet == 'Case(id="a", suspended="the \\"flaky\\" provider")'
+    assert snippet == "Case(id='a', suspended='the \"flaky\" provider')"
 
     # Evaluated, not just compared: the point is that the line *parses*, and a
     # test that only compared strings would pass on a snippet nobody can paste.
@@ -335,6 +336,22 @@ def test_the_snippet_escapes_a_quoted_reason() -> None:
 
     namespace: dict[str, object] = {"Case": fake_case}
     assert eval(snippet, namespace) == {"id": "a", "suspended": 'the "flaky" provider'}
+
+
+def test_the_snippet_parses_whatever_the_case_id_and_reason_hold() -> None:
+    """Both arguments are free text, and the line is pasted into a suite under
+    review. Escaping two characters of one argument left a quote in the case id
+    and a line break in the reason writing a line that does not parse (#352),
+    which is the fragile copy #279 existed to prevent, in the original."""
+    case_id, reason = 'a"b', "line one\nline two"
+    snippet = suspension_snippet(case_id, reason)
+
+    call = ast.parse(snippet, mode="eval").body
+    assert isinstance(call, ast.Call)
+    assert {kw.arg: ast.literal_eval(kw.value) for kw in call.keywords} == {
+        "id": case_id,
+        "suspended": reason,
+    }
 
 
 def test_without_a_reason_there_is_no_snippet_to_copy() -> None:
@@ -481,7 +498,7 @@ def test_the_four_routes_answer(served: tuple[str, str]) -> None:
 
     status, body = get(f"{base}suspend/capital-it?reason=flaky+provider")
     assert status == 200
-    assert 'Case(id="capital-it", suspended="flaky provider")' in unescape(body)
+    assert "Case(id='capital-it', suspended='flaky provider')" in unescape(body)
 
 
 def test_before_the_first_promotion_compare_shows_the_run(repo: Path) -> None:

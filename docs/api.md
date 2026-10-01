@@ -1698,7 +1698,7 @@ free text, and that form is a legal one.
 ### Setting a case aside: `suspension_snippet`
 
 **`digline.report.suspension_snippet(case_id, reason)`** returns the line that
-suspends a case, `Case(id="...", suspended="...")`, for a person to add to the
+suspends a case, `Case(id='...', suspended='...')`, for a person to add to the
 suite and commit (#279). It is the line `digline view` shows at
 `/suspend/<id>`. digline produces it and never applies it: `Case` is Python in
 the user's repository, and a suspension is a decision about the suite, so it
@@ -1710,14 +1710,11 @@ from digline.report import suspension_snippet
 line = suspension_snippet(entry_case_id, "flaky since the 2026-09 model update")
 ```
 
-- **The reason is escaped before it lands in the line**: backslashes first,
-  then double quotes. That is the reason to call this rather than build the
-  line by hand: a copy of the quoting is a copy of a rule about what reaches a
-  file under review.
-- **Only the reason is escaped, and only those two characters.** The case id
-  goes into the line as it is given, so an id with a double quote writes a
-  line that does not parse. So does a reason with a line break. Neither is
-  refused.
+- **Both strings go into the line through `repr`**, so the line parses back
+  to the same case id and the same reason, whatever either holds: quotes,
+  backslashes, line breaks. That is the reason to call this rather than build
+  the line by hand: a copy of the quoting is a copy of a rule about what
+  reaches a file under review.
 - **On a projected document the line carries a token.** The `case_id` there
   is the token the page's links carry, and the line puts it in the suite as
   if it were the case's name. So the line is usable as it stands only where
