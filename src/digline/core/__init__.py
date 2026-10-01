@@ -100,7 +100,7 @@ from digline.core.pii import (
     verify_iban,
     verify_partita_iva,
 )
-from digline.core.projection import ProjectionRefusedError, project
+from digline.core.projection import ProjectionRefusedError, project, project_served
 from digline.core.protocols import (
     Assertion,
     AsyncJudge,
@@ -404,6 +404,7 @@ __all__ = [
     "trajectory_chars",
     "redact",
     "project",
+    "project_served",
     "resolve_tokens",
     "Lookup",
     "NameRow",

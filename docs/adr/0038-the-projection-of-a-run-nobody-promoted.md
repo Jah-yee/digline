@@ -190,6 +190,26 @@ record requires and does not shape (§*Not decided here*).
   is the declaration §8 asks for, or something more is owed, is not decided
   here.**
 
+  *Ruled 2026-10-01; the bullet above is kept as written.* **`promoted_at` is
+  the declaration, and no field is added.** A projected reference carries
+  `promoted_at` and no recorded answer. A served projection of a run nobody
+  promoted carries no `promoted_at`, and may carry answers as withheld
+  placeholders. Both facts are on the document and both are verified there:
+  the stamp for its form since #296, a withheld answer by `Run`'s check of a
+  redacted document.
+  - **A field of its own was refused, for three reasons.** It would be a claim
+    where the distinction can already be read off verified fields. It would
+    cost a schema bump. And it would invite `compare()` to treat the two as
+    regimes, which would break §3's shape B, a served run held against the
+    projected reference.
+  - **What enforces it is the place a reference is read.** `read_baseline`
+    refuses a projected document that is not a reference, as
+    `NotAReferenceError`. So the condition in the bullet before this one now
+    notices when it is broken.
+  - **Its limit, declared:** it reads what the document says. A document built
+    by hand with a stamp and no answers passes, as it does `project`'s own
+    check.
+
 ### 2. A served projection carries the same as a committed one: no more, no less
 
 > **A served projection of a run carries what a projected reference carries,
@@ -299,9 +319,15 @@ above is kept as written.*
 ## Not decided here
 
 - **The shape of the second way in**: a function beside `project`, a parameter
-  on it, or something else.
+  on it, or something else. *Decided 2026-10-01: a function,
+  `project_served(run, mint)`, in `digline.core` beside `project`. `project` is
+  its two refusals in front of `project_served`, so for a reference both give
+  one document. A parameter was refused because it would make the committed
+  file's refusals a default. The bullet is kept as written.*
 - **Whether `promoted_at` is the declaration ADR 0034 §8 asks for**, so that a
-  served projection is told apart from a projected reference (§1).
+  served projection is told apart from a projected reference (§1). *Ruled
+  2026-10-01, in §1: it is, and `read_baseline` enforces it. The bullet is
+  kept as written.*
 - **Shape C** of §3.
 - **What ADR 0036 §7 says about the table's writer on page views** (§4).
   *Written 2026-10-01 in ADR 0036 §7. The bullet is kept as written.*
