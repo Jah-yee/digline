@@ -455,8 +455,6 @@ a projected list.
   `project` returns a `Run`, `resolve_tokens` takes one, and the page named
   them only in an example's import. Reading the file with them is what keeps
   `projected` verified on the way back in.
-  - **Text that is not JSON** raises `json.JSONDecodeError`, which is not in
-    `REFUSALS`. The page says so where the function is described.
 - **`suspension_snippet` is on the API page**, with its limit written beside
   it:
   - **On a projected document the line carries a token**, so it is usable as
@@ -6098,3 +6096,12 @@ Tag `v0.1.3`: digline 0.1.3, digline-anthropic 0.1.1, digline-openai 0.1.0.
 
 - First release: the offline cycle — write a suite, run, promote, compare,
   report — with the baseline committed in your own repository.
+
+### Tested — `run_from_json` refuses non-JSON input (#353)
+
+- **`tests/test_projection.py`** now has a parametrized test
+  `test_text_that_is_not_json_is_refused_by_run_from_json` covering
+  truncated, trailing-data, and empty-string inputs. Each case asserts
+  `DocumentRefusedError` is raised, `__cause__` is the original
+  `JSONDecodeError`, the exception is in `REFUSALS`, and no token from the
+  document appears in the error message.
