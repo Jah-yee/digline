@@ -3044,6 +3044,7 @@ def run_to_json(
 
 def run_from_json(payload: str) -> Run:
     try:
-        return run_from_dict(json.loads(payload))
+        parsed = json.loads(payload)
     except json.JSONDecodeError as exc:
-        raise DocumentRefusedError(f"Invalid JSON payload: {exc}") from exc
+        raise DocumentRefusedError(f"the run document is not JSON ({exc})") from exc
+    return run_from_dict(parsed)

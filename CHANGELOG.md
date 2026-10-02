@@ -348,6 +348,14 @@ a projected list.
   narrower than its docstring's *whatever the list does*. That narrower catch
   is why `null` closed the connection.
 
+### Fixed — `run_from_json` now refuses non-JSON as `DocumentRefusedError` (#353)
+
+- **`run_from_json`** catches `json.JSONDecodeError` and re-raises it as
+  `DocumentRefusedError` (in `REFUSALS`). Previously it propagated the raw
+  `JSONDecodeError`, which `digline-mcp` could not translate for an agent.
+  The original `JSONDecodeError` is preserved as `__cause__` for debugging.
+  The error message now reads: `"the run document is not JSON ({exc})"`.
+
 ### Documented — the tenant directory gives addressing, not access (#140); the resolver's row (#354)
 
 - **Five more places said the filesystem enforces the *separation* between

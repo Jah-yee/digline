@@ -2216,8 +2216,10 @@ one writes a projection to that file, the other reads the file back (#322).
 - **A document this version cannot read is refused** as
   `DocumentRefusedError`, in `REFUSALS`. That covers a `schema_version` other
   than this release's, and a document that is not a run.
-- **Text that is not JSON is not refused that way.** It raises
-  `json.JSONDecodeError`, a `ValueError` that is not in `REFUSALS`.
+- **Text that is not JSON is refused as `DocumentRefusedError`.** The
+  `json.JSONDecodeError` is caught and re-raised as `DocumentRefusedError`,
+  which is in `REFUSALS`, so `digline-mcp` translates it for an agent instead
+  of handing it a bare parse error.
 
 Parsing the file with code of your own skips those checks, which is why these
 two functions are on this page. They are the same functions the store reads
